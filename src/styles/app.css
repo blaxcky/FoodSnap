@@ -480,6 +480,22 @@ button {
   min-height: 46px;
 }
 
+.destructive-action {
+  color: var(--danger);
+}
+
+.ghost-button:disabled,
+.primary-button:disabled {
+  opacity: 0.55;
+}
+
+.success-copy {
+  margin: 0;
+  color: var(--success-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .entry-card,
 .food-row {
   padding: 14px 16px;

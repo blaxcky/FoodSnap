@@ -5,6 +5,7 @@ import { FoodLibrary } from './components/FoodLibrary';
 import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon, SettingsIcon } from './components/Icons';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SessionList } from './components/SessionList';
+import { downloadFoodMemoryBackup } from './lib/backup';
 import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
 import { formatExport } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
@@ -65,6 +66,7 @@ export default function App() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
+  const [exportBackupState, setExportBackupState] = useState<'idle' | 'done' | 'error'>('idle');
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
 
@@ -213,6 +215,22 @@ export default function App() {
     }
   }
 
+  function handleExportFoodMemory() {
+    try {
+      downloadFoodMemoryBackup(foods);
+      setExportBackupState('done');
+      window.setTimeout(() => setExportBackupState('idle'), 1800);
+    } catch {
+      setExportBackupState('error');
+    }
+  }
+
+  function handleResetSession() {
+    setEntries([]);
+    setEditingEntryId(null);
+    setCopyState('idle');
+  }
+
   function startEditing(entryId: string) {
     setEditingEntryId(entryId);
     setActiveTab('log');
@@ -318,7 +336,12 @@ export default function App() {
       {activeTab === 'settings' ? (
         <section className="screen-section">
           <SettingsPanel
+            foodCount={foods.length}
+            sessionCount={entries.length}
+            exportState={exportBackupState}
             refreshState={refreshState}
+            onExportFoodMemory={handleExportFoodMemory}
+            onResetSession={handleResetSession}
             onForceRefresh={handleForceRefresh}
           />
         </section>
