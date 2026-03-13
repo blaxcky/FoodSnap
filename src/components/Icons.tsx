@@ -109,3 +109,12 @@ export function ArrowDownIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function SettingsIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="M12 3.5 14 5l2.5-.2 1.2 2.2L20 8l-.6 2.4 1.2 2.2-1.7 1.8.2 2.5-2.2 1.2-1.8 2.1-2.4-.6-2.4.6-1.8-2.1-2.2-1.2.2-2.5L4.6 12l1.2-2.2L5.2 8l2.3-1.1 1.2-2.2L11 5l1-1.5Z" />
+      <circle cx="12" cy="12" r="3.25" />
+    </svg>
+  );
+}

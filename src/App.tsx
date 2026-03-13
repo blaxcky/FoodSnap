@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { EntryComposer } from './components/EntryComposer';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
-import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon } from './components/Icons';
+import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon, SettingsIcon } from './components/Icons';
+import { SettingsPanel } from './components/SettingsPanel';
 import { SessionList } from './components/SessionList';
+import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
 import { formatExport } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import type {
@@ -63,9 +65,11 @@ export default function App() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export'>('log');
+  const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
+  const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
 
   useEffect(() => {
+    clearRefreshQueryParam();
     const state = loadAppState();
     setFoods(state.foods);
     setEntries(state.currentSession);
@@ -214,6 +218,15 @@ export default function App() {
     setActiveTab('log');
   }
 
+  async function handleForceRefresh() {
+    try {
+      setRefreshState('working');
+      await forceFreshAppLoad();
+    } catch {
+      setRefreshState('error');
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -226,10 +239,10 @@ export default function App() {
         <button
           className="top-icon-button"
           type="button"
-          onClick={() => setActiveTab('history')}
-          aria-label="Jump to current session"
+          onClick={() => setActiveTab('settings')}
+          aria-label="Open settings"
         >
-          <HistoryIcon className="ui-icon" />
+          <SettingsIcon className="ui-icon" />
         </button>
       </header>
 
@@ -298,6 +311,15 @@ export default function App() {
               setCopyState('idle');
             }}
             onCopy={handleCopy}
+          />
+        </section>
+      ) : null}
+
+      {activeTab === 'settings' ? (
+        <section className="screen-section">
+          <SettingsPanel
+            refreshState={refreshState}
+            onForceRefresh={handleForceRefresh}
           />
         </section>
       ) : null}
