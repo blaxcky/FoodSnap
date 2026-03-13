@@ -142,6 +142,15 @@ export function EntryComposer({
             <input
               ref={foodInputRef}
               className="field-input field-input-lg"
+              name="food-log-name"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
               inputMode="text"
               placeholder="Enter food name..."
               value={form.foodName}
@@ -219,6 +228,15 @@ export function EntryComposer({
           <input
             ref={beforeInputRef}
             className="field-input number-field"
+            name="food-log-before"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="next"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
             inputMode="decimal"
             placeholder="0"
             value={form.beforeWeight}
@@ -242,6 +260,15 @@ export function EntryComposer({
           <input
             ref={afterInputRef}
             className="field-input number-field"
+            name="food-log-after"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="done"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
             inputMode="decimal"
             placeholder="0"
             value={form.afterWeight}
