@@ -1,3 +1,4 @@
+import { PencilIcon, TrashIcon } from './Icons';
 import type { SessionEntry } from '../lib/types';
 import { formatEntryMeta, formatNumber } from '../lib/utils';
 
@@ -20,9 +21,10 @@ export function SessionList({
     <section className="panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Current session</p>
+          <p className="section-kicker">Current session</p>
           <h2>{entries.length} item{entries.length === 1 ? '' : 's'} captured</h2>
         </div>
+        <span className="status-badge">Active</span>
       </div>
 
       {entries.length === 0 ? (
@@ -41,21 +43,31 @@ export function SessionList({
                 <div>
                   <h3>{entry.foodName}</h3>
                   <p>{entry.unit === 'g' ? `${formatNumber(entry.amount)}g` : `${formatNumber(entry.amount)} pcs`}</p>
+                  {entry.mode === 'difference' ? <small>{formatEntryMeta(entry)}</small> : null}
                 </div>
-                <small>{formatEntryMeta(entry)}</small>
               </div>
 
               {entry.note ? <p className="entry-note">{entry.note}</p> : null}
 
               <div className="entry-actions">
-                <button className="ghost-button" type="button" onClick={() => onEdit(entry.id)}>
-                  Edit
-                </button>
-                <button className="ghost-button" type="button" onClick={() => onDuplicate(entry.id)}>
+                <button className="ghost-button subtle" type="button" onClick={() => onDuplicate(entry.id)}>
                   Again
                 </button>
-                <button className="ghost-button danger" type="button" onClick={() => onDelete(entry.id)}>
-                  Delete
+                <button
+                  className="icon-action"
+                  type="button"
+                  onClick={() => onEdit(entry.id)}
+                  aria-label={`Edit ${entry.foodName}`}
+                >
+                  <PencilIcon className="ui-icon" />
+                </button>
+                <button
+                  className="icon-action"
+                  type="button"
+                  onClick={() => onDelete(entry.id)}
+                  aria-label={`Delete ${entry.foodName}`}
+                >
+                  <TrashIcon className="ui-icon" />
                 </button>
               </div>
             </article>
@@ -65,4 +77,3 @@ export function SessionList({
     </section>
   );
 }
-

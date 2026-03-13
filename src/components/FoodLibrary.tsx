@@ -36,7 +36,7 @@ export function FoodLibrary({
     <section className="panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Food memory</p>
+          <p className="section-kicker">Library</p>
           <h2>Remembered foods</h2>
         </div>
       </div>
@@ -143,4 +143,3 @@ export function FoodLibrary({
     </section>
   );
 }
-

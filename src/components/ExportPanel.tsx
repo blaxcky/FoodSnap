@@ -19,7 +19,7 @@ export function ExportPanel({
     <section className="panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Export</p>
+          <p className="section-kicker">Export</p>
           <h2>Plain text for AI analysis</h2>
         </div>
         <button className="primary-button" type="button" onClick={onCopy} disabled={!exportText}>
@@ -58,4 +58,3 @@ export function ExportPanel({
     </section>
   );
 }
-

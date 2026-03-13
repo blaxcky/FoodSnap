@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { EntryComposer } from './components/EntryComposer';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
+import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon } from './components/Icons';
 import { SessionList } from './components/SessionList';
 import { formatExport } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
@@ -62,6 +63,7 @@ export default function App() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
+  const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export'>('log');
 
   useEffect(() => {
     const state = loadAppState();
@@ -227,36 +229,43 @@ export default function App() {
     }
   }
 
+  function scrollToSection(sectionId: string, tab: 'log' | 'history' | 'library' | 'export') {
+    setActiveTab(tab);
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
+
   return (
     <main className="app-shell">
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">FoodSnap</p>
-          <h1>Fast manual food logging for later AI macros.</h1>
-          <p className="hero-text">
-            Capture foods, grams, or before-and-after differences without a nutrition database.
-          </p>
+      <header className="app-header">
+        <div className="brand-markup">
+          <span className="brand-icon">
+            <BoltIcon className="brand-bolt" />
+          </span>
+          <strong>FoodSnap</strong>
         </div>
-        <div className="hero-metrics">
-          <div className="metric-card">
-            <span>Session</span>
-            <strong>{entries.length}</strong>
-          </div>
-          <div className="metric-card">
-            <span>Remembered</span>
-            <strong>{foods.length}</strong>
-          </div>
-        </div>
+        <button
+          className="top-icon-button"
+          type="button"
+          onClick={() => scrollToSection('history-section', 'history')}
+          aria-label="Jump to current session"
+        >
+          <HistoryIcon className="ui-icon" />
+        </button>
+      </header>
+
+      <section id="log-section" className="screen-section">
+        <EntryComposer
+          foods={foods}
+          editingEntry={editingEntry}
+          onSave={handleSaveEntry}
+          onCancelEdit={() => setEditingEntryId(null)}
+        />
       </section>
 
-      <EntryComposer
-        foods={foods}
-        editingEntry={editingEntry}
-        onSave={handleSaveEntry}
-        onCancelEdit={() => setEditingEntryId(null)}
-      />
-
-      <div className="content-grid">
+      <section id="history-section" className="screen-section muted-section">
         <SessionList
           entries={entries}
           editingEntryId={editingEntryId}
@@ -264,18 +273,9 @@ export default function App() {
           onDuplicate={handleDuplicate}
           onDelete={handleDelete}
         />
+      </section>
 
-        <ExportPanel
-          exportFormat={exportFormat}
-          exportText={exportText}
-          copyState={copyState}
-          onChangeFormat={(format) => {
-            setExportFormat(format);
-            setCopyState('idle');
-          }}
-          onCopy={handleCopy}
-        />
-
+      <section id="library-section" className="screen-section">
         <FoodLibrary
           foods={foods}
           onToggleFavorite={(foodId) => {
@@ -292,7 +292,55 @@ export default function App() {
           }}
           onRenameFood={handleRenameFood}
         />
-      </div>
+      </section>
+
+      <section id="export-section" className="screen-section">
+        <ExportPanel
+          exportFormat={exportFormat}
+          exportText={exportText}
+          copyState={copyState}
+          onChangeFormat={(format) => {
+            setExportFormat(format);
+            setCopyState('idle');
+          }}
+          onCopy={handleCopy}
+        />
+      </section>
+
+      <nav className="bottom-nav" aria-label="Primary">
+        <button
+          className={`bottom-nav-item${activeTab === 'log' ? ' active' : ''}`}
+          type="button"
+          onClick={() => scrollToSection('log-section', 'log')}
+        >
+          <LogIcon className="ui-icon" />
+          <span>Log</span>
+        </button>
+        <button
+          className={`bottom-nav-item${activeTab === 'history' ? ' active' : ''}`}
+          type="button"
+          onClick={() => scrollToSection('history-section', 'history')}
+        >
+          <HistoryIcon className="ui-icon" />
+          <span>History</span>
+        </button>
+        <button
+          className={`bottom-nav-item${activeTab === 'library' ? ' active' : ''}`}
+          type="button"
+          onClick={() => scrollToSection('library-section', 'library')}
+        >
+          <BookIcon className="ui-icon" />
+          <span>Library</span>
+        </button>
+        <button
+          className={`bottom-nav-item${activeTab === 'export' ? ' active' : ''}`}
+          type="button"
+          onClick={() => scrollToSection('export-section', 'export')}
+        >
+          <ExportIcon className="ui-icon" />
+          <span>Export</span>
+        </button>
+      </nav>
     </main>
   );
 }

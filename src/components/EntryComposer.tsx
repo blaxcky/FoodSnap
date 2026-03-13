@@ -5,6 +5,7 @@ import {
   useRef,
   useState
 } from 'react';
+import { SearchIcon } from './Icons';
 import { getFoodSuggestions, getQuickFoods } from '../lib/search';
 import type { EntryPayload, EntryUnit, FoodProfile, SessionEntry } from '../lib/types';
 import { formatNumber } from '../lib/utils';
@@ -196,8 +197,8 @@ export function EntryComposer({
     <section className="panel composer-panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Fast entry</p>
-          <h2>{editingEntry ? 'Update item' : 'Capture the next item'}</h2>
+          <p className="section-kicker">Quick log food</p>
+          <h2>{editingEntry ? 'Update entry' : 'Enter the next item'}</h2>
         </div>
         {editingEntry ? (
           <button
@@ -233,53 +234,58 @@ export function EntryComposer({
       <div className="field-stack">
         <label className="field">
           <span className="field-label">Food</span>
-          <input
-            ref={foodInputRef}
-            className="field-input field-input-lg"
-            inputMode="text"
-            placeholder="Potatoes, Nutella, Eggs..."
-            value={form.foodName}
-            onChange={(event) => {
-              setForm((current) => ({ ...current, foodName: event.target.value }));
-              setError('');
-              setSuggestionsOpen(true);
-              setHighlightedIndex(0);
-            }}
-            onFocus={() => setSuggestionsOpen(true)}
-            onBlur={() => {
-              window.setTimeout(() => setSuggestionsOpen(false), 120);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown' && suggestions.length > 0) {
-                event.preventDefault();
-                setHighlightedIndex((current) => (current + 1) % suggestions.length);
-                return;
-              }
-
-              if (event.key === 'ArrowUp' && suggestions.length > 0) {
-                event.preventDefault();
-                setHighlightedIndex((current) =>
-                  current === 0 ? suggestions.length - 1 : current - 1
-                );
-                return;
-              }
-
-              if (event.key === 'Enter') {
-                event.preventDefault();
-
-                if (suggestionsOpen && suggestions[highlightedIndex]) {
-                  applyFood(suggestions[highlightedIndex]);
+          <div className="search-field">
+            <input
+              ref={foodInputRef}
+              className="field-input field-input-lg with-icon"
+              inputMode="text"
+              placeholder="Enter food name..."
+              value={form.foodName}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, foodName: event.target.value }));
+                setError('');
+                setSuggestionsOpen(true);
+                setHighlightedIndex(0);
+              }}
+              onFocus={() => setSuggestionsOpen(true)}
+              onBlur={() => {
+                window.setTimeout(() => setSuggestionsOpen(false), 120);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown' && suggestions.length > 0) {
+                  event.preventDefault();
+                  setHighlightedIndex((current) => (current + 1) % suggestions.length);
                   return;
                 }
 
-                focusAmountField();
-              }
+                if (event.key === 'ArrowUp' && suggestions.length > 0) {
+                  event.preventDefault();
+                  setHighlightedIndex((current) =>
+                    current === 0 ? suggestions.length - 1 : current - 1
+                  );
+                  return;
+                }
 
-              if (event.key === 'Escape') {
-                setSuggestionsOpen(false);
-              }
-            }}
-          />
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+
+                  if (suggestionsOpen && suggestions[highlightedIndex]) {
+                    applyFood(suggestions[highlightedIndex]);
+                    return;
+                  }
+
+                  focusAmountField();
+                }
+
+                if (event.key === 'Escape') {
+                  setSuggestionsOpen(false);
+                }
+              }}
+            />
+            <span className="field-icon" aria-hidden="true">
+              <SearchIcon className="ui-icon" />
+            </span>
+          </div>
         </label>
 
         {suggestionsOpen && suggestions.length > 0 ? (
@@ -429,10 +435,10 @@ export function EntryComposer({
         <div className="status-copy" aria-live="polite">
           {form.mode === 'difference' && consumedPreview !== null
             ? `Consumed ${formatNumber(consumedPreview)}g`
-            : 'Enter saves and resets the form.'}
+            : 'Enter saves the item and jumps back to food.'}
         </div>
         <button className="primary-button" type="button" onClick={submitForm}>
-          {editingEntry ? 'Update item' : 'Save item'}
+          {editingEntry ? 'Update item' : 'Add item'}
         </button>
       </div>
 
@@ -440,4 +446,3 @@ export function EntryComposer({
     </section>
   );
 }
-
