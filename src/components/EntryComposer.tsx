@@ -1,13 +1,7 @@
-import {
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
-import { getFoodSuggestions, getQuickFoods } from '../lib/search';
-import type { EntryPayload, EntryUnit, FoodProfile, SessionEntry } from '../lib/types';
+import { getFoodSuggestions } from '../lib/search';
+import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
 import { formatNumber } from '../lib/utils';
 
 interface EntryComposerProps {
@@ -19,33 +13,24 @@ interface EntryComposerProps {
 
 interface ComposerState {
   foodName: string;
-  mode: 'direct' | 'difference';
-  amount: string;
-  unit: EntryUnit;
   beforeWeight: string;
   afterWeight: string;
-  note: string;
 }
 
 const emptyState: ComposerState = {
   foodName: '',
-  mode: 'direct',
-  amount: '',
-  unit: 'g',
   beforeWeight: '',
-  afterWeight: '',
-  note: ''
+  afterWeight: ''
 };
 
 function mapEntryToState(entry: SessionEntry): ComposerState {
   return {
     foodName: entry.foodName,
-    mode: entry.mode,
-    amount: entry.mode === 'direct' ? String(entry.amount) : '',
-    unit: entry.unit,
-    beforeWeight: entry.mode === 'difference' ? String(entry.beforeWeight ?? '') : '',
-    afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : '',
-    note: entry.note
+    beforeWeight:
+      entry.mode === 'difference'
+        ? String(entry.beforeWeight ?? '')
+        : String(entry.amount),
+    afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : ''
   };
 }
 
@@ -61,22 +46,28 @@ export function EntryComposer({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const foodInputRef = useRef<HTMLInputElement>(null);
-  const amountInputRef = useRef<HTMLInputElement>(null);
   const beforeInputRef = useRef<HTMLInputElement>(null);
   const afterInputRef = useRef<HTMLInputElement>(null);
 
   const deferredQuery = useDeferredValue(form.foodName);
   const suggestions = useMemo(
-    () => getFoodSuggestions(foods, deferredQuery, 6),
+    () => getFoodSuggestions(foods, deferredQuery, 5),
     [foods, deferredQuery]
   );
-  const quickFoods = useMemo(() => getQuickFoods(foods, 8), [foods]);
 
   const consumedPreview = useMemo(() => {
     const before = Number(form.beforeWeight);
     const after = Number(form.afterWeight);
 
-    if (!Number.isFinite(before) || !Number.isFinite(after)) {
+    if (!Number.isFinite(before)) {
+      return null;
+    }
+
+    if (form.afterWeight.trim() === '') {
+      return before > 0 ? before : null;
+    }
+
+    if (!Number.isFinite(after)) {
       return null;
     }
 
@@ -85,27 +76,23 @@ export function EntryComposer({
   }, [form.beforeWeight, form.afterWeight]);
 
   useEffect(() => {
-    if (editingEntry) {
-      setForm(mapEntryToState(editingEntry));
-      setError('');
-      setSuggestionsOpen(false);
-      window.requestAnimationFrame(() => {
-        foodInputRef.current?.focus();
-        foodInputRef.current?.select();
-      });
+    if (!editingEntry) {
+      setForm(emptyState);
       return;
     }
 
-    setForm(emptyState);
+    setForm(mapEntryToState(editingEntry));
+    setError('');
+    setSuggestionsOpen(false);
+    window.requestAnimationFrame(() => {
+      foodInputRef.current?.focus();
+      foodInputRef.current?.select();
+    });
   }, [editingEntry]);
 
-  function focusAmountField(nextMode = form.mode) {
+  function focusWeightField() {
     window.requestAnimationFrame(() => {
-      if (nextMode === 'direct') {
-        amountInputRef.current?.focus();
-      } else {
-        beforeInputRef.current?.focus();
-      }
+      beforeInputRef.current?.focus();
     });
   }
 
@@ -121,45 +108,39 @@ export function EntryComposer({
 
   function submitForm() {
     const foodName = form.foodName.trim();
+    const beforeWeight = Number(form.beforeWeight);
 
     if (!foodName) {
       setError('Enter a food name.');
       return;
     }
 
-    if (form.mode === 'direct') {
-      const amount = Number(form.amount);
-      if (!Number.isFinite(amount) || amount <= 0) {
-        setError('Enter a valid amount.');
-        return;
-      }
+    if (!Number.isFinite(beforeWeight) || beforeWeight <= 0) {
+      setError('Enter a valid before value.');
+      return;
+    }
 
+    if (form.afterWeight.trim() === '') {
       onSave({
         foodName,
         mode: 'direct',
-        amount,
-        unit: form.unit,
-        note: form.note.trim()
+        amount: beforeWeight,
+        unit: 'g',
+        note: ''
       });
       resetForm();
       return;
     }
 
-    const beforeWeight = Number(form.beforeWeight);
     const afterWeight = Number(form.afterWeight);
 
-    if (!Number.isFinite(beforeWeight) || beforeWeight <= 0) {
-      setError('Enter a valid before weight.');
-      return;
-    }
-
     if (!Number.isFinite(afterWeight) || afterWeight < 0) {
-      setError('Enter a valid after weight.');
+      setError('Enter a valid after value.');
       return;
     }
 
     if (afterWeight > beforeWeight) {
-      setError('After weight cannot be higher than before weight.');
+      setError('After weight cannot be above before weight.');
       return;
     }
 
@@ -176,7 +157,7 @@ export function EntryComposer({
       unit: 'g',
       beforeWeight,
       afterWeight,
-      note: form.note.trim()
+      note: ''
     });
     resetForm();
   }
@@ -184,13 +165,12 @@ export function EntryComposer({
   function applyFood(food: FoodProfile) {
     setForm((current) => ({
       ...current,
-      foodName: food.name,
-      unit: food.lastUnit
+      foodName: food.name
     }));
     setError('');
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
-    focusAmountField();
+    focusWeightField();
   }
 
   return (
@@ -198,46 +178,27 @@ export function EntryComposer({
       <div className="section-heading">
         <div>
           <p className="section-kicker">Quick log food</p>
-          <h2>{editingEntry ? 'Update entry' : 'Enter the next item'}</h2>
         </div>
         {editingEntry ? (
           <button
-            className="ghost-button"
+            className="ghost-button compact"
             type="button"
             onClick={() => {
               onCancelEdit();
               resetForm();
             }}
           >
-            Cancel edit
+            Cancel
           </button>
         ) : null}
       </div>
 
-      <div className="quick-chip-row" aria-label="Remembered foods">
-        {quickFoods.length > 0 ? (
-          quickFoods.map((food) => (
-            <button
-              key={food.id}
-              className={`quick-chip${food.isFavorite ? ' favorite' : ''}`}
-              type="button"
-              onClick={() => applyFood(food)}
-            >
-              {food.name}
-            </button>
-          ))
-        ) : (
-          <span className="helper-copy">Saved foods appear here for one-tap re-entry.</span>
-        )}
-      </div>
-
       <div className="field-stack">
         <label className="field">
-          <span className="field-label">Food</span>
           <div className="search-field">
             <input
               ref={foodInputRef}
-              className="field-input field-input-lg with-icon"
+              className="field-input field-input-lg"
               inputMode="text"
               placeholder="Enter food name..."
               value={form.foodName}
@@ -274,7 +235,7 @@ export function EntryComposer({
                     return;
                   }
 
-                  focusAmountField();
+                  focusWeightField();
                 }
 
                 if (event.key === 'Escape') {
@@ -283,7 +244,7 @@ export function EntryComposer({
               }}
             />
             <span className="field-icon" aria-hidden="true">
-              <SearchIcon className="ui-icon" />
+              <SearchIcon className="ui-icon search-icon-strong" />
             </span>
           </div>
         </label>
@@ -299,147 +260,69 @@ export function EntryComposer({
                 onClick={() => applyFood(food)}
               >
                 <span>{food.name}</span>
-                <small>
-                  {food.usageCount} saves{food.isFavorite ? ' • favorite' : ''}
-                </small>
+                <small>{food.usageCount} saves</small>
               </button>
             ))}
           </div>
         ) : null}
       </div>
 
-      <div className="mode-toggle" role="tablist" aria-label="Entry mode">
-        <button
-          className={`mode-pill${form.mode === 'direct' ? ' active' : ''}`}
-          type="button"
-          onClick={() => {
-            setForm((current) => ({ ...current, mode: 'direct' }));
-            setError('');
-            focusAmountField('direct');
-          }}
-        >
-          Direct
-        </button>
-        <button
-          className={`mode-pill${form.mode === 'difference' ? ' active' : ''}`}
-          type="button"
-          onClick={() => {
-            setForm((current) => ({ ...current, mode: 'difference' }));
-            setError('');
-            focusAmountField('difference');
-          }}
-        >
-          Before / after
-        </button>
+      <div className="inline-fields screenshot-fields">
+        <label className="field">
+          <span className="field-label">Before (g)</span>
+          <input
+            ref={beforeInputRef}
+            className="field-input number-field"
+            inputMode="decimal"
+            placeholder="0"
+            value={form.beforeWeight}
+            onChange={(event) => {
+              setForm((current) => ({ ...current, beforeWeight: event.target.value }));
+              setError('');
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                afterInputRef.current?.focus();
+              }
+            }}
+          />
+        </label>
+
+        <label className="field">
+          <span className="field-label">
+            After (g) <span className="field-label-optional">(opt)</span>
+          </span>
+          <input
+            ref={afterInputRef}
+            className="field-input number-field"
+            inputMode="decimal"
+            placeholder="0"
+            value={form.afterWeight}
+            onChange={(event) => {
+              setForm((current) => ({ ...current, afterWeight: event.target.value }));
+              setError('');
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                submitForm();
+              }
+            }}
+          />
+        </label>
       </div>
 
-      {form.mode === 'direct' ? (
-        <div className="inline-fields">
-          <label className="field">
-            <span className="field-label">Amount</span>
-            <input
-              ref={amountInputRef}
-              className="field-input"
-              inputMode="decimal"
-              placeholder="252"
-              value={form.amount}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, amount: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  submitForm();
-                }
-              }}
-            />
-          </label>
+      <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
+        {editingEntry ? 'Update Item' : 'Add Item'}
+      </button>
 
-          <fieldset className="mini-toggle">
-            <legend className="field-label">Unit</legend>
-            <button
-              className={`mini-pill${form.unit === 'g' ? ' active' : ''}`}
-              type="button"
-              onClick={() => setForm((current) => ({ ...current, unit: 'g' }))}
-            >
-              g
-            </button>
-            <button
-              className={`mini-pill${form.unit === 'pcs' ? ' active' : ''}`}
-              type="button"
-              onClick={() => setForm((current) => ({ ...current, unit: 'pcs' }))}
-            >
-              pcs
-            </button>
-          </fieldset>
-        </div>
-      ) : (
-        <div className="inline-fields">
-          <label className="field">
-            <span className="field-label">Before</span>
-            <input
-              ref={beforeInputRef}
-              className="field-input"
-              inputMode="decimal"
-              placeholder="812"
-              value={form.beforeWeight}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, beforeWeight: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  afterInputRef.current?.focus();
-                }
-              }}
-            />
-          </label>
-
-          <label className="field">
-            <span className="field-label">After</span>
-            <input
-              ref={afterInputRef}
-              className="field-input"
-              inputMode="decimal"
-              placeholder="776"
-              value={form.afterWeight}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, afterWeight: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  submitForm();
-                }
-              }}
-            />
-          </label>
-        </div>
-      )}
-
-      <label className="field">
-        <span className="field-label">Note</span>
-        <input
-          className="field-input"
-          inputMode="text"
-          placeholder="Optional detail"
-          value={form.note}
-          onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))}
-        />
-      </label>
-
-      <div className="composer-footer">
-        <div className="status-copy" aria-live="polite">
-          {form.mode === 'difference' && consumedPreview !== null
-            ? `Consumed ${formatNumber(consumedPreview)}g`
-            : 'Enter saves the item and jumps back to food.'}
-        </div>
-        <button className="primary-button" type="button" onClick={submitForm}>
-          {editingEntry ? 'Update item' : 'Add item'}
-        </button>
+      <div className="status-copy status-copy-tight" aria-live="polite">
+        {consumedPreview !== null
+          ? form.afterWeight.trim() === ''
+            ? `${formatNumber(consumedPreview)}g direct entry`
+            : `${formatNumber(consumedPreview)}g consumed`
+          : 'Leave After empty for direct grams.'}
       </div>
 
       {error ? <p className="error-copy">{error}</p> : null}

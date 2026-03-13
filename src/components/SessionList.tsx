@@ -6,7 +6,6 @@ interface SessionListProps {
   entries: SessionEntry[];
   editingEntryId: string | null;
   onEdit: (entryId: string) => void;
-  onDuplicate: (entryId: string) => void;
   onDelete: (entryId: string) => void;
 }
 
@@ -14,7 +13,6 @@ export function SessionList({
   entries,
   editingEntryId,
   onEdit,
-  onDuplicate,
   onDelete
 }: SessionListProps) {
   return (
@@ -22,7 +20,6 @@ export function SessionList({
       <div className="section-heading">
         <div>
           <p className="section-kicker">Current session</p>
-          <h2>{entries.length} item{entries.length === 1 ? '' : 's'} captured</h2>
         </div>
         <span className="status-badge">Active</span>
       </div>
@@ -42,17 +39,18 @@ export function SessionList({
               <div className="entry-main">
                 <div>
                   <h3>{entry.foodName}</h3>
-                  <p>{entry.unit === 'g' ? `${formatNumber(entry.amount)}g` : `${formatNumber(entry.amount)} pcs`}</p>
-                  {entry.mode === 'difference' ? <small>{formatEntryMeta(entry)}</small> : null}
+                  <p>
+                    {entry.unit === 'g'
+                      ? `${formatNumber(entry.amount)}g`
+                      : `${formatNumber(entry.amount)} pcs`}
+                    {entry.mode === 'difference' ? ` • ${formatEntryMeta(entry)}` : ''}
+                  </p>
                 </div>
               </div>
 
               {entry.note ? <p className="entry-note">{entry.note}</p> : null}
 
               <div className="entry-actions">
-                <button className="ghost-button subtle" type="button" onClick={() => onDuplicate(entry.id)}>
-                  Again
-                </button>
                 <button
                   className="icon-action"
                   type="button"

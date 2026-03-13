@@ -145,26 +145,6 @@ export default function App() {
     commitEntry(payload, editingEntryId);
   }
 
-  function handleDuplicate(entryId: string) {
-    const source = entries.find((entry) => entry.id === entryId);
-    if (!source) {
-      return;
-    }
-
-    commitEntry(
-      {
-        foodName: source.foodName,
-        mode: source.mode,
-        amount: source.amount,
-        unit: source.unit,
-        beforeWeight: source.beforeWeight,
-        afterWeight: source.afterWeight,
-        note: source.note
-      },
-      null
-    );
-  }
-
   function handleDelete(entryId: string) {
     setEntries((currentEntries) => currentEntries.filter((entry) => entry.id !== entryId));
     if (editingEntryId === entryId) {
@@ -229,12 +209,9 @@ export default function App() {
     }
   }
 
-  function scrollToSection(sectionId: string, tab: 'log' | 'history' | 'library' | 'export') {
-    setActiveTab(tab);
-    document.getElementById(sectionId)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    });
+  function startEditing(entryId: string) {
+    setEditingEntryId(entryId);
+    setActiveTab('log');
   }
 
   return (
@@ -244,74 +221,92 @@ export default function App() {
           <span className="brand-icon">
             <BoltIcon className="brand-bolt" />
           </span>
-          <strong>FoodSnap</strong>
+          <strong>QuickLog</strong>
         </div>
         <button
           className="top-icon-button"
           type="button"
-          onClick={() => scrollToSection('history-section', 'history')}
+          onClick={() => setActiveTab('history')}
           aria-label="Jump to current session"
         >
           <HistoryIcon className="ui-icon" />
         </button>
       </header>
 
-      <section id="log-section" className="screen-section">
-        <EntryComposer
-          foods={foods}
-          editingEntry={editingEntry}
-          onSave={handleSaveEntry}
-          onCancelEdit={() => setEditingEntryId(null)}
-        />
-      </section>
+      {activeTab === 'log' ? (
+        <>
+          <section className="screen-section">
+            <EntryComposer
+              foods={foods}
+              editingEntry={editingEntry}
+              onSave={handleSaveEntry}
+              onCancelEdit={() => setEditingEntryId(null)}
+            />
+          </section>
 
-      <section id="history-section" className="screen-section muted-section">
-        <SessionList
-          entries={entries}
-          editingEntryId={editingEntryId}
-          onEdit={setEditingEntryId}
-          onDuplicate={handleDuplicate}
-          onDelete={handleDelete}
-        />
-      </section>
+          <section className="screen-section muted-section">
+            <SessionList
+              entries={entries}
+              editingEntryId={editingEntryId}
+              onEdit={startEditing}
+              onDelete={handleDelete}
+            />
+          </section>
+        </>
+      ) : null}
 
-      <section id="library-section" className="screen-section">
-        <FoodLibrary
-          foods={foods}
-          onToggleFavorite={(foodId) => {
-            setFoods((currentFoods) =>
-              currentFoods.map((food) =>
-                food.id === foodId
-                  ? {
-                      ...food,
-                      isFavorite: !food.isFavorite
-                    }
-                  : food
-              )
-            );
-          }}
-          onRenameFood={handleRenameFood}
-        />
-      </section>
+      {activeTab === 'history' ? (
+        <section className="screen-section muted-section">
+          <SessionList
+            entries={entries}
+            editingEntryId={editingEntryId}
+            onEdit={startEditing}
+            onDelete={handleDelete}
+          />
+        </section>
+      ) : null}
 
-      <section id="export-section" className="screen-section">
-        <ExportPanel
-          exportFormat={exportFormat}
-          exportText={exportText}
-          copyState={copyState}
-          onChangeFormat={(format) => {
-            setExportFormat(format);
-            setCopyState('idle');
-          }}
-          onCopy={handleCopy}
-        />
-      </section>
+      {activeTab === 'library' ? (
+        <section className="screen-section">
+          <FoodLibrary
+            foods={foods}
+            onToggleFavorite={(foodId) => {
+              setFoods((currentFoods) =>
+                currentFoods.map((food) =>
+                  food.id === foodId
+                    ? {
+                        ...food,
+                        isFavorite: !food.isFavorite
+                      }
+                    : food
+                )
+              );
+            }}
+            onRenameFood={handleRenameFood}
+          />
+        </section>
+      ) : null}
+
+      {activeTab === 'export' ? (
+        <section className="screen-section">
+          <ExportPanel
+            exportFormat={exportFormat}
+            exportText={exportText}
+            copyState={copyState}
+            onChangeFormat={(format) => {
+              setExportFormat(format);
+              setCopyState('idle');
+            }}
+            onCopy={handleCopy}
+          />
+        </section>
+      ) : null}
 
       <nav className="bottom-nav" aria-label="Primary">
         <button
           className={`bottom-nav-item${activeTab === 'log' ? ' active' : ''}`}
           type="button"
-          onClick={() => scrollToSection('log-section', 'log')}
+          onClick={() => setActiveTab('log')}
         >
           <LogIcon className="ui-icon" />
           <span>Log</span>
@@ -319,7 +314,7 @@ export default function App() {
         <button
           className={`bottom-nav-item${activeTab === 'history' ? ' active' : ''}`}
           type="button"
-          onClick={() => scrollToSection('history-section', 'history')}
+          onClick={() => setActiveTab('history')}
         >
           <HistoryIcon className="ui-icon" />
           <span>History</span>
@@ -327,7 +322,7 @@ export default function App() {
         <button
           className={`bottom-nav-item${activeTab === 'library' ? ' active' : ''}`}
           type="button"
-          onClick={() => scrollToSection('library-section', 'library')}
+          onClick={() => setActiveTab('library')}
         >
           <BookIcon className="ui-icon" />
           <span>Library</span>
@@ -335,7 +330,7 @@ export default function App() {
         <button
           className={`bottom-nav-item${activeTab === 'export' ? ' active' : ''}`}
           type="button"
-          onClick={() => scrollToSection('export-section', 'export')}
+          onClick={() => setActiveTab('export')}
         >
           <ExportIcon className="ui-icon" />
           <span>Export</span>
