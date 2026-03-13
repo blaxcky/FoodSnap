@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { SearchIcon } from './Icons';
+import { ArrowDownIcon, ArrowUpIcon, SearchIcon, UtensilsIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
 
@@ -172,7 +172,7 @@ export function EntryComposer({
         ) : null}
       </div>
 
-      <div className="field-stack">
+      <div className="field-stack autocomplete-shell">
         <label className="field">
           <div className="search-field">
             <input
@@ -228,20 +228,37 @@ export function EntryComposer({
           </div>
         </label>
 
-        {suggestionsOpen && suggestions.length > 0 ? (
-          <div className="suggestions" role="listbox" aria-label="Food suggestions">
-            {suggestions.map((food, index) => (
-              <button
-                key={food.id}
-                className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => applyFood(food)}
-              >
-                <span>{food.name}</span>
-                <small>{food.usageCount} saves</small>
-              </button>
-            ))}
+        {suggestionsOpen && form.foodName.trim() && suggestions.length > 0 ? (
+          <div className="suggestions-dropdown">
+            <div className="suggestions" role="listbox" aria-label="Food suggestions">
+              {suggestions.map((food, index) => (
+                <button
+                  key={food.id}
+                  className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => applyFood(food)}
+                >
+                  <span className="suggestion-leading">
+                    <UtensilsIcon className="suggestion-icon" />
+                    <span className="suggestion-copy">
+                      <strong>{food.name}</strong>
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="suggestions-footer">
+              <span className="suggestions-hint">Press Enter to select</span>
+              <span className="suggestions-arrows" aria-hidden="true">
+                <span className="suggestion-key">
+                  <ArrowUpIcon className="mini-icon" />
+                </span>
+                <span className="suggestion-key">
+                  <ArrowDownIcon className="mini-icon" />
+                </span>
+              </span>
+            </div>
           </div>
         ) : null}
       </div>

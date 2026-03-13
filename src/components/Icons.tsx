@@ -79,3 +79,33 @@ export function ExportIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function UtensilsIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="M4 3v8" />
+      <path d="M7 3v8" />
+      <path d="M4 7h3" />
+      <path d="M5.5 11v10" />
+      <path d="M14 3v7" />
+      <path d="M18 3v18" />
+      <path d="M14 10c2.2 0 4-1.8 4-4" />
+    </svg>
+  );
+}
+
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="m6 15 6-6 6 6" />
+    </svg>
+  );
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
