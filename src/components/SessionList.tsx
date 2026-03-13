@@ -36,8 +36,8 @@ export function SessionList({
               key={entry.id}
               className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}`}
             >
-              <div className="entry-main">
-                <div>
+              <div className="entry-row">
+                <div className="entry-main">
                   <h3>{entry.foodName}</h3>
                   <p>
                     {entry.unit === 'g'
@@ -46,28 +46,28 @@ export function SessionList({
                     {entry.mode === 'difference' ? ` • ${formatEntryMeta(entry)}` : ''}
                   </p>
                 </div>
+
+                <div className="entry-actions">
+                  <button
+                    className="icon-action"
+                    type="button"
+                    onClick={() => onEdit(entry.id)}
+                    aria-label={`Edit ${entry.foodName}`}
+                  >
+                    <PencilIcon className="ui-icon" />
+                  </button>
+                  <button
+                    className="icon-action"
+                    type="button"
+                    onClick={() => onDelete(entry.id)}
+                    aria-label={`Delete ${entry.foodName}`}
+                  >
+                    <TrashIcon className="ui-icon" />
+                  </button>
+                </div>
               </div>
 
               {entry.note ? <p className="entry-note">{entry.note}</p> : null}
-
-              <div className="entry-actions">
-                <button
-                  className="icon-action"
-                  type="button"
-                  onClick={() => onEdit(entry.id)}
-                  aria-label={`Edit ${entry.foodName}`}
-                >
-                  <PencilIcon className="ui-icon" />
-                </button>
-                <button
-                  className="icon-action"
-                  type="button"
-                  onClick={() => onDelete(entry.id)}
-                  aria-label={`Delete ${entry.foodName}`}
-                >
-                  <TrashIcon className="ui-icon" />
-                </button>
-              </div>
             </article>
           ))}
         </div>

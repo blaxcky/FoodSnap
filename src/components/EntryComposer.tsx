@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownIcon, ArrowUpIcon, SearchIcon, UtensilsIcon } from './Icons';
+import { SearchIcon, UtensilsIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
 
@@ -247,17 +247,6 @@ export function EntryComposer({
                   </span>
                 </button>
               ))}
-            </div>
-            <div className="suggestions-footer">
-              <span className="suggestions-hint">Press Enter to select</span>
-              <span className="suggestions-arrows" aria-hidden="true">
-                <span className="suggestion-key">
-                  <ArrowUpIcon className="mini-icon" />
-                </span>
-                <span className="suggestion-key">
-                  <ArrowDownIcon className="mini-icon" />
-                </span>
-              </span>
             </div>
           </div>
         ) : null}
