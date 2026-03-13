@@ -2,7 +2,6 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
-import { formatNumber } from '../lib/utils';
 
 interface EntryComposerProps {
   foods: FoodProfile[];
@@ -54,26 +53,6 @@ export function EntryComposer({
     () => getFoodSuggestions(foods, deferredQuery, 5),
     [foods, deferredQuery]
   );
-
-  const consumedPreview = useMemo(() => {
-    const before = Number(form.beforeWeight);
-    const after = Number(form.afterWeight);
-
-    if (!Number.isFinite(before)) {
-      return null;
-    }
-
-    if (form.afterWeight.trim() === '') {
-      return before > 0 ? before : null;
-    }
-
-    if (!Number.isFinite(after)) {
-      return null;
-    }
-
-    const consumed = before - after;
-    return consumed >= 0 ? consumed : null;
-  }, [form.beforeWeight, form.afterWeight]);
 
   useEffect(() => {
     if (!editingEntry) {
@@ -316,14 +295,6 @@ export function EntryComposer({
       <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
         {editingEntry ? 'Update Item' : 'Add Item'}
       </button>
-
-      <div className="status-copy status-copy-tight" aria-live="polite">
-        {consumedPreview !== null
-          ? form.afterWeight.trim() === ''
-            ? `${formatNumber(consumedPreview)}g direct entry`
-            : `${formatNumber(consumedPreview)}g consumed`
-          : 'Leave After empty for direct grams.'}
-      </div>
 
       {error ? <p className="error-copy">{error}</p> : null}
     </section>

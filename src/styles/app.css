@@ -49,7 +49,7 @@ button {
   width: min(100%, 768px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: max(18px, env(safe-area-inset-top)) 0 calc(92px + env(safe-area-inset-bottom));
+  padding: max(10px, env(safe-area-inset-top)) 0 calc(92px + env(safe-area-inset-bottom));
   background: var(--app-bg);
 }
 
@@ -57,8 +57,8 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 124px;
-  padding: 22px 30px 18px;
+  min-height: 132px;
+  padding: 26px 30px 18px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -70,9 +70,10 @@ button {
 }
 
 .brand-markup strong {
-  font-size: 2rem;
+  font-size: 1.9rem;
   line-height: 1;
   letter-spacing: -0.04em;
+  font-weight: 700;
 }
 
 .brand-icon {
@@ -83,16 +84,16 @@ button {
 }
 
 .brand-bolt {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.2rem;
+  height: 2.2rem;
 }
 
 .top-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -100,13 +101,13 @@ button {
 }
 
 .screen-section {
-  padding: 26px 30px 0;
+  padding: 24px 30px 0;
 }
 
 .muted-section {
   margin-top: 28px;
-  padding-top: 28px;
-  padding-bottom: 18px;
+  padding-top: 24px;
+  padding-bottom: 24px;
   background: #f0f3f8;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -126,7 +127,7 @@ button {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .section-heading h2 {
@@ -137,10 +138,10 @@ button {
 
 .section-kicker {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.94rem;
+  color: #6a7f9d;
+  font-size: 0.88rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 
@@ -151,7 +152,7 @@ button {
   border-radius: 999px;
   background: var(--success-bg);
   color: var(--success-text);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -164,8 +165,8 @@ button {
 }
 
 .field-label {
-  color: var(--muted);
-  font-size: 0.95rem;
+  color: #5f7390;
+  font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -184,11 +185,11 @@ button {
 .field-input,
 .export-textarea {
   width: 100%;
-  min-height: 68px;
-  padding: 18px 20px;
+  min-height: 66px;
+  padding: 16px 20px;
   border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface);
+  border-radius: 17px;
+  background: #fdfefe;
   color: var(--ink);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
@@ -209,7 +210,7 @@ button {
 
 .field-input-lg {
   padding-right: 60px;
-  font-size: 1rem;
+  font-size: 0.98rem;
 }
 
 .number-field {
@@ -269,11 +270,11 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
-  margin-top: 22px;
+  margin-top: 18px;
 }
 
 .screenshot-fields {
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .status-copy,
@@ -298,12 +299,12 @@ button {
 
 .primary-button {
   width: 100%;
-  min-height: 70px;
+  min-height: 72px;
   padding: 16px 20px;
   border-radius: 16px;
   background: var(--accent);
   color: #ffffff;
-  font-size: 1.2rem;
+  font-size: 1.14rem;
   font-weight: 700;
   box-shadow: var(--shadow);
 }
@@ -373,12 +374,12 @@ button {
 .entry-list,
 .food-library {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .entry-card,
 .food-row {
-  padding: 24px 22px;
+  padding: 22px 22px;
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--surface);
@@ -400,7 +401,7 @@ button {
 .entry-main h3,
 .food-row h3 {
   margin: 0 0 6px;
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   letter-spacing: -0.02em;
 }
 
@@ -409,7 +410,7 @@ button {
 .entry-note {
   margin: 0;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .entry-note {
@@ -419,19 +420,19 @@ button {
 .entry-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .icon-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 12px;
   background: transparent;
-  color: var(--muted-soft);
+  color: #94a3b8;
 }
 
 .food-row-main {
@@ -455,7 +456,7 @@ button {
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
+  gap: 0;
   padding: 12px 14px calc(10px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.98);
   border-top: 1px solid var(--border);
@@ -466,7 +467,7 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 8px 4px;
+  padding: 8px 2px;
   border-radius: 14px;
   background: transparent;
   color: var(--muted-soft);
@@ -492,7 +493,7 @@ button {
   .app-shell {
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--app-bg);
   }
 
   .bottom-nav {
