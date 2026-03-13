@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { SearchIcon, UtensilsIcon } from './Icons';
+import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
 
@@ -239,11 +239,8 @@ export function EntryComposer({
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => applyFood(food)}
                 >
-                  <span className="suggestion-leading">
-                    <UtensilsIcon className="suggestion-icon" />
-                    <span className="suggestion-copy">
-                      <strong>{food.name}</strong>
-                    </span>
+                  <span className="suggestion-copy">
+                    <strong>{food.name}</strong>
                   </span>
                 </button>
               ))}

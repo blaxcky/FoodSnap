@@ -280,22 +280,6 @@ button {
   box-shadow: inset 4px 0 0 var(--accent);
 }
 
-.suggestion-leading {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.suggestion-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #9aabc0;
-}
-
-.suggestion-item.active .suggestion-icon {
-  color: var(--accent);
-}
-
 .suggestion-copy strong {
   font-size: 0.95rem;
   font-weight: 600;
