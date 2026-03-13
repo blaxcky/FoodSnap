@@ -34,6 +34,7 @@ export function EditEntryModal({
   onSave
 }: EditEntryModalProps) {
   const [form, setForm] = useState<EditorState>(() => mapEntryToState(entry));
+  const [isNameEditable, setIsNameEditable] = useState(false);
   const [error, setError] = useState('');
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -50,12 +51,19 @@ export function EditEntryModal({
 
   useEffect(() => {
     setForm(mapEntryToState(entry));
+    setIsNameEditable(false);
     setError('');
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
     window.requestAnimationFrame(() => {
-      foodInputRef.current?.focus();
-      foodInputRef.current?.select();
+      if (entry.mode === 'difference') {
+        afterInputRef.current?.focus();
+        afterInputRef.current?.select();
+        return;
+      }
+
+      beforeInputRef.current?.focus();
+      beforeInputRef.current?.select();
     });
   }, [entry]);
 
@@ -114,6 +122,10 @@ export function EditEntryModal({
   }
 
   function applyFood(food: FoodProfile) {
+    if (!isNameEditable) {
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       foodName: food.name
@@ -147,7 +159,34 @@ export function EditEntryModal({
 
         <div className="field-stack autocomplete-shell">
           <label className="field">
-            <span className="field-label">Food</span>
+            <span className="field-row">
+              <span className="field-label">Food</span>
+              <button
+                className="ghost-button compact"
+                type="button"
+                onClick={() => {
+                  setIsNameEditable((current) => {
+                    const next = !current;
+
+                    window.requestAnimationFrame(() => {
+                      if (next) {
+                        foodInputRef.current?.focus();
+                        foodInputRef.current?.select();
+                      } else if (entry.mode === 'difference') {
+                        afterInputRef.current?.focus();
+                      } else {
+                        beforeInputRef.current?.focus();
+                      }
+                    });
+
+                    return next;
+                  });
+                  setSuggestionsOpen(false);
+                }}
+              >
+                {isNameEditable ? 'Done' : 'Edit name'}
+              </button>
+            </span>
             <div className="search-field">
               <input
                 ref={foodInputRef}
@@ -162,6 +201,7 @@ export function EditEntryModal({
                 data-lpignore="true"
                 data-bwignore="true"
                 inputMode="text"
+                readOnly={!isNameEditable}
                 value={form.foodName}
                 onChange={(event) => {
                   setForm((current) => ({ ...current, foodName: event.target.value }));
@@ -169,11 +209,19 @@ export function EditEntryModal({
                   setSuggestionsOpen(true);
                   setHighlightedIndex(0);
                 }}
-                onFocus={() => setSuggestionsOpen(true)}
+                onFocus={() => {
+                  if (isNameEditable) {
+                    setSuggestionsOpen(true);
+                  }
+                }}
                 onBlur={() => {
                   window.setTimeout(() => setSuggestionsOpen(false), 120);
                 }}
                 onKeyDown={(event) => {
+                  if (!isNameEditable) {
+                    return;
+                  }
+
                   if (event.key === 'ArrowDown' && suggestions.length > 0) {
                     event.preventDefault();
                     setHighlightedIndex((current) => (current + 1) % suggestions.length);
@@ -210,7 +258,7 @@ export function EditEntryModal({
             </div>
           </label>
 
-          {suggestionsOpen && form.foodName.trim() && suggestions.length > 0 ? (
+          {isNameEditable && suggestionsOpen && form.foodName.trim() && suggestions.length > 0 ? (
             <div className="suggestions-dropdown">
               <div className="suggestions" role="listbox" aria-label="Food suggestions">
                 {suggestions.map((food, index) => (

@@ -164,6 +164,13 @@ button {
   gap: 8px;
 }
 
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .autocomplete-shell {
   position: relative;
 }
@@ -201,6 +208,11 @@ button {
 .field-input::placeholder,
 .export-textarea::placeholder {
   color: var(--muted-soft);
+}
+
+.field-input[readonly] {
+  background: #f6f8fb;
+  color: #475569;
 }
 
 .field-input:focus,
