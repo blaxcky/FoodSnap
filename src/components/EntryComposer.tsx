@@ -1,13 +1,11 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
-import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
+import type { EntryPayload, FoodProfile } from '../lib/types';
 
 interface EntryComposerProps {
   foods: FoodProfile[];
-  editingEntry: SessionEntry | null;
   onSave: (payload: EntryPayload) => void;
-  onCancelEdit: () => void;
 }
 
 interface ComposerState {
@@ -22,22 +20,9 @@ const emptyState: ComposerState = {
   afterWeight: ''
 };
 
-function mapEntryToState(entry: SessionEntry): ComposerState {
-  return {
-    foodName: entry.foodName,
-    beforeWeight:
-      entry.mode === 'difference'
-        ? String(entry.beforeWeight ?? '')
-        : String(entry.amount),
-    afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : ''
-  };
-}
-
 export function EntryComposer({
   foods,
-  editingEntry,
-  onSave,
-  onCancelEdit
+  onSave
 }: EntryComposerProps) {
   const [form, setForm] = useState<ComposerState>(emptyState);
   const [error, setError] = useState('');
@@ -55,19 +40,10 @@ export function EntryComposer({
   );
 
   useEffect(() => {
-    if (!editingEntry) {
-      setForm(emptyState);
-      return;
-    }
-
-    setForm(mapEntryToState(editingEntry));
-    setError('');
-    setSuggestionsOpen(false);
     window.requestAnimationFrame(() => {
       foodInputRef.current?.focus();
-      foodInputRef.current?.select();
     });
-  }, [editingEntry]);
+  }, []);
 
   function focusWeightField() {
     window.requestAnimationFrame(() => {
@@ -158,18 +134,6 @@ export function EntryComposer({
         <div>
           <p className="section-kicker">Quick log food</p>
         </div>
-        {editingEntry ? (
-          <button
-            className="ghost-button compact"
-            type="button"
-            onClick={() => {
-              onCancelEdit();
-              resetForm();
-            }}
-          >
-            Cancel
-          </button>
-        ) : null}
       </div>
 
       <div className="field-stack autocomplete-shell">
@@ -296,7 +260,7 @@ export function EntryComposer({
       </div>
 
       <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
-        {editingEntry ? 'Update Item' : 'Add Item'}
+        Add Item
       </button>
 
       {error ? <p className="error-copy">{error}</p> : null}

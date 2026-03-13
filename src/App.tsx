@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { EditEntryModal } from './components/EditEntryModal';
 import { EntryComposer } from './components/EntryComposer';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
@@ -148,6 +149,14 @@ export default function App() {
   }
 
   function handleSaveEntry(payload: EntryPayload) {
+    commitEntry(payload, null);
+  }
+
+  function handleUpdateEntry(payload: EntryPayload) {
+    if (!editingEntryId) {
+      return;
+    }
+
     commitEntry(payload, editingEntryId);
   }
 
@@ -233,7 +242,6 @@ export default function App() {
 
   function startEditing(entryId: string) {
     setEditingEntryId(entryId);
-    setActiveTab('log');
   }
 
   async function handleForceRefresh() {
@@ -269,9 +277,7 @@ export default function App() {
           <section className="screen-section">
             <EntryComposer
               foods={foods}
-              editingEntry={editingEntry}
               onSave={handleSaveEntry}
-              onCancelEdit={() => setEditingEntryId(null)}
             />
           </section>
 
@@ -381,6 +387,15 @@ export default function App() {
           <span>Export</span>
         </button>
       </nav>
+
+      {editingEntry ? (
+        <EditEntryModal
+          foods={foods}
+          entry={editingEntry}
+          onCancel={() => setEditingEntryId(null)}
+          onSave={handleUpdateEntry}
+        />
+      ) : null}
     </main>
   );
 }
