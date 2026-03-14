@@ -346,7 +346,10 @@ export default function App() {
 
   function handleExportFoodMemory() {
     try {
-      downloadFoodMemoryBackup(foods);
+      downloadFoodMemoryBackup(foods, {
+        exportFormat,
+        exportLeadIn
+      });
       setExportBackupState('done');
       window.setTimeout(() => setExportBackupState('idle'), 1800);
     } catch {

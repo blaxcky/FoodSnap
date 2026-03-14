@@ -1,18 +1,25 @@
-import type { FoodProfile } from './types';
+import type { ExportFormat, FoodProfile } from './types';
+
+interface BackupSettings {
+  exportFormat: ExportFormat;
+  exportLeadIn: string;
+}
 
 interface FoodMemoryBackup {
   app: 'FoodSnap';
-  version: 1;
+  version: 2;
   exportedAt: string;
   foods: FoodProfile[];
+  settings: BackupSettings;
 }
 
-export function downloadFoodMemoryBackup(foods: FoodProfile[]) {
+export function downloadFoodMemoryBackup(foods: FoodProfile[], settings: BackupSettings) {
   const payload: FoodMemoryBackup = {
     app: 'FoodSnap',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
-    foods
+    foods,
+    settings
   };
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], {

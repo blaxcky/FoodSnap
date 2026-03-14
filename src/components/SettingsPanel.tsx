@@ -125,7 +125,7 @@ export function SettingsPanel({
           <div className="settings-row settings-row-action">
             <div className="settings-row-copy">
               <h3>Export food memory backup</h3>
-              <p>Downloads remembered foods with save counts and preference data.</p>
+              <p>Downloads remembered foods, save counts, and your export settings.</p>
             </div>
             <div className="settings-row-control">
               <button
@@ -143,7 +143,7 @@ export function SettingsPanel({
           <div className="settings-row">
             <div className="settings-row-copy">
               <h3>Current session entries</h3>
-              <p>Session items are separate from remembered foods and excluded from backups.</p>
+              <p>Session items stay excluded. Export format and ChatGPT intro text are included.</p>
             </div>
             <div className="settings-row-value">{sessionCount}</div>
           </div>
