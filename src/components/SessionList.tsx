@@ -6,7 +6,8 @@ import {
   formatNumber,
   getUndoSecondsLeft,
   isAfterWeightPending,
-  isEntryDeleted
+  isEntryDeleted,
+  isZeroBeforeEntry
 } from '../lib/utils';
 
 interface SessionListProps {
@@ -53,6 +54,7 @@ export function SessionList({
           {entries.map((entry) => {
             const pendingAfterWeight = isAfterWeightPending(entry);
             const deleted = isEntryDeleted(entry);
+            const zeroBefore = isZeroBeforeEntry(entry);
             const canUndo = canUndoDelete(entry, now);
             const undoSecondsLeft = canUndo ? getUndoSecondsLeft(entry, now) : 0;
             const showInlineUndo = !isHistory && deleted && canUndo;
@@ -65,7 +67,7 @@ export function SessionList({
             return (
               <article
                 key={entry.id}
-                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${deleted ? ' deleted' : ''}${showInlineUndo ? ' deleting-inline' : ''}`}
+                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${zeroBefore ? ' zero-before' : ''}${deleted ? ' deleted' : ''}${showInlineUndo ? ' deleting-inline' : ''}`}
               >
                 <div className="entry-row">
                   <div className="entry-main">
@@ -135,6 +137,10 @@ export function SessionList({
                 ) : deleted ? (
                   <p className="entry-note entry-note-deleted">
                     Hidden from Log and excluded from export. Restore to include it again.
+                  </p>
+                ) : zeroBefore ? (
+                  <p className="entry-note entry-note-zero">
+                    Pre-entered with 0g. Update the weight later when you know it.
                   </p>
                 ) : pendingAfterWeight ? (
                   <p className="entry-note entry-note-pending">

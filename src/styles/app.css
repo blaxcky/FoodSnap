@@ -769,9 +769,15 @@ button {
 }
 
 .entry-card.pending-after {
-  border-color: #f3c6ce;
-  background: linear-gradient(180deg, #fff8f8, #fff2f4);
-  box-shadow: 0 8px 20px rgba(190, 18, 60, 0.08);
+  border-color: #e05878;
+  background: linear-gradient(180deg, #fff0f3, #ffdbe5);
+  box-shadow: 0 14px 28px rgba(190, 18, 60, 0.16);
+}
+
+.entry-card.zero-before {
+  border-color: #e0b100;
+  background: linear-gradient(180deg, #fff8dc, #ffe9a8);
+  box-shadow: 0 14px 28px rgba(202, 138, 4, 0.18);
 }
 
 .entry-card.deleted {
@@ -824,6 +830,11 @@ button {
 .entry-note-pending {
   color: #b4233f;
   font-weight: 600;
+}
+
+.entry-note-zero {
+  color: #9a6700;
+  font-weight: 700;
 }
 
 .entry-card.deleted .entry-main h3,

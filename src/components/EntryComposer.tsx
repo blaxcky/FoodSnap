@@ -72,7 +72,7 @@ export function EntryComposer({
       return;
     }
 
-    if (!Number.isFinite(beforeWeight) || beforeWeight <= 0) {
+    if (!Number.isFinite(beforeWeight) || beforeWeight < 0) {
       setError('Enter a valid before value.');
       return;
     }

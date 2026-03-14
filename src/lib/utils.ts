@@ -32,9 +32,13 @@ export function formatDifferenceBreakdown(entry: SessionEntry) {
   return `(${formatNumber(entry.beforeWeight ?? 0)}g - ${formatNumber(entry.afterWeight ?? 0)}g)`;
 }
 
+export function getEntryBeforeAmount(entry: SessionEntry) {
+  return entry.beforeWeight ?? entry.amount;
+}
+
 export function formatEntryMeta(entry: SessionEntry) {
   if (entry.needsAfterWeight && entry.afterWeight == null) {
-    const before = entry.beforeWeight ?? entry.amount;
+    const before = getEntryBeforeAmount(entry);
     return `Before ${formatNumber(before)}g • after pending`;
   }
 
@@ -47,6 +51,10 @@ export function formatEntryMeta(entry: SessionEntry) {
 
 export function isAfterWeightPending(entry: SessionEntry) {
   return Boolean(entry.needsAfterWeight && entry.afterWeight == null);
+}
+
+export function isZeroBeforeEntry(entry: SessionEntry) {
+  return entry.unit === 'g' && getEntryBeforeAmount(entry) === 0;
 }
 
 export function isEntryDeleted(entry: SessionEntry) {
