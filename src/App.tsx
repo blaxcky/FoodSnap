@@ -454,11 +454,13 @@ export default function App() {
             exportFormat={exportFormat}
             exportText={exportText}
             copyState={copyState}
+            sessionCount={activeEntries.length}
             onChangeFormat={(format) => {
               setExportFormat(format);
               setCopyState('idle');
             }}
             onCopy={handleCopy}
+            onResetSession={handleResetSession}
           />
         </section>
       ) : null}
@@ -471,7 +473,6 @@ export default function App() {
             exportState={exportBackupState}
             refreshState={refreshState}
             onExportFoodMemory={handleExportFoodMemory}
-            onResetSession={handleResetSession}
             onForceRefresh={handleForceRefresh}
           />
         </section>

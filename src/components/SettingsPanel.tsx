@@ -6,7 +6,6 @@ interface SettingsPanelProps {
   exportState: 'idle' | 'done' | 'error';
   refreshState: 'idle' | 'working' | 'error';
   onExportFoodMemory: () => void;
-  onResetSession: () => void;
   onForceRefresh: () => Promise<void>;
 }
 
@@ -16,7 +15,6 @@ export function SettingsPanel({
   exportState,
   refreshState,
   onExportFoodMemory,
-  onResetSession,
   onForceRefresh
 }: SettingsPanelProps) {
   return (
@@ -189,39 +187,6 @@ export function SettingsPanel({
             ? 'The forced refresh failed. Try again.'
             : 'Use this when the installed app still shows an older deployment.'}
         </p>
-      </section>
-
-      <section className="settings-section" aria-labelledby="settings-danger-title">
-        <div className="settings-section-header">
-          <p id="settings-danger-title" className="settings-section-title settings-section-title-danger">
-            Danger zone
-          </p>
-          <p className="settings-section-caption">Destructive actions</p>
-        </div>
-
-        <article className="settings-danger-card">
-          <div className="settings-row settings-row-action settings-row-danger">
-            <div className="settings-row-copy">
-              <h3>Reset current session</h3>
-              <p>
-                Clears only the foods in the current session. Remembered foods and save counts stay
-                stored.
-              </p>
-            </div>
-            <div className="settings-row-control">
-              <button
-                className="ghost-button settings-inline-button destructive-action"
-                type="button"
-                onClick={onResetSession}
-                disabled={sessionCount === 0}
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-
-          <p className="settings-feedback">Current session items: {sessionCount}. Food memory is preserved.</p>
-        </article>
       </section>
     </section>
   );

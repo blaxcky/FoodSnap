@@ -879,6 +879,28 @@ button {
   resize: vertical;
 }
 
+.export-danger-zone {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.export-danger-card {
+  margin-top: 0;
+}
+
+.confirm-dialog {
+  width: min(100%, 520px);
+}
+
+.destructive-fill {
+  background: var(--danger);
+}
+
+.destructive-fill:hover {
+  background: #9f1239;
+}
+
 .bottom-nav {
   position: fixed;
   left: 0;
