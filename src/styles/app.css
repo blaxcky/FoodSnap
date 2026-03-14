@@ -713,7 +713,7 @@ button {
   margin-top: 14px;
 }
 
-.modal-note-input {
+.export-textarea.modal-note-input {
   min-height: 64px;
   resize: vertical;
 }
