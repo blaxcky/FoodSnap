@@ -306,7 +306,6 @@ export function EntryComposer({
         />
         <span className="pending-after-copy">
           <strong>After weight follows later</strong>
-          <span>Mark this item until you come back and enter the final after weight.</span>
         </span>
       </label>
 
