@@ -29,11 +29,20 @@ export function formatAmount(value: number, unit: EntryUnit) {
 }
 
 export function formatEntryMeta(entry: SessionEntry) {
+  if (entry.needsAfterWeight && entry.afterWeight == null) {
+    const before = entry.beforeWeight ?? entry.amount;
+    return `Before ${formatNumber(before)}g • after pending`;
+  }
+
   if (entry.mode === 'difference') {
     return `${formatNumber(entry.beforeWeight ?? 0)}g -> ${formatNumber(entry.afterWeight ?? 0)}g`;
   }
 
   return entry.unit === 'g' ? 'Direct grams' : 'Direct pieces';
+}
+
+export function isAfterWeightPending(entry: SessionEntry) {
+  return Boolean(entry.needsAfterWeight && entry.afterWeight == null);
 }
 
 export function isValidPositiveNumber(value: string) {
@@ -44,4 +53,3 @@ export function isValidPositiveNumber(value: string) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0;
 }
-

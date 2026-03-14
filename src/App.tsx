@@ -121,6 +121,7 @@ export default function App() {
                 unit: payload.unit,
                 beforeWeight: payload.beforeWeight,
                 afterWeight: payload.afterWeight,
+                needsAfterWeight: payload.needsAfterWeight,
                 note: payload.note,
                 updatedAt: timestamp
               }
@@ -137,6 +138,7 @@ export default function App() {
         unit: payload.unit,
         beforeWeight: payload.beforeWeight,
         afterWeight: payload.afterWeight,
+        needsAfterWeight: payload.needsAfterWeight,
         note: payload.note,
         createdAt: timestamp,
         updatedAt: timestamp

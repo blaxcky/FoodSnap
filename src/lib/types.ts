@@ -24,6 +24,7 @@ export interface SessionEntry {
   unit: EntryUnit;
   beforeWeight?: number;
   afterWeight?: number;
+  needsAfterWeight?: boolean;
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +37,7 @@ export interface EntryPayload {
   unit: EntryUnit;
   beforeWeight?: number;
   afterWeight?: number;
+  needsAfterWeight?: boolean;
   note: string;
 }
 
@@ -45,4 +47,3 @@ export interface PersistedAppState {
   currentSession: SessionEntry[];
   exportFormat: ExportFormat;
 }
-

@@ -309,6 +309,44 @@ button {
   margin-bottom: 16px;
 }
 
+.pending-after-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e5edf6;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pending-after-toggle-modal {
+  margin-bottom: 0;
+}
+
+.pending-after-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.pending-after-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.pending-after-copy strong {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.pending-after-copy span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .status-copy,
 .helper-copy {
   color: var(--muted);
@@ -700,6 +738,12 @@ button {
   border-color: #b6cae4;
 }
 
+.entry-card.pending-after {
+  border-color: #f3c6ce;
+  background: linear-gradient(180deg, #fff8f8, #fff2f4);
+  box-shadow: 0 8px 20px rgba(190, 18, 60, 0.08);
+}
+
 .entry-row,
 .food-row {
   display: flex;
@@ -729,6 +773,11 @@ button {
 
 .entry-note {
   margin-top: 4px;
+}
+
+.entry-note-pending {
+  color: #b4233f;
+  font-weight: 600;
 }
 
 .entry-actions {

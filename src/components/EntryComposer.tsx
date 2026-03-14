@@ -12,12 +12,14 @@ interface ComposerState {
   foodName: string;
   beforeWeight: string;
   afterWeight: string;
+  needsAfterWeight: boolean;
 }
 
 const emptyState: ComposerState = {
   foodName: '',
   beforeWeight: '',
-  afterWeight: ''
+  afterWeight: '',
+  needsAfterWeight: false
 };
 
 export function EntryComposer({
@@ -79,8 +81,10 @@ export function EntryComposer({
       onSave({
         foodName,
         mode: 'direct',
-        amount: beforeWeight,
+        amount: form.needsAfterWeight ? 0 : beforeWeight,
         unit: 'g',
+        beforeWeight: form.needsAfterWeight ? beforeWeight : undefined,
+        needsAfterWeight: form.needsAfterWeight,
         note: ''
       });
       resetForm();
@@ -112,6 +116,7 @@ export function EntryComposer({
       unit: 'g',
       beforeWeight,
       afterWeight,
+      needsAfterWeight: form.needsAfterWeight,
       note: ''
     });
     resetForm();
@@ -285,6 +290,25 @@ export function EntryComposer({
           />
         </label>
       </div>
+
+      <label className="pending-after-toggle">
+        <input
+          className="pending-after-checkbox"
+          type="checkbox"
+          checked={form.needsAfterWeight}
+          onChange={(event) => {
+            setForm((current) => ({
+              ...current,
+              needsAfterWeight: event.target.checked
+            }));
+            setError('');
+          }}
+        />
+        <span className="pending-after-copy">
+          <strong>After weight follows later</strong>
+          <span>Mark this item until you come back and enter the final after weight.</span>
+        </span>
+      </label>
 
       <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
         Add Item

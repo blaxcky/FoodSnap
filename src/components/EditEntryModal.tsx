@@ -14,6 +14,7 @@ interface EditorState {
   foodName: string;
   beforeWeight: string;
   afterWeight: string;
+  needsAfterWeight: boolean;
 }
 
 function mapEntryToState(entry: SessionEntry): EditorState {
@@ -22,8 +23,9 @@ function mapEntryToState(entry: SessionEntry): EditorState {
     beforeWeight:
       entry.mode === 'difference'
         ? String(entry.beforeWeight ?? '')
-        : String(entry.amount),
-    afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : ''
+        : String(entry.beforeWeight ?? entry.amount),
+    afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : '',
+    needsAfterWeight: Boolean(entry.needsAfterWeight)
   };
 }
 
@@ -56,7 +58,7 @@ export function EditEntryModal({
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
     window.requestAnimationFrame(() => {
-      if (entry.mode === 'difference') {
+      if (entry.mode === 'difference' || (entry.needsAfterWeight && entry.afterWeight == null)) {
         afterInputRef.current?.focus();
         afterInputRef.current?.select();
         return;
@@ -85,8 +87,10 @@ export function EditEntryModal({
       onSave({
         foodName,
         mode: 'direct',
-        amount: beforeWeight,
+        amount: form.needsAfterWeight ? 0 : beforeWeight,
         unit: 'g',
+        beforeWeight: form.needsAfterWeight ? beforeWeight : undefined,
+        needsAfterWeight: form.needsAfterWeight,
         note: entry.note
       });
       return;
@@ -117,6 +121,7 @@ export function EditEntryModal({
       unit: 'g',
       beforeWeight,
       afterWeight,
+      needsAfterWeight: form.needsAfterWeight,
       note: entry.note
     });
   }
@@ -172,7 +177,10 @@ export function EditEntryModal({
                       if (next) {
                         foodInputRef.current?.focus();
                         foodInputRef.current?.select();
-                      } else if (entry.mode === 'difference') {
+                      } else if (
+                        entry.mode === 'difference' ||
+                        (entry.needsAfterWeight && entry.afterWeight == null)
+                      ) {
                         afterInputRef.current?.focus();
                       } else {
                         beforeInputRef.current?.focus();
@@ -342,6 +350,27 @@ export function EditEntryModal({
             />
           </label>
         </div>
+
+        <label className="pending-after-toggle pending-after-toggle-modal">
+          <input
+            className="pending-after-checkbox"
+            type="checkbox"
+            checked={form.needsAfterWeight}
+            onChange={(event) => {
+              setForm((current) => ({
+                ...current,
+                needsAfterWeight: event.target.checked
+              }));
+              setError('');
+            }}
+          />
+          <span className="pending-after-copy">
+            <strong>After weight still required</strong>
+            <span>
+              Keep this enabled if the item should stay marked until an after weight is added.
+            </span>
+          </span>
+        </label>
 
         {entry.note ? <p className="helper-copy">Note stays unchanged: {entry.note}</p> : null}
 
