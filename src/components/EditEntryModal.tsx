@@ -72,24 +72,22 @@ export function EditEntryModal({
   }, [entry]);
 
   useEffect(() => {
-    const { body } = document;
-    const scrollY = window.scrollY;
+    const { documentElement, body } = document;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlOverscrollBehavior = documentElement.style.overscrollBehavior;
     const previousOverflow = body.style.overflow;
-    const previousPosition = body.style.position;
-    const previousTop = body.style.top;
-    const previousWidth = body.style.width;
+    const previousOverscrollBehavior = body.style.overscrollBehavior;
 
+    documentElement.style.overflow = 'hidden';
+    documentElement.style.overscrollBehavior = 'none';
     body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.width = '100%';
+    body.style.overscrollBehavior = 'none';
 
     return () => {
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.overscrollBehavior = previousHtmlOverscrollBehavior;
       body.style.overflow = previousOverflow;
-      body.style.position = previousPosition;
-      body.style.top = previousTop;
-      body.style.width = previousWidth;
-      window.scrollTo(0, scrollY);
+      body.style.overscrollBehavior = previousOverscrollBehavior;
     };
   }, []);
 
