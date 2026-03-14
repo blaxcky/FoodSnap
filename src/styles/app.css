@@ -396,6 +396,21 @@ button {
   border: 1px solid var(--border);
 }
 
+.favorite-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  color: #b7c2cf;
+}
+
+.favorite-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 .ghost-button.compact {
   padding: 8px 12px;
   font-weight: 600;
@@ -405,6 +420,12 @@ button {
 .mode-pill.active {
   color: var(--accent);
   background: #eef5fd;
+}
+
+.favorite-toggle.active {
+  color: #d18b00;
+  background: #fff4d6;
+  border-color: #f3d38a;
 }
 
 .mode-toggle {

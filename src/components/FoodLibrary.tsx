@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { TrashIcon } from './Icons';
+import { StarIcon, TrashIcon } from './Icons';
 import type { FoodProfile } from '../lib/types';
 
 interface FoodLibraryProps {
@@ -62,7 +62,7 @@ export function FoodLibrary({
                   onClick={() => onToggleFavorite(food.id)}
                   aria-label={food.isFavorite ? `Remove ${food.name} from favorites` : `Add ${food.name} to favorites`}
                 >
-                  {food.isFavorite ? 'Starred' : 'Star'}
+                  <StarIcon className="ui-icon favorite-icon" />
                 </button>
 
                 <div className="food-row-main">

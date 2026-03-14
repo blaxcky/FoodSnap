@@ -50,6 +50,14 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function StarIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="m12 2.8 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.2 6.4 20.2l1.1-6.3L2.9 9.4l6.3-.9L12 2.8Z" />
+    </svg>
+  );
+}
+
 export function LogIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
