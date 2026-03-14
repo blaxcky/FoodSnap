@@ -1,5 +1,5 @@
 import type { ExportFormat, SessionEntry } from './types';
-import { formatNumber, isEntryDeleted } from './utils';
+import { formatDifferenceBreakdown, formatNumber, isEntryDeleted } from './utils';
 
 function appendNote(base: string, note: string) {
   return note.trim() ? `${base} (${note.trim()})` : base;
@@ -30,7 +30,7 @@ function formatRawEntry(entry: SessionEntry) {
 
   if (entry.mode === 'difference') {
     return appendNote(
-      `${entry.foodName} ${formatNumber(entry.beforeWeight ?? 0)}g -> ${formatNumber(entry.afterWeight ?? 0)}g = ${formatNumber(entry.amount)}g`,
+      `${entry.foodName} ${formatNumber(entry.amount)}g ${formatDifferenceBreakdown(entry)}`,
       entry.note
     );
   }

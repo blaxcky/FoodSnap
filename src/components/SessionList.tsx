@@ -58,9 +58,9 @@ export function SessionList({
             const showInlineUndo = !isHistory && deleted && canUndo;
             const amountSummary = pendingAfterWeight
               ? formatEntryMeta(entry)
-              : entry.unit === 'g'
-              ? `${formatNumber(entry.amount)}g`
-              : `${formatNumber(entry.amount)} pcs`;
+              : `${entry.unit === 'g'
+                  ? `${formatNumber(entry.amount)}g`
+                  : `${formatNumber(entry.amount)} pcs`}${entry.mode === 'difference' ? ` ${formatEntryMeta(entry)}` : ''}`;
 
             return (
               <article
@@ -79,7 +79,7 @@ export function SessionList({
                         ? formatEntryMeta(entry)
                         : `${entry.unit === 'g'
                             ? `${formatNumber(entry.amount)}g`
-                            : `${formatNumber(entry.amount)} pcs`}${entry.mode === 'difference' ? ` • ${formatEntryMeta(entry)}` : ''}`}
+                            : `${formatNumber(entry.amount)} pcs`}${entry.mode === 'difference' ? ` ${formatEntryMeta(entry)}` : ''}`}
                     </p>
                   </div>
 

@@ -28,6 +28,10 @@ export function formatAmount(value: number, unit: EntryUnit) {
   return unit === 'g' ? `${formatNumber(value)}g` : formatNumber(value);
 }
 
+export function formatDifferenceBreakdown(entry: SessionEntry) {
+  return `(${formatNumber(entry.beforeWeight ?? 0)}g - ${formatNumber(entry.afterWeight ?? 0)}g)`;
+}
+
 export function formatEntryMeta(entry: SessionEntry) {
   if (entry.needsAfterWeight && entry.afterWeight == null) {
     const before = entry.beforeWeight ?? entry.amount;
@@ -35,7 +39,7 @@ export function formatEntryMeta(entry: SessionEntry) {
   }
 
   if (entry.mode === 'difference') {
-    return `${formatNumber(entry.beforeWeight ?? 0)}g -> ${formatNumber(entry.afterWeight ?? 0)}g`;
+    return formatDifferenceBreakdown(entry);
   }
 
   return entry.unit === 'g' ? 'Direct grams' : 'Direct pieces';
