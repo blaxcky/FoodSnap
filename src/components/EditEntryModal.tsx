@@ -71,6 +71,17 @@ export function EditEntryModal({
     });
   }, [entry]);
 
+  useEffect(() => {
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+
+    body.style.overflow = 'hidden';
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   function submitForm() {
     const foodName = form.foodName.trim();
     const beforeWeight = Number(form.beforeWeight);
