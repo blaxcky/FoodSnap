@@ -55,6 +55,7 @@ export function SessionList({
             const deleted = isEntryDeleted(entry);
             const canUndo = canUndoDelete(entry, now);
             const undoSecondsLeft = canUndo ? getUndoSecondsLeft(entry, now) : 0;
+            const showInlineUndo = !isHistory && deleted && canUndo;
             const amountSummary = pendingAfterWeight
               ? formatEntryMeta(entry)
               : entry.unit === 'g'
@@ -64,13 +65,15 @@ export function SessionList({
             return (
               <article
                 key={entry.id}
-                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${deleted ? ' deleted' : ''}`}
+                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${deleted ? ' deleted' : ''}${showInlineUndo ? ' deleting-inline' : ''}`}
               >
                 <div className="entry-row">
                   <div className="entry-main">
                     <h3>{entry.foodName}</h3>
                     <p>
-                      {deleted
+                      {showInlineUndo
+                        ? `Deleting in ${undoSecondsLeft}s • ${amountSummary}`
+                        : deleted
                         ? `Removed from log • ${amountSummary}`
                         : pendingAfterWeight
                         ? formatEntryMeta(entry)
@@ -81,13 +84,26 @@ export function SessionList({
                   </div>
 
                   <div className="entry-actions">
-                    {deleted ? (
+                    {showInlineUndo ? (
+                      <>
+                        <span className="undo-timer-chip" aria-hidden="true">
+                          {undoSecondsLeft}s
+                        </span>
+                        <button
+                          className="ghost-button compact undo-inline-button"
+                          type="button"
+                          onClick={() => onRestore(entry.id)}
+                        >
+                          Undo
+                        </button>
+                      </>
+                    ) : deleted ? (
                       <button
                         className="ghost-button compact"
                         type="button"
                         onClick={() => onRestore(entry.id)}
                       >
-                        {canUndo ? `Undo (${undoSecondsLeft}s)` : 'Restore'}
+                        Restore
                       </button>
                     ) : (
                       <>
@@ -112,7 +128,11 @@ export function SessionList({
                   </div>
                 </div>
 
-                {deleted ? (
+                {showInlineUndo ? (
+                  <p className="entry-note entry-note-deleted">
+                    The entry is fading out and will leave the log unless you undo.
+                  </p>
+                ) : deleted ? (
                   <p className="entry-note entry-note-deleted">
                     Hidden from Log and excluded from export. Restore to include it again.
                   </p>

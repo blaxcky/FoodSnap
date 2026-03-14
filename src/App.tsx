@@ -20,7 +20,6 @@ import {
   canUndoDelete,
   createId,
   getUndoExpiryMs,
-  getUndoSecondsLeft,
   isEntryDeleted,
   normalizeText,
   nowIso
@@ -139,22 +138,16 @@ export default function App() {
     [entries]
   );
 
+  const logEntries = useMemo(
+    () =>
+      entries.filter((entry) => !isEntryDeleted(entry) || canUndoDelete(entry, timelineNow)),
+    [entries, timelineNow]
+  );
+
   const exportText = useMemo(
     () => formatExport(activeEntries, exportFormat),
     [activeEntries, exportFormat]
   );
-
-  const latestUndoEntry = useMemo(
-    () =>
-      [...entries]
-        .filter((entry) => canUndoDelete(entry, timelineNow))
-        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0] ?? null,
-    [entries, timelineNow]
-  );
-
-  const latestUndoSecondsLeft = latestUndoEntry
-    ? getUndoSecondsLeft(latestUndoEntry, timelineNow)
-    : 0;
 
   useEffect(() => {
     if (!entries.some((entry) => entry.undoExpiresAt)) {
@@ -397,24 +390,6 @@ export default function App() {
         </button>
       </header>
 
-      {latestUndoEntry ? (
-        <section className="screen-section undo-section">
-          <div className="undo-banner" role="status" aria-live="polite">
-            <div>
-              <strong>{latestUndoEntry.foodName} deleted.</strong>
-              <span>Undo is available for {latestUndoSecondsLeft}s.</span>
-            </div>
-            <button
-              className="ghost-button compact"
-              type="button"
-              onClick={() => handleRestore(latestUndoEntry.id)}
-            >
-              Undo
-            </button>
-          </div>
-        </section>
-      ) : null}
-
       {activeTab === 'log' ? (
         <>
           <section className="screen-section">
@@ -427,7 +402,7 @@ export default function App() {
           <section className="screen-section muted-section">
             <SessionList
               mode="log"
-              entries={activeEntries}
+              entries={logEntries}
               editingEntryId={editingEntryId}
               now={timelineNow}
               onEdit={startEditing}

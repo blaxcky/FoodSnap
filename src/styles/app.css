@@ -104,10 +104,6 @@ button {
   padding: 18px 24px 0;
 }
 
-.undo-section {
-  padding-bottom: 0;
-}
-
 .muted-section {
   margin-top: 18px;
   padding-top: 18px;
@@ -355,33 +351,6 @@ button {
 .helper-copy {
   color: var(--muted);
   font-size: 0.95rem;
-}
-
-.undo-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
-  border: 1px solid #cfe0f4;
-  border-radius: 12px;
-  background: #edf5ff;
-}
-
-.undo-banner strong,
-.undo-banner span {
-  display: block;
-}
-
-.undo-banner strong {
-  font-size: 0.95rem;
-  letter-spacing: -0.01em;
-}
-
-.undo-banner span {
-  margin-top: 2px;
-  color: #52657f;
-  font-size: 0.88rem;
 }
 
 .status-copy-tight {
@@ -772,6 +741,13 @@ button {
   border-radius: 10px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  transition:
+    opacity 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    filter 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .entry-card.editing {
@@ -788,6 +764,16 @@ button {
   border-color: #d8e0e8;
   background: linear-gradient(180deg, #f5f7f9, #edf1f5);
   box-shadow: none;
+  filter: grayscale(0.95);
+  opacity: 0.56;
+  transform: scale(0.985);
+}
+
+.entry-card.deleting-inline {
+  border-color: #c9d5e3;
+  background: linear-gradient(180deg, #eef2f6, #e5ebf1);
+  opacity: 0.48;
+  animation: delete-fade-pulse 4s linear;
 }
 
 .entry-row,
@@ -834,6 +820,27 @@ button {
 
 .entry-note-deleted {
   font-weight: 600;
+}
+
+.undo-timer-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #cfd8e3;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #6f7e90;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.undo-inline-button {
+  background: rgba(255, 255, 255, 0.92);
+  color: #556476;
 }
 
 .entry-actions {
@@ -909,6 +916,20 @@ button {
   transform: translateY(-1px);
 }
 
+@keyframes delete-fade-pulse {
+  0% {
+    opacity: 0.88;
+    filter: grayscale(0.25);
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0.42;
+    filter: grayscale(1);
+    transform: scale(0.982);
+  }
+}
+
 @media (min-width: 760px) {
   .app-shell {
     border-left: 1px solid var(--border);
@@ -936,7 +957,6 @@ button {
 }
 
 @media (max-width: 640px) {
-  .undo-banner,
   .settings-row,
   .settings-row-danger {
     align-items: flex-start;
