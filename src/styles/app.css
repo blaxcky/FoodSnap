@@ -543,6 +543,11 @@ button {
   gap: 10px;
 }
 
+.settings-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
 .settings-section-header {
   display: grid;
   gap: 2px;

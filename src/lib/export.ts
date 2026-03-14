@@ -44,3 +44,14 @@ export function formatExport(entries: SessionEntry[], format: ExportFormat) {
     .map((entry) => (format === 'raw' ? formatRawEntry(entry) : formatSimpleEntry(entry)))
     .join('\n');
 }
+
+export function formatExportWithLeadIn(exportLeadIn: string, body: string) {
+  const trimmedLeadIn = exportLeadIn.trim();
+  const trimmedBody = body.trim();
+
+  if (trimmedLeadIn && trimmedBody) {
+    return `${trimmedLeadIn}\n\n${trimmedBody}`;
+  }
+
+  return trimmedLeadIn || trimmedBody;
+}

@@ -48,4 +48,5 @@ export interface PersistedAppState {
   foods: FoodProfile[];
   currentSession: SessionEntry[];
   exportFormat: ExportFormat;
+  exportLeadIn: string;
 }

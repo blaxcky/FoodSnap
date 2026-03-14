@@ -6,7 +6,8 @@ export const defaultAppState: PersistedAppState = {
   version: 1,
   foods: [],
   currentSession: [],
-  exportFormat: 'simple'
+  exportFormat: 'simple',
+  exportLeadIn: ''
 };
 
 export function loadAppState(): PersistedAppState {
@@ -26,7 +27,8 @@ export function loadAppState(): PersistedAppState {
       version: 1,
       foods: Array.isArray(parsed.foods) ? parsed.foods : [],
       currentSession: Array.isArray(parsed.currentSession) ? parsed.currentSession : [],
-      exportFormat: parsed.exportFormat === 'raw' ? 'raw' : 'simple'
+      exportFormat: parsed.exportFormat === 'raw' ? 'raw' : 'simple',
+      exportLeadIn: typeof parsed.exportLeadIn === 'string' ? parsed.exportLeadIn : ''
     };
   } catch {
     return defaultAppState;
@@ -40,4 +42,3 @@ export function saveAppState(state: PersistedAppState) {
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
-

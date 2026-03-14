@@ -4,8 +4,10 @@ interface SettingsPanelProps {
   foodCount: number;
   sessionCount: number;
   exportState: 'idle' | 'done' | 'error';
+  exportLeadIn: string;
   refreshState: 'idle' | 'working' | 'error';
   onExportFoodMemory: () => void;
+  onChangeExportLeadIn: (value: string) => void;
   onForceRefresh: () => Promise<void>;
 }
 
@@ -13,8 +15,10 @@ export function SettingsPanel({
   foodCount,
   sessionCount,
   exportState,
+  exportLeadIn,
   refreshState,
   onExportFoodMemory,
+  onChangeExportLeadIn,
   onForceRefresh
 }: SettingsPanelProps) {
   return (
@@ -151,6 +155,30 @@ export function SettingsPanel({
             : exportState === 'error'
               ? 'Backup export failed. Try again.'
               : `Available for ${foodCount} remembered food${foodCount === 1 ? '' : 's'}.`}
+        </p>
+      </section>
+
+      <section className="settings-section" aria-labelledby="settings-chatgpt-title">
+        <div className="settings-section-header">
+          <p id="settings-chatgpt-title" className="settings-section-title">
+            ChatGPT export
+          </p>
+          <p className="settings-section-caption">Custom text added before the exported food list</p>
+        </div>
+
+        <label className="field">
+          <span className="field-label">Export intro text</span>
+          <textarea
+            className="export-textarea settings-textarea"
+            name="settings-export-lead-in"
+            value={exportLeadIn}
+            onChange={(event) => onChangeExportLeadIn(event.target.value)}
+            placeholder="Example: Estimate calories for the following foods and return a short summary."
+          />
+        </label>
+
+        <p className="settings-feedback">
+          This text is prepended to the ChatGPT export before the actual food entries.
         </p>
       </section>
 

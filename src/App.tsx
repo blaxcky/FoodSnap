@@ -8,7 +8,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { SessionList } from './components/SessionList';
 import { downloadFoodMemoryBackup } from './lib/backup';
 import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
-import { formatExport } from './lib/export';
+import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import type {
   EntryPayload,
@@ -97,6 +97,7 @@ export default function App() {
   const [foods, setFoods] = useState<FoodProfile[]>(defaultAppState.foods);
   const [entries, setEntries] = useState<SessionEntry[]>(defaultAppState.currentSession);
   const [exportFormat, setExportFormat] = useState<ExportFormat>(defaultAppState.exportFormat);
+  const [exportLeadIn, setExportLeadIn] = useState(defaultAppState.exportLeadIn);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
@@ -111,6 +112,7 @@ export default function App() {
     setFoods(state.foods);
     setEntries(normalizeLoadedEntries(state.currentSession));
     setExportFormat(state.exportFormat);
+    setExportLeadIn(state.exportLeadIn);
     setTimelineNow(Date.now());
     setIsHydrated(true);
   }, []);
@@ -124,9 +126,10 @@ export default function App() {
       version: 1,
       foods,
       currentSession: entries,
-      exportFormat
+      exportFormat,
+      exportLeadIn
     });
-  }, [foods, entries, exportFormat, isHydrated]);
+  }, [foods, entries, exportFormat, exportLeadIn, isHydrated]);
 
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,
@@ -145,8 +148,8 @@ export default function App() {
   );
 
   const exportText = useMemo(
-    () => formatExport(activeEntries, exportFormat),
-    [activeEntries, exportFormat]
+    () => formatExportWithLeadIn(exportLeadIn, formatExport(activeEntries, exportFormat)),
+    [activeEntries, exportFormat, exportLeadIn]
   );
 
   useEffect(() => {
@@ -471,8 +474,13 @@ export default function App() {
             foodCount={foods.length}
             sessionCount={activeEntries.length}
             exportState={exportBackupState}
+            exportLeadIn={exportLeadIn}
             refreshState={refreshState}
             onExportFoodMemory={handleExportFoodMemory}
+            onChangeExportLeadIn={(value) => {
+              setExportLeadIn(value);
+              setCopyState('idle');
+            }}
             onForceRefresh={handleForceRefresh}
           />
         </section>

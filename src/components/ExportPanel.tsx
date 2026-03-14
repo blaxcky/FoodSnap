@@ -86,7 +86,7 @@ export function ExportPanel({
       <p className="helper-copy">
         {copyState === 'error'
           ? 'Clipboard access failed. Select the text manually.'
-          : 'Use Simple for AI input. Raw keeps the original jar-style weighings.'}
+          : 'Use Simple for AI input. Your custom intro text is included before the exported foods.'}
       </p>
 
       <section className="export-danger-zone" aria-labelledby="export-reset-title">
