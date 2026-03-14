@@ -385,7 +385,7 @@ export function EditEntryModal({
           </span>
         </label>
 
-        <label className="field">
+        <label className="field modal-note-field">
           <span className="field-label">
             Note <span className="field-label-optional">(opt)</span>
           </span>
