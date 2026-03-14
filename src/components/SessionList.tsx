@@ -1,49 +1,78 @@
 import { PencilIcon, TrashIcon } from './Icons';
 import type { SessionEntry } from '../lib/types';
-import { formatEntryMeta, formatNumber, isAfterWeightPending } from '../lib/utils';
+import {
+  canUndoDelete,
+  formatEntryMeta,
+  formatNumber,
+  getUndoSecondsLeft,
+  isAfterWeightPending,
+  isEntryDeleted
+} from '../lib/utils';
 
 interface SessionListProps {
+  mode: 'log' | 'history';
   entries: SessionEntry[];
   editingEntryId: string | null;
+  now: number;
   onEdit: (entryId: string) => void;
   onDelete: (entryId: string) => void;
+  onRestore: (entryId: string) => void;
 }
 
 export function SessionList({
+  mode,
   entries,
   editingEntryId,
+  now,
   onEdit,
-  onDelete
+  onDelete,
+  onRestore
 }: SessionListProps) {
+  const isHistory = mode === 'history';
+
   return (
     <section className="panel">
       <div className="section-heading">
         <div>
-          <p className="section-kicker">Current session</p>
+          <p className="section-kicker">{isHistory ? 'History' : 'Current session'}</p>
         </div>
-        <span className="status-badge">Active</span>
+        <span className="status-badge">{isHistory ? 'Archive' : 'Active'}</span>
       </div>
 
       {entries.length === 0 ? (
         <div className="empty-state">
-          <p>No entries yet.</p>
-          <span>Start with a food name, then save and keep moving.</span>
+          <p>{isHistory ? 'No history yet.' : 'No entries yet.'}</p>
+          <span>
+            {isHistory
+              ? 'Deleted items stay here and can be restored at any time.'
+              : 'Start with a food name, then save and keep moving.'}
+          </span>
         </div>
       ) : (
         <div className="entry-list">
           {entries.map((entry) => {
             const pendingAfterWeight = isAfterWeightPending(entry);
+            const deleted = isEntryDeleted(entry);
+            const canUndo = canUndoDelete(entry, now);
+            const undoSecondsLeft = canUndo ? getUndoSecondsLeft(entry, now) : 0;
+            const amountSummary = pendingAfterWeight
+              ? formatEntryMeta(entry)
+              : entry.unit === 'g'
+              ? `${formatNumber(entry.amount)}g`
+              : `${formatNumber(entry.amount)} pcs`;
 
             return (
               <article
                 key={entry.id}
-                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}`}
+                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${deleted ? ' deleted' : ''}`}
               >
                 <div className="entry-row">
                   <div className="entry-main">
                     <h3>{entry.foodName}</h3>
                     <p>
-                      {pendingAfterWeight
+                      {deleted
+                        ? `Removed from log • ${amountSummary}`
+                        : pendingAfterWeight
                         ? formatEntryMeta(entry)
                         : `${entry.unit === 'g'
                             ? `${formatNumber(entry.amount)}g`
@@ -52,26 +81,42 @@ export function SessionList({
                   </div>
 
                   <div className="entry-actions">
-                    <button
-                      className="icon-action"
-                      type="button"
-                      onClick={() => onEdit(entry.id)}
-                      aria-label={`Edit ${entry.foodName}`}
-                    >
-                      <PencilIcon className="ui-icon" />
-                    </button>
-                    <button
-                      className="icon-action"
-                      type="button"
-                      onClick={() => onDelete(entry.id)}
-                      aria-label={`Delete ${entry.foodName}`}
-                    >
-                      <TrashIcon className="ui-icon" />
-                    </button>
+                    {deleted ? (
+                      <button
+                        className="ghost-button compact"
+                        type="button"
+                        onClick={() => onRestore(entry.id)}
+                      >
+                        {canUndo ? `Undo (${undoSecondsLeft}s)` : 'Restore'}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="icon-action"
+                          type="button"
+                          onClick={() => onEdit(entry.id)}
+                          aria-label={`Edit ${entry.foodName}`}
+                        >
+                          <PencilIcon className="ui-icon" />
+                        </button>
+                        <button
+                          className="icon-action"
+                          type="button"
+                          onClick={() => onDelete(entry.id)}
+                          aria-label={`Delete ${entry.foodName}`}
+                        >
+                          <TrashIcon className="ui-icon" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {pendingAfterWeight ? (
+                {deleted ? (
+                  <p className="entry-note entry-note-deleted">
+                    Hidden from Log and excluded from export. Restore to include it again.
+                  </p>
+                ) : pendingAfterWeight ? (
                   <p className="entry-note entry-note-pending">
                     After weight still missing. Edit the item to complete it.
                   </p>

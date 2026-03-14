@@ -45,6 +45,34 @@ export function isAfterWeightPending(entry: SessionEntry) {
   return Boolean(entry.needsAfterWeight && entry.afterWeight == null);
 }
 
+export function isEntryDeleted(entry: SessionEntry) {
+  return Boolean(entry.deletedAt);
+}
+
+export function getUndoExpiryMs(entry: SessionEntry) {
+  if (!entry.undoExpiresAt) {
+    return null;
+  }
+
+  const parsed = Date.parse(entry.undoExpiresAt);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export function canUndoDelete(entry: SessionEntry, now = Date.now()) {
+  const expiresAt = getUndoExpiryMs(entry);
+  return isEntryDeleted(entry) && expiresAt != null && expiresAt > now;
+}
+
+export function getUndoSecondsLeft(entry: SessionEntry, now = Date.now()) {
+  const expiresAt = getUndoExpiryMs(entry);
+
+  if (expiresAt == null) {
+    return 0;
+  }
+
+  return Math.max(0, Math.ceil((expiresAt - now) / 1000));
+}
+
 export function isValidPositiveNumber(value: string) {
   if (value.trim() === '') {
     return false;

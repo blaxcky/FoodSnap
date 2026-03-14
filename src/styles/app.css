@@ -104,6 +104,10 @@ button {
   padding: 18px 24px 0;
 }
 
+.undo-section {
+  padding-bottom: 0;
+}
+
 .muted-section {
   margin-top: 18px;
   padding-top: 18px;
@@ -351,6 +355,33 @@ button {
 .helper-copy {
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+.undo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #cfe0f4;
+  border-radius: 12px;
+  background: #edf5ff;
+}
+
+.undo-banner strong,
+.undo-banner span {
+  display: block;
+}
+
+.undo-banner strong {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.undo-banner span {
+  margin-top: 2px;
+  color: #52657f;
+  font-size: 0.88rem;
 }
 
 .status-copy-tight {
@@ -753,6 +784,12 @@ button {
   box-shadow: 0 8px 20px rgba(190, 18, 60, 0.08);
 }
 
+.entry-card.deleted {
+  border-color: #d8e0e8;
+  background: linear-gradient(180deg, #f5f7f9, #edf1f5);
+  box-shadow: none;
+}
+
 .entry-row,
 .food-row {
   display: flex;
@@ -786,6 +823,16 @@ button {
 
 .entry-note-pending {
   color: #b4233f;
+  font-weight: 600;
+}
+
+.entry-card.deleted .entry-main h3,
+.entry-card.deleted .entry-main p,
+.entry-card.deleted .entry-note {
+  color: #8a99ab;
+}
+
+.entry-note-deleted {
   font-weight: 600;
 }
 
@@ -889,6 +936,7 @@ button {
 }
 
 @media (max-width: 640px) {
+  .undo-banner,
   .settings-row,
   .settings-row-danger {
     align-items: flex-start;

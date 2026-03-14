@@ -28,6 +28,8 @@ export interface SessionEntry {
   note: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string;
+  undoExpiresAt?: string;
 }
 
 export interface EntryPayload {

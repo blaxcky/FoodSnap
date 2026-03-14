@@ -1,5 +1,5 @@
 import type { ExportFormat, SessionEntry } from './types';
-import { formatNumber } from './utils';
+import { formatNumber, isEntryDeleted } from './utils';
 
 function appendNote(base: string, note: string) {
   return note.trim() ? `${base} (${note.trim()})` : base;
@@ -40,6 +40,7 @@ function formatRawEntry(entry: SessionEntry) {
 
 export function formatExport(entries: SessionEntry[], format: ExportFormat) {
   return entries
+    .filter((entry) => !isEntryDeleted(entry))
     .map((entry) => (format === 'raw' ? formatRawEntry(entry) : formatSimpleEntry(entry)))
     .join('\n');
 }

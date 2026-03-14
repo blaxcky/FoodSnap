@@ -16,7 +16,41 @@ import type {
   FoodProfile,
   SessionEntry
 } from './lib/types';
-import { createId, normalizeText, nowIso } from './lib/utils';
+import {
+  canUndoDelete,
+  createId,
+  getUndoExpiryMs,
+  getUndoSecondsLeft,
+  isEntryDeleted,
+  normalizeText,
+  nowIso
+} from './lib/utils';
+
+const DELETE_UNDO_WINDOW_MS = 4_000;
+
+function normalizeLoadedEntries(entries: SessionEntry[]) {
+  const now = Date.now();
+
+  return entries.map((entry) => {
+    if (!entry.deletedAt && !entry.undoExpiresAt) {
+      return entry;
+    }
+
+    const nextEntry = { ...entry };
+
+    if (!nextEntry.deletedAt) {
+      delete nextEntry.undoExpiresAt;
+      return nextEntry;
+    }
+
+    const expiresAt = getUndoExpiryMs(nextEntry);
+    if (expiresAt == null || expiresAt <= now) {
+      delete nextEntry.undoExpiresAt;
+    }
+
+    return nextEntry;
+  });
+}
 
 function learnFood(foods: FoodProfile[], payload: EntryPayload) {
   const normalizedName = normalizeText(payload.foodName);
@@ -70,13 +104,15 @@ export default function App() {
   const [exportBackupState, setExportBackupState] = useState<'idle' | 'done' | 'error'>('idle');
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
+  const [timelineNow, setTimelineNow] = useState(() => Date.now());
 
   useEffect(() => {
     clearRefreshQueryParam();
     const state = loadAppState();
     setFoods(state.foods);
-    setEntries(state.currentSession);
+    setEntries(normalizeLoadedEntries(state.currentSession));
     setExportFormat(state.exportFormat);
+    setTimelineNow(Date.now());
     setIsHydrated(true);
   }, []);
 
@@ -98,10 +134,62 @@ export default function App() {
     [entries, editingEntryId]
   );
 
-  const exportText = useMemo(
-    () => formatExport(entries, exportFormat),
-    [entries, exportFormat]
+  const activeEntries = useMemo(
+    () => entries.filter((entry) => !isEntryDeleted(entry)),
+    [entries]
   );
+
+  const exportText = useMemo(
+    () => formatExport(activeEntries, exportFormat),
+    [activeEntries, exportFormat]
+  );
+
+  const latestUndoEntry = useMemo(
+    () =>
+      [...entries]
+        .filter((entry) => canUndoDelete(entry, timelineNow))
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0] ?? null,
+    [entries, timelineNow]
+  );
+
+  const latestUndoSecondsLeft = latestUndoEntry
+    ? getUndoSecondsLeft(latestUndoEntry, timelineNow)
+    : 0;
+
+  useEffect(() => {
+    if (!entries.some((entry) => entry.undoExpiresAt)) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const now = Date.now();
+      setTimelineNow(now);
+      setEntries((currentEntries) => {
+        let changed = false;
+
+        const nextEntries = currentEntries.map((entry) => {
+          if (!entry.undoExpiresAt) {
+            return entry;
+          }
+
+          const expiresAt = getUndoExpiryMs(entry);
+          if (expiresAt == null || expiresAt > now) {
+            return entry;
+          }
+
+          changed = true;
+          return {
+            ...entry,
+            undoExpiresAt: undefined
+          };
+        });
+
+        return changed ? nextEntries : currentEntries;
+      });
+    }, 250);
+
+    return () => window.clearInterval(intervalId);
+  }, [entries]);
 
   function commitEntry(payload: EntryPayload, targetEntryId: string | null) {
     const learning = learnFood(foods, payload);
@@ -163,10 +251,44 @@ export default function App() {
   }
 
   function handleDelete(entryId: string) {
-    setEntries((currentEntries) => currentEntries.filter((entry) => entry.id !== entryId));
+    const timestamp = nowIso();
+    const undoExpiresAt = new Date(Date.now() + DELETE_UNDO_WINDOW_MS).toISOString();
+
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              deletedAt: timestamp,
+              undoExpiresAt,
+              updatedAt: timestamp
+            }
+          : entry
+      )
+    );
     if (editingEntryId === entryId) {
       setEditingEntryId(null);
     }
+    setTimelineNow(Date.now());
+    setCopyState('idle');
+  }
+
+  function handleRestore(entryId: string) {
+    const timestamp = nowIso();
+
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              deletedAt: undefined,
+              undoExpiresAt: undefined,
+              updatedAt: timestamp
+            }
+          : entry
+      )
+    );
+    setTimelineNow(Date.now());
     setCopyState('idle');
   }
 
@@ -239,6 +361,7 @@ export default function App() {
   function handleResetSession() {
     setEntries([]);
     setEditingEntryId(null);
+    setTimelineNow(Date.now());
     setCopyState('idle');
   }
 
@@ -274,6 +397,24 @@ export default function App() {
         </button>
       </header>
 
+      {latestUndoEntry ? (
+        <section className="screen-section undo-section">
+          <div className="undo-banner" role="status" aria-live="polite">
+            <div>
+              <strong>{latestUndoEntry.foodName} deleted.</strong>
+              <span>Undo is available for {latestUndoSecondsLeft}s.</span>
+            </div>
+            <button
+              className="ghost-button compact"
+              type="button"
+              onClick={() => handleRestore(latestUndoEntry.id)}
+            >
+              Undo
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       {activeTab === 'log' ? (
         <>
           <section className="screen-section">
@@ -285,10 +426,13 @@ export default function App() {
 
           <section className="screen-section muted-section">
             <SessionList
-              entries={entries}
+              mode="log"
+              entries={activeEntries}
               editingEntryId={editingEntryId}
+              now={timelineNow}
               onEdit={startEditing}
               onDelete={handleDelete}
+              onRestore={handleRestore}
             />
           </section>
         </>
@@ -298,9 +442,12 @@ export default function App() {
         <section className="screen-section muted-section">
           <SessionList
             entries={entries}
+            mode="history"
             editingEntryId={editingEntryId}
+            now={timelineNow}
             onEdit={startEditing}
             onDelete={handleDelete}
+            onRestore={handleRestore}
           />
         </section>
       ) : null}
@@ -345,7 +492,7 @@ export default function App() {
         <section className="screen-section">
           <SettingsPanel
             foodCount={foods.length}
-            sessionCount={entries.length}
+            sessionCount={activeEntries.length}
             exportState={exportBackupState}
             refreshState={refreshState}
             onExportFoodMemory={handleExportFoodMemory}
