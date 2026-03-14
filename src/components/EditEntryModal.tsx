@@ -15,6 +15,7 @@ interface EditorState {
   beforeWeight: string;
   afterWeight: string;
   needsAfterWeight: boolean;
+  note: string;
 }
 
 function mapEntryToState(entry: SessionEntry): EditorState {
@@ -25,7 +26,8 @@ function mapEntryToState(entry: SessionEntry): EditorState {
         ? String(entry.beforeWeight ?? '')
         : String(entry.beforeWeight ?? entry.amount),
     afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : '',
-    needsAfterWeight: Boolean(entry.needsAfterWeight)
+    needsAfterWeight: Boolean(entry.needsAfterWeight),
+    note: entry.note
   };
 }
 
@@ -91,7 +93,7 @@ export function EditEntryModal({
         unit: 'g',
         beforeWeight: form.needsAfterWeight ? beforeWeight : undefined,
         needsAfterWeight: form.needsAfterWeight,
-        note: entry.note
+        note: form.note.trim()
       });
       return;
     }
@@ -122,7 +124,7 @@ export function EditEntryModal({
       beforeWeight,
       afterWeight,
       needsAfterWeight: form.needsAfterWeight,
-      note: entry.note
+      note: form.note.trim()
     });
   }
 
@@ -372,7 +374,24 @@ export function EditEntryModal({
           </span>
         </label>
 
-        {entry.note ? <p className="helper-copy">Note stays unchanged: {entry.note}</p> : null}
+        <label className="field">
+          <span className="field-label">
+            Note <span className="field-label-optional">(opt)</span>
+          </span>
+          <textarea
+            className="export-textarea modal-note-input"
+            name="food-edit-note"
+            placeholder="e.g. chicken, breaded, homemade..."
+            value={form.note}
+            onChange={(event) => {
+              setForm((current) => ({ ...current, note: event.target.value }));
+            }}
+          />
+        </label>
+
+        <p className="helper-copy">
+          The note is appended in parentheses in the text export, for example `Schnitzel (Hendl)`.
+        </p>
 
         <div className="modal-actions">
           <button className="ghost-button" type="button" onClick={onCancel}>

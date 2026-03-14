@@ -709,6 +709,11 @@ button {
   min-width: 150px;
 }
 
+.modal-note-input {
+  min-height: 92px;
+  resize: vertical;
+}
+
 .destructive-action {
   color: var(--danger);
 }
