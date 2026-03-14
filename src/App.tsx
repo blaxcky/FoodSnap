@@ -450,6 +450,9 @@ export default function App() {
               );
             }}
             onRenameFood={handleRenameFood}
+            onDeleteFood={(foodId) => {
+              setFoods((currentFoods) => currentFoods.filter((food) => food.id !== foodId));
+            }}
           />
         </section>
       ) : null}

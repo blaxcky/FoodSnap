@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
+import { TrashIcon } from './Icons';
 import type { FoodProfile } from '../lib/types';
 
 interface FoodLibraryProps {
   foods: FoodProfile[];
   onToggleFavorite: (foodId: string) => void;
   onRenameFood: (foodId: string, nextName: string) => boolean;
+  onDeleteFood: (foodId: string) => void;
 }
 
 export function FoodLibrary({
   foods,
   onToggleFavorite,
-  onRenameFood
+  onRenameFood,
+  onDeleteFood
 }: FoodLibraryProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -121,17 +124,34 @@ export function FoodLibrary({
                     </button>
                   </div>
                 ) : (
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={() => {
-                      setEditingId(food.id);
-                      setDraftName(food.name);
-                      setRenameError('');
-                    }}
-                  >
-                    Rename
-                  </button>
+                  <div className="entry-actions">
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => {
+                        setEditingId(food.id);
+                        setDraftName(food.name);
+                        setRenameError('');
+                      }}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="icon-action destructive-action"
+                      type="button"
+                      onClick={() => {
+                        if (editingId === food.id) {
+                          setEditingId(null);
+                          setDraftName('');
+                        }
+                        setRenameError('');
+                        onDeleteFood(food.id);
+                      }}
+                      aria-label={`Delete remembered food ${food.name}`}
+                    >
+                      <TrashIcon className="ui-icon" />
+                    </button>
+                  </div>
                 )}
               </article>
             );
