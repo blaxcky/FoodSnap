@@ -1,10 +1,8 @@
 import { PencilIcon, TrashIcon } from './Icons';
 import type { SessionEntry } from '../lib/types';
 import {
-  canUndoDelete,
   formatEntryMeta,
   formatNumber,
-  getUndoSecondsLeft,
   isAfterWeightPending,
   isEntryDeleted,
   isZeroBeforeEntry
@@ -14,7 +12,6 @@ interface SessionListProps {
   mode: 'log' | 'history';
   entries: SessionEntry[];
   editingEntryId: string | null;
-  now: number;
   onEdit: (entryId: string) => void;
   onDelete: (entryId: string) => void;
   onRestore: (entryId: string) => void;
@@ -24,7 +21,6 @@ export function SessionList({
   mode,
   entries,
   editingEntryId,
-  now,
   onEdit,
   onDelete,
   onRestore
@@ -55,9 +51,6 @@ export function SessionList({
             const pendingAfterWeight = isAfterWeightPending(entry);
             const deleted = isEntryDeleted(entry);
             const zeroBefore = isZeroBeforeEntry(entry);
-            const canUndo = canUndoDelete(entry, now);
-            const undoSecondsLeft = canUndo ? getUndoSecondsLeft(entry, now) : 0;
-            const showInlineUndo = !isHistory && deleted && canUndo;
             const amountSummary = pendingAfterWeight
               ? formatEntryMeta(entry)
               : `${entry.unit === 'g'
@@ -67,15 +60,13 @@ export function SessionList({
             return (
               <article
                 key={entry.id}
-                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${zeroBefore ? ' zero-before' : ''}${deleted ? ' deleted' : ''}${showInlineUndo ? ' deleting-inline' : ''}`}
+                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${zeroBefore ? ' zero-before' : ''}${deleted ? ' deleted' : ''}`}
               >
                 <div className="entry-row">
                   <div className="entry-main">
                     <h3>{entry.foodName}</h3>
                     <p>
-                      {showInlineUndo
-                        ? `Deleting in ${undoSecondsLeft}s • ${amountSummary}`
-                        : deleted
+                      {deleted
                         ? `Removed from log • ${amountSummary}`
                         : pendingAfterWeight
                         ? formatEntryMeta(entry)
@@ -86,20 +77,7 @@ export function SessionList({
                   </div>
 
                   <div className="entry-actions">
-                    {showInlineUndo ? (
-                      <>
-                        <span className="undo-timer-chip" aria-hidden="true">
-                          {undoSecondsLeft}s
-                        </span>
-                        <button
-                          className="ghost-button compact undo-inline-button"
-                          type="button"
-                          onClick={() => onRestore(entry.id)}
-                        >
-                          Undo
-                        </button>
-                      </>
-                    ) : deleted ? (
+                    {deleted ? (
                       <button
                         className="ghost-button compact"
                         type="button"
@@ -130,11 +108,7 @@ export function SessionList({
                   </div>
                 </div>
 
-                {showInlineUndo ? (
-                  <p className="entry-note entry-note-deleted">
-                    The entry is fading out and will leave the log unless you undo.
-                  </p>
-                ) : deleted ? (
+                {deleted ? (
                   <p className="entry-note entry-note-deleted">
                     Hidden from Log and excluded from export. Restore to include it again.
                   </p>
