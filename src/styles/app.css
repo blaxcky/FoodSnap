@@ -114,12 +114,21 @@ button {
   min-height: calc(100vh - 420px);
 }
 
+.screen-section-log {
+  margin-top: 0;
+  min-height: calc(100vh - 180px);
+}
+
 .panel {
   background: transparent;
 }
 
 .composer-panel {
   max-width: 100%;
+}
+
+.composer-modal-form {
+  display: grid;
 }
 
 .section-heading {
@@ -728,6 +737,10 @@ button {
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
 }
 
+.create-entry-modal {
+  width: min(100%, 560px);
+}
+
 .modal-heading {
   margin-bottom: 16px;
 }
@@ -957,6 +970,45 @@ button {
   border-top: 1px solid var(--border);
 }
 
+.fab-anchor {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: 30;
+  pointer-events: none;
+}
+
+.fab-inner {
+  display: flex;
+  justify-content: flex-end;
+  width: min(100%, 768px);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.floating-compose-button {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 10px 24px rgba(24, 104, 190, 0.24);
+  transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.floating-compose-button:hover {
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+}
+
 .bottom-nav-item {
   display: flex;
   flex-direction: column;
@@ -1014,6 +1066,11 @@ button {
     border-right: 1px solid var(--border);
   }
 
+  .fab-inner {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
   .modal-card {
     padding: 20px 18px 22px;
   }
@@ -1025,6 +1082,10 @@ button {
 }
 
 @media (max-width: 640px) {
+  .inline-fields {
+    grid-template-columns: 1fr;
+  }
+
   .settings-row,
   .settings-row-danger {
     align-items: flex-start;
@@ -1039,6 +1100,12 @@ button {
   .settings-inline-button {
     justify-content: center;
     width: 100%;
+  }
+
+  .floating-compose-button {
+    width: 54px;
+    height: 54px;
+    font-size: 1.9rem;
   }
 }
 

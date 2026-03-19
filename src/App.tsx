@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CreateEntryModal } from './components/CreateEntryModal';
 import { EditEntryModal } from './components/EditEntryModal';
-import { EntryComposer } from './components/EntryComposer';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
 import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon, SettingsIcon } from './components/Icons';
@@ -105,6 +105,7 @@ export default function App() {
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
   const [timelineNow, setTimelineNow] = useState(() => Date.now());
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
 
   useEffect(() => {
     clearRefreshQueryParam();
@@ -187,6 +188,12 @@ export default function App() {
     return () => window.clearInterval(intervalId);
   }, [entries]);
 
+  useEffect(() => {
+    if (activeTab !== 'log' && isComposerOpen) {
+      setIsComposerOpen(false);
+    }
+  }, [activeTab, isComposerOpen]);
+
   function commitEntry(payload: EntryPayload, targetEntryId: string | null) {
     const learning = learnFood(foods, payload);
     const timestamp = nowIso();
@@ -236,6 +243,7 @@ export default function App() {
 
   function handleSaveEntry(payload: EntryPayload) {
     commitEntry(payload, null);
+    setIsComposerOpen(false);
   }
 
   function handleUpdateEntry(payload: EntryPayload) {
@@ -365,6 +373,7 @@ export default function App() {
   }
 
   function startEditing(entryId: string) {
+    setIsComposerOpen(false);
     setEditingEntryId(entryId);
   }
 
@@ -397,26 +406,17 @@ export default function App() {
       </header>
 
       {activeTab === 'log' ? (
-        <>
-          <section className="screen-section">
-            <EntryComposer
-              foods={foods}
-              onSave={handleSaveEntry}
-            />
-          </section>
-
-          <section className="screen-section muted-section">
-            <SessionList
-              mode="log"
-              entries={logEntries}
-              editingEntryId={editingEntryId}
-              now={timelineNow}
-              onEdit={startEditing}
-              onDelete={handleDelete}
-              onRestore={handleRestore}
-            />
-          </section>
-        </>
+        <section className="screen-section muted-section screen-section-log">
+          <SessionList
+            mode="log"
+            entries={logEntries}
+            editingEntryId={editingEntryId}
+            now={timelineNow}
+            onEdit={startEditing}
+            onDelete={handleDelete}
+            onRestore={handleRestore}
+          />
+        </section>
       ) : null}
 
       {activeTab === 'history' ? (
@@ -526,6 +526,29 @@ export default function App() {
           <span>Export</span>
         </button>
       </nav>
+
+      {activeTab === 'log' && !isComposerOpen ? (
+        <div className="fab-anchor">
+          <div className="fab-inner">
+            <button
+              className="floating-compose-button"
+              type="button"
+              onClick={() => setIsComposerOpen(true)}
+              aria-label="Add a new log entry"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isComposerOpen ? (
+        <CreateEntryModal
+          foods={foods}
+          onCancel={() => setIsComposerOpen(false)}
+          onSave={handleSaveEntry}
+        />
+      ) : null}
 
       {editingEntry ? (
         <EditEntryModal

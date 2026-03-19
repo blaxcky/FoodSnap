@@ -6,6 +6,7 @@ import type { EntryPayload, FoodProfile } from '../lib/types';
 interface EntryComposerProps {
   foods: FoodProfile[];
   onSave: (payload: EntryPayload) => void;
+  variant?: 'panel' | 'modal';
 }
 
 interface ComposerState {
@@ -24,7 +25,8 @@ const emptyState: ComposerState = {
 
 export function EntryComposer({
   foods,
-  onSave
+  onSave,
+  variant = 'panel'
 }: EntryComposerProps) {
   const [form, setForm] = useState<ComposerState>(emptyState);
   const [error, setError] = useState('');
@@ -133,14 +135,8 @@ export function EntryComposer({
     focusWeightField();
   }
 
-  return (
-    <section className="panel composer-panel">
-      <div className="section-heading">
-        <div>
-          <p className="section-kicker">Quick log food</p>
-        </div>
-      </div>
-
+  const fields = (
+    <>
       <div className="field-stack autocomplete-shell">
         <label className="field">
           <div className="search-field">
@@ -314,6 +310,22 @@ export function EntryComposer({
       </button>
 
       {error ? <p className="error-copy">{error}</p> : null}
+    </>
+  );
+
+  if (variant === 'modal') {
+    return <div className="composer-modal-form">{fields}</div>;
+  }
+
+  return (
+    <section className="panel composer-panel">
+      <div className="section-heading">
+        <div>
+          <p className="section-kicker">Quick log food</p>
+        </div>
+      </div>
+
+      {fields}
     </section>
   );
 }
