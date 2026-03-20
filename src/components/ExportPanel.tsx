@@ -114,7 +114,7 @@ export function ExportPanel({
           <div className="settings-row settings-row-action settings-row-danger">
             <div className="settings-row-copy">
               <h3>Clear current session</h3>
-              <p>{sessionCount} item{sessionCount === 1 ? '' : 's'} currently in the session.</p>
+              <p>{sessionCount} item{sessionCount === 1 ? '' : 's'} currently stored in the session.</p>
             </div>
             <div className="settings-row-control">
               <button

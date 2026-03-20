@@ -405,7 +405,7 @@ export default function App() {
             visibleExportText={visibleExportText}
             exportLeadIn={exportLeadIn}
             copyState={copyState}
-            sessionCount={activeEntries.length}
+            sessionCount={entries.length}
             onChangeFormat={(format) => {
               setExportFormat(format);
               setCopyState('idle');
