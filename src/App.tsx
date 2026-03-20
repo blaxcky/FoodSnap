@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CreateEntryModal } from './components/CreateEntryModal';
 import { EditEntryModal } from './components/EditEntryModal';
 import { ExportPanel } from './components/ExportPanel';
@@ -84,6 +84,7 @@ export default function App() {
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const dialogHistoryActiveRef = useRef(false);
 
   useEffect(() => {
     clearRefreshQueryParam();
@@ -134,11 +135,49 @@ export default function App() {
     [activeEntries, exportFormat]
   );
 
+  const isInputDialogOpen = isComposerOpen || editingEntryId != null;
+
   useEffect(() => {
     if (activeTab !== 'log' && isComposerOpen) {
       setIsComposerOpen(false);
     }
   }, [activeTab, isComposerOpen]);
+
+  useEffect(() => {
+    if (!isInputDialogOpen) {
+      return;
+    }
+
+    const handlePopState = () => {
+      if (!dialogHistoryActiveRef.current) {
+        return;
+      }
+
+      dialogHistoryActiveRef.current = false;
+      setIsComposerOpen(false);
+      setEditingEntryId(null);
+    };
+
+    dialogHistoryActiveRef.current = true;
+    window.history.pushState({ quickLogDialog: true }, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isInputDialogOpen]);
+
+  function closeInputDialog() {
+    const shouldConsumeHistory = dialogHistoryActiveRef.current;
+
+    setIsComposerOpen(false);
+    setEditingEntryId(null);
+
+    if (shouldConsumeHistory) {
+      dialogHistoryActiveRef.current = false;
+      window.history.back();
+    }
+  }
 
   function commitEntry(payload: EntryPayload, targetEntryId: string | null) {
     const learning = learnFood(foods, payload, targetEntryId == null);
@@ -183,13 +222,12 @@ export default function App() {
 
       return [nextEntry, ...currentEntries];
     });
-    setEditingEntryId(null);
     setCopyState('idle');
   }
 
   function handleSaveEntry(payload: EntryPayload) {
     commitEntry(payload, null);
-    setIsComposerOpen(false);
+    closeInputDialog();
   }
 
   function handleUpdateEntry(payload: EntryPayload) {
@@ -198,6 +236,7 @@ export default function App() {
     }
 
     commitEntry(payload, editingEntryId);
+    closeInputDialog();
   }
 
   function handleDelete(entryId: string) {
@@ -216,7 +255,7 @@ export default function App() {
       )
     );
     if (editingEntryId === entryId) {
-      setEditingEntryId(null);
+      closeInputDialog();
     }
     setCopyState('idle');
   }
@@ -487,7 +526,7 @@ export default function App() {
       {isComposerOpen ? (
         <CreateEntryModal
           foods={foods}
-          onCancel={() => setIsComposerOpen(false)}
+          onCancel={closeInputDialog}
           onSave={handleSaveEntry}
         />
       ) : null}
@@ -496,7 +535,7 @@ export default function App() {
         <EditEntryModal
           foods={foods}
           entry={editingEntry}
-          onCancel={() => setEditingEntryId(null)}
+          onCancel={closeInputDialog}
           onSave={handleUpdateEntry}
         />
       ) : null}
