@@ -115,19 +115,13 @@ button {
   margin-top: 18px;
   padding-top: 18px;
   padding-bottom: 18px;
-  background: #f0f3f8;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  min-height: calc(100vh - 420px);
+  background: transparent;
+  border-top: 0;
+  border-bottom: 0;
 }
 
 .screen-section-log {
   margin-top: 0;
-  min-height: calc(100vh - 180px);
-}
-
-.screen-section-log-empty {
-  min-height: auto;
 }
 
 .panel {

@@ -387,9 +387,7 @@ export default function App() {
       </header>
 
       {activeTab === 'log' ? (
-        <section
-          className={`screen-section muted-section screen-section-log${logEntries.length === 0 ? ' screen-section-log-empty' : ''}`}
-        >
+        <section className="screen-section muted-section screen-section-log">
           <SessionList
             mode="log"
             entries={logEntries}
