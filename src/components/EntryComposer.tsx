@@ -67,19 +67,50 @@ export function EntryComposer({
 
   function submitForm() {
     const foodName = form.foodName.trim();
-    const beforeWeight = Number(form.beforeWeight);
+    const beforeWeightValue = form.beforeWeight.trim();
+    const afterWeightValue = form.afterWeight.trim();
+    const hasBeforeWeight = beforeWeightValue !== '';
+    const hasAfterWeight = afterWeightValue !== '';
 
     if (!foodName) {
       setError('Enter a food name.');
       return;
     }
 
+    if (!hasBeforeWeight && !hasAfterWeight) {
+      setError('Enter at least one weight value.');
+      return;
+    }
+
+    if (!hasBeforeWeight) {
+      const afterWeight = Number(afterWeightValue);
+
+      if (!Number.isFinite(afterWeight) || afterWeight < 0) {
+        setError('Enter a valid after value.');
+        return;
+      }
+
+      onSave({
+        foodName,
+        mode: 'direct',
+        amount: 0,
+        unit: 'g',
+        afterWeight,
+        needsAfterWeight: false,
+        note: ''
+      });
+      resetForm();
+      return;
+    }
+
+    const beforeWeight = Number(beforeWeightValue);
+
     if (!Number.isFinite(beforeWeight) || beforeWeight < 0) {
       setError('Enter a valid before value.');
       return;
     }
 
-    if (form.afterWeight.trim() === '') {
+    if (!hasAfterWeight) {
       onSave({
         foodName,
         mode: 'direct',
@@ -93,7 +124,7 @@ export function EntryComposer({
       return;
     }
 
-    const afterWeight = Number(form.afterWeight);
+    const afterWeight = Number(afterWeightValue);
 
     if (!Number.isFinite(afterWeight) || afterWeight < 0) {
       setError('Enter a valid after value.');

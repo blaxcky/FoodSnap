@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
+import { isAfterWeightPending, isBeforeWeightPending } from '../lib/utils';
 
 interface EditEntryModalProps {
   foods: FoodProfile[];
@@ -19,13 +20,18 @@ interface EditorState {
 }
 
 function mapEntryToState(entry: SessionEntry): EditorState {
+  const pendingBeforeWeight = isBeforeWeightPending(entry);
+
   return {
     foodName: entry.foodName,
     beforeWeight:
       entry.mode === 'difference'
         ? String(entry.beforeWeight ?? '')
+        : pendingBeforeWeight
+        ? ''
         : String(entry.beforeWeight ?? entry.amount),
-    afterWeight: entry.mode === 'difference' ? String(entry.afterWeight ?? '') : '',
+    afterWeight:
+      entry.mode === 'difference' || pendingBeforeWeight ? String(entry.afterWeight ?? '') : '',
     needsAfterWeight: Boolean(entry.needsAfterWeight),
     note: entry.note
   };
@@ -60,7 +66,7 @@ export function EditEntryModal({
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
     window.requestAnimationFrame(() => {
-      if (entry.mode === 'difference' || (entry.needsAfterWeight && entry.afterWeight == null)) {
+      if (entry.mode === 'difference' || isAfterWeightPending(entry)) {
         afterInputRef.current?.focus();
         afterInputRef.current?.select();
         return;
@@ -93,19 +99,49 @@ export function EditEntryModal({
 
   function submitForm() {
     const foodName = form.foodName.trim();
-    const beforeWeight = Number(form.beforeWeight);
+    const beforeWeightValue = form.beforeWeight.trim();
+    const afterWeightValue = form.afterWeight.trim();
+    const hasBeforeWeight = beforeWeightValue !== '';
+    const hasAfterWeight = afterWeightValue !== '';
 
     if (!foodName) {
       setError('Enter a food name.');
       return;
     }
 
+    if (!hasBeforeWeight && !hasAfterWeight) {
+      setError('Enter at least one weight value.');
+      return;
+    }
+
+    if (!hasBeforeWeight) {
+      const afterWeight = Number(afterWeightValue);
+
+      if (!Number.isFinite(afterWeight) || afterWeight < 0) {
+        setError('Enter a valid after value.');
+        return;
+      }
+
+      onSave({
+        foodName,
+        mode: 'direct',
+        amount: 0,
+        unit: 'g',
+        afterWeight,
+        needsAfterWeight: false,
+        note: form.note.trim()
+      });
+      return;
+    }
+
+    const beforeWeight = Number(beforeWeightValue);
+
     if (!Number.isFinite(beforeWeight) || beforeWeight < 0) {
       setError('Enter a valid before value.');
       return;
     }
 
-    if (form.afterWeight.trim() === '') {
+    if (!hasAfterWeight) {
       onSave({
         foodName,
         mode: 'direct',
@@ -118,7 +154,7 @@ export function EditEntryModal({
       return;
     }
 
-    const afterWeight = Number(form.afterWeight);
+    const afterWeight = Number(afterWeightValue);
 
     if (!Number.isFinite(afterWeight) || afterWeight < 0) {
       setError('Enter a valid after value.');
@@ -199,10 +235,7 @@ export function EditEntryModal({
                       if (next) {
                         foodInputRef.current?.focus();
                         foodInputRef.current?.select();
-                      } else if (
-                        entry.mode === 'difference' ||
-                        (entry.needsAfterWeight && entry.afterWeight == null)
-                      ) {
+                      } else if (entry.mode === 'difference' || isAfterWeightPending(entry)) {
                         afterInputRef.current?.focus();
                       } else {
                         beforeInputRef.current?.focus();

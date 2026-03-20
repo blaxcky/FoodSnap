@@ -1,12 +1,25 @@
 import type { ExportFormat, SessionEntry } from './types';
-import { formatDifferenceBreakdown, formatNumber, isEntryDeleted } from './utils';
+import {
+  formatDifferenceBreakdown,
+  formatNumber,
+  isAfterWeightPending,
+  isBeforeWeightPending,
+  isEntryDeleted
+} from './utils';
 
 function appendNote(base: string, note: string) {
   return note.trim() ? `${base} (${note.trim()})` : base;
 }
 
 function formatSimpleEntry(entry: SessionEntry) {
-  if (entry.needsAfterWeight && entry.afterWeight == null) {
+  if (isBeforeWeightPending(entry)) {
+    return appendNote(
+      `${entry.foodName} after ${formatNumber(entry.afterWeight ?? 0)}g (before pending)`,
+      entry.note
+    );
+  }
+
+  if (isAfterWeightPending(entry)) {
     return appendNote(
       `${entry.foodName} before ${formatNumber(entry.beforeWeight ?? entry.amount)}g (after pending)`,
       entry.note
@@ -21,7 +34,14 @@ function formatSimpleEntry(entry: SessionEntry) {
 }
 
 function formatRawEntry(entry: SessionEntry) {
-  if (entry.needsAfterWeight && entry.afterWeight == null) {
+  if (isBeforeWeightPending(entry)) {
+    return appendNote(
+      `${entry.foodName} after ${formatNumber(entry.afterWeight ?? 0)}g -> before pending`,
+      entry.note
+    );
+  }
+
+  if (isAfterWeightPending(entry)) {
     return appendNote(
       `${entry.foodName} before ${formatNumber(entry.beforeWeight ?? entry.amount)}g -> after pending`,
       entry.note

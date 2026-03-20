@@ -4,6 +4,7 @@ import {
   formatEntryMeta,
   formatNumber,
   isAfterWeightPending,
+  isBeforeWeightPending,
   isEntryDeleted,
   isZeroBeforeEntry
 } from '../lib/utils';
@@ -48,10 +49,12 @@ export function SessionList({
       ) : (
         <div className="entry-list">
           {entries.map((entry) => {
+            const pendingBeforeWeight = isBeforeWeightPending(entry);
             const pendingAfterWeight = isAfterWeightPending(entry);
             const deleted = isEntryDeleted(entry);
             const zeroBefore = isZeroBeforeEntry(entry);
-            const amountSummary = pendingAfterWeight
+            const incompleteWeight = pendingBeforeWeight || pendingAfterWeight;
+            const amountSummary = incompleteWeight
               ? formatEntryMeta(entry)
               : `${entry.unit === 'g'
                   ? `${formatNumber(entry.amount)}g`
@@ -60,7 +63,7 @@ export function SessionList({
             return (
               <article
                 key={entry.id}
-                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingAfterWeight ? ' pending-after' : ''}${zeroBefore ? ' zero-before' : ''}${deleted ? ' deleted' : ''}`}
+                className={`entry-card${editingEntryId === entry.id ? ' editing' : ''}${pendingBeforeWeight ? ' pending-before' : ''}${pendingAfterWeight ? ' pending-after' : ''}${zeroBefore ? ' zero-before' : ''}${deleted ? ' deleted' : ''}`}
               >
                 <div className="entry-row">
                   <div className="entry-main">
@@ -68,7 +71,7 @@ export function SessionList({
                     <p>
                       {deleted
                         ? `Removed from log • ${amountSummary}`
-                        : pendingAfterWeight
+                        : incompleteWeight
                         ? formatEntryMeta(entry)
                         : `${entry.unit === 'g'
                             ? `${formatNumber(entry.amount)}g`
@@ -111,6 +114,10 @@ export function SessionList({
                 {deleted ? (
                   <p className="entry-note entry-note-deleted">
                     Hidden from Log and excluded from export. Restore to include it again.
+                  </p>
+                ) : pendingBeforeWeight ? (
+                  <p className="entry-note entry-note-pending-before">
+                    After weight already entered. Add before weight to complete it.
                   </p>
                 ) : zeroBefore ? (
                   <p className="entry-note entry-note-zero">
