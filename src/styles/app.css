@@ -119,6 +119,10 @@ button {
   min-height: calc(100vh - 180px);
 }
 
+.screen-section-log-empty {
+  min-height: auto;
+}
+
 .panel {
   background: transparent;
 }
