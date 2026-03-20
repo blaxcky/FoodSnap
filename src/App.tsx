@@ -30,7 +30,7 @@ function normalizeLoadedEntries(entries: SessionEntry[]) {
   });
 }
 
-function learnFood(foods: FoodProfile[], payload: EntryPayload) {
+function learnFood(foods: FoodProfile[], payload: EntryPayload, countAsSave: boolean) {
   const normalizedName = normalizeText(payload.foodName);
   const timestamp = nowIso();
   const existingFood = foods.find((food) => food.normalizedName === normalizedName);
@@ -42,8 +42,8 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload) {
             ...food,
             name: payload.foodName,
             normalizedName,
-            usageCount: food.usageCount + 1,
-            lastUsedAt: timestamp,
+            usageCount: countAsSave ? food.usageCount + 1 : food.usageCount,
+            lastUsedAt: countAsSave ? timestamp : food.lastUsedAt,
             lastUnit: payload.unit
           }
         : food
@@ -59,7 +59,7 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload) {
     id: createId(),
     name: payload.foodName,
     normalizedName,
-    usageCount: 1,
+    usageCount: countAsSave ? 1 : 0,
     lastUsedAt: timestamp,
     createdAt: timestamp,
     isFavorite: false,
@@ -136,7 +136,7 @@ export default function App() {
   }, [activeTab, isComposerOpen]);
 
   function commitEntry(payload: EntryPayload, targetEntryId: string | null) {
-    const learning = learnFood(foods, payload);
+    const learning = learnFood(foods, payload, targetEntryId == null);
     const timestamp = nowIso();
 
     setFoods(learning.foods);
