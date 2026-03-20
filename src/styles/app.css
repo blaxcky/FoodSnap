@@ -1001,7 +1001,7 @@ button {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(88px + env(safe-area-inset-bottom));
+  bottom: calc(104px + env(safe-area-inset-bottom));
   z-index: 30;
   pointer-events: none;
 }
