@@ -129,6 +129,11 @@ export default function App() {
     [activeEntries, exportFormat, exportLeadIn]
   );
 
+  const visibleExportText = useMemo(
+    () => formatExport(activeEntries, exportFormat),
+    [activeEntries, exportFormat]
+  );
+
   useEffect(() => {
     if (activeTab !== 'log' && isComposerOpen) {
       setIsComposerOpen(false);
@@ -397,6 +402,8 @@ export default function App() {
           <ExportPanel
             exportFormat={exportFormat}
             exportText={exportText}
+            visibleExportText={visibleExportText}
+            exportLeadIn={exportLeadIn}
             copyState={copyState}
             sessionCount={activeEntries.length}
             onChangeFormat={(format) => {

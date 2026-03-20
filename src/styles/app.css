@@ -931,6 +931,31 @@ button {
   margin-bottom: 14px;
 }
 
+.export-lead-in-preview {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(185, 203, 224, 0.9);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(245, 249, 253, 0.96), rgba(237, 244, 250, 0.96));
+}
+
+.export-lead-in-label {
+  display: inline-block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.export-lead-in-preview p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .export-textarea {
   min-height: 220px;
   resize: vertical;
