@@ -374,7 +374,7 @@ export default function App() {
           <span className="brand-icon">
             <BoltIcon className="brand-bolt" />
           </span>
-          <strong>QuickLog</strong>
+          <strong>FoodSnap</strong>
         </div>
         <button
           className="top-icon-button"

@@ -39,7 +39,7 @@ export function SettingsPanel({
             </span>
 
             <div>
-              <h3>QuickLog</h3>
+              <h3>FoodSnap</h3>
               <p>Local profile with on-device food memory and session data.</p>
             </div>
           </div>
