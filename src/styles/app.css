@@ -752,13 +752,24 @@ button {
 }
 
 .create-entry-modal {
+  display: flex;
+  flex-direction: column;
   width: min(100%, 560px);
-  padding: 16px 14px 18px;
-  scroll-padding-bottom: 104px;
+  overflow: hidden;
+  padding: 16px 14px 0;
 }
 
 .create-entry-modal .composer-modal-form {
+  display: grid;
   gap: 10px;
+}
+
+.create-entry-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 12px;
 }
 
@@ -835,17 +846,17 @@ button {
   gap: 8px;
 }
 
-.composer-actions-modal {
-  position: sticky;
-  bottom: 0;
-  z-index: 12;
-  margin-top: 2px;
+.create-entry-footer {
+  flex: 0 0 auto;
   margin-right: -14px;
   margin-left: -14px;
   padding: 10px 14px max(6px, env(safe-area-inset-bottom));
   border-top: 1px solid rgba(203, 213, 225, 0.9);
   background: var(--surface);
-  box-shadow: 0 -10px 18px rgba(248, 250, 252, 0.98);
+}
+
+.create-entry-submit {
+  margin-top: 0;
 }
 
 .create-entry-modal .primary-button {
@@ -1229,7 +1240,7 @@ button {
   }
 
   .create-entry-modal {
-    padding: 18px 16px 20px;
+    padding: 18px 16px 0;
   }
 
   .settings-hero {
@@ -1275,7 +1286,7 @@ button {
     padding: 9px 11px;
   }
 
-  .create-entry-modal .composer-actions-modal {
+  .create-entry-footer {
     margin-right: -12px;
     margin-left: -12px;
     padding: 8px 12px max(6px, env(safe-area-inset-bottom));

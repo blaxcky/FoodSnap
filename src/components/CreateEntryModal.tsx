@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useState, type CSSProperties } from 'react';
 import type { EntryPayload, FoodProfile } from '../lib/types';
 import { EntryComposer } from './EntryComposer';
 
@@ -15,6 +15,7 @@ export function CreateEntryModal({
 }: CreateEntryModalProps) {
   const [backdropStyle, setBackdropStyle] = useState<CSSProperties | undefined>(undefined);
   const [modalStyle, setModalStyle] = useState<CSSProperties | undefined>(undefined);
+  const formId = useId();
 
   useEffect(() => {
     const { documentElement, body } = document;
@@ -97,7 +98,15 @@ export function CreateEntryModal({
           </button>
         </div>
 
-        <EntryComposer foods={foods} onSave={onSave} variant="modal" />
+        <div className="create-entry-body">
+          <EntryComposer foods={foods} onSave={onSave} variant="modal" formId={formId} />
+        </div>
+
+        <div className="create-entry-footer">
+          <button className="primary-button create-entry-submit" type="submit" form={formId}>
+            Add Item
+          </button>
+        </div>
       </section>
     </div>
   );

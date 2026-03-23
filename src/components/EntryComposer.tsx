@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile } from '../lib/types';
@@ -7,6 +7,7 @@ interface EntryComposerProps {
   foods: FoodProfile[];
   onSave: (payload: EntryPayload) => void;
   variant?: 'panel' | 'modal';
+  formId?: string;
 }
 
 interface ComposerState {
@@ -26,12 +27,15 @@ const emptyState: ComposerState = {
 export function EntryComposer({
   foods,
   onSave,
-  variant = 'panel'
+  variant = 'panel',
+  formId
 }: EntryComposerProps) {
   const [form, setForm] = useState<ComposerState>(emptyState);
   const [error, setError] = useState('');
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const generatedFormId = useId();
+  const activeFormId = formId ?? generatedFormId;
 
   const foodInputRef = useRef<HTMLInputElement>(null);
   const beforeInputRef = useRef<HTMLInputElement>(null);
@@ -336,18 +340,31 @@ export function EntryComposer({
         </span>
       </label>
 
-      <div className={`composer-actions${variant === 'modal' ? ' composer-actions-modal' : ''}`}>
-        <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
-          Add Item
-        </button>
+      {variant === 'modal' ? null : (
+        <div className="composer-actions">
+          <button className="primary-button screenshot-button" type="submit">
+            Add Item
+          </button>
+        </div>
+      )}
 
-        {error ? <p className="error-copy">{error}</p> : null}
-      </div>
+      {error ? <p className="error-copy">{error}</p> : null}
     </>
   );
 
   if (variant === 'modal') {
-    return <div className="composer-modal-form">{fields}</div>;
+    return (
+      <form
+        id={activeFormId}
+        className="composer-modal-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitForm();
+        }}
+      >
+        {fields}
+      </form>
+    );
   }
 
   return (
@@ -358,7 +375,15 @@ export function EntryComposer({
         </div>
       </div>
 
-      {fields}
+      <form
+        id={activeFormId}
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitForm();
+        }}
+      >
+        {fields}
+      </form>
     </section>
   );
 }
