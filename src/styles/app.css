@@ -753,6 +753,80 @@ button {
 
 .create-entry-modal {
   width: min(100%, 560px);
+  padding: 16px 14px 18px;
+}
+
+.create-entry-modal .composer-modal-form {
+  gap: 10px;
+}
+
+.create-entry-modal .modal-heading {
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.create-entry-modal .section-kicker {
+  font-size: 0.8rem;
+}
+
+.create-entry-modal .section-heading h2 {
+  margin-top: 2px;
+  font-size: 0.96rem;
+}
+
+.create-entry-modal .field-stack,
+.create-entry-modal .field {
+  gap: 6px;
+}
+
+.create-entry-modal .field-label {
+  font-size: 0.82rem;
+}
+
+.create-entry-modal .field-input {
+  padding: 11px 15px;
+}
+
+.create-entry-modal .field-input-lg {
+  padding-right: 52px;
+}
+
+.create-entry-modal .field-icon {
+  right: 14px;
+}
+
+.create-entry-modal .inline-fields {
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.create-entry-modal .screenshot-fields {
+  margin-bottom: 12px;
+}
+
+.create-entry-modal .pending-after-toggle {
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.create-entry-modal .pending-after-copy strong {
+  font-size: 0.9rem;
+}
+
+.create-entry-modal .primary-button {
+  min-height: 46px;
+  padding: 10px 16px;
+  font-size: 0.96rem;
+}
+
+.create-entry-modal .screenshot-button {
+  margin-top: 0;
+}
+
+.create-entry-modal .error-copy {
+  margin-top: 8px;
 }
 
 .modal-heading {
@@ -1121,9 +1195,51 @@ button {
     padding: 20px 18px 22px;
   }
 
+  .create-entry-modal {
+    padding: 18px 16px 20px;
+  }
+
   .settings-hero {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
     align-items: start;
+  }
+}
+
+@media (max-height: 820px) {
+  .modal-backdrop {
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-bottom: 12px;
+  }
+
+  .create-entry-modal {
+    padding: 14px 12px 16px;
+  }
+
+  .create-entry-modal .modal-heading {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .create-entry-modal .ghost-button.compact {
+    padding: 7px 10px;
+  }
+
+  .create-entry-modal .field-input {
+    padding: 10px 14px;
+  }
+
+  .create-entry-modal .inline-fields {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .create-entry-modal .screenshot-fields {
+    margin-bottom: 10px;
+  }
+
+  .create-entry-modal .pending-after-toggle {
+    margin-bottom: 10px;
+    padding: 9px 11px;
   }
 }
 
