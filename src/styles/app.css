@@ -801,6 +801,15 @@ button {
   right: 14px;
 }
 
+.create-entry-modal .suggestions-dropdown {
+  position: static;
+  margin-top: 8px;
+  max-height: 156px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .create-entry-modal .inline-fields {
   gap: 12px;
   margin-top: 12px;
