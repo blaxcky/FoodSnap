@@ -336,11 +336,13 @@ export function EntryComposer({
         </span>
       </label>
 
-      <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
-        Add Item
-      </button>
+      <div className={`composer-actions${variant === 'modal' ? ' composer-actions-modal' : ''}`}>
+        <button className="primary-button screenshot-button" type="button" onClick={submitForm}>
+          Add Item
+        </button>
 
-      {error ? <p className="error-copy">{error}</p> : null}
+        {error ? <p className="error-copy">{error}</p> : null}
+      </div>
     </>
   );
 

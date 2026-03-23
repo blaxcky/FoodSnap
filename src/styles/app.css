@@ -754,10 +754,15 @@ button {
 .create-entry-modal {
   width: min(100%, 560px);
   padding: 16px 14px 18px;
+  scroll-padding-bottom: 104px;
 }
 
 .create-entry-modal .composer-modal-form {
   gap: 10px;
+}
+
+.create-entry-backdrop {
+  inset: 0 0 auto 0;
 }
 
 .create-entry-modal .modal-heading {
@@ -813,6 +818,21 @@ button {
 
 .create-entry-modal .pending-after-copy strong {
   font-size: 0.9rem;
+}
+
+.composer-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.composer-actions-modal {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  margin-top: -2px;
+  padding-top: 10px;
+  padding-bottom: max(2px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0), rgba(248, 250, 252, 0.96) 18px, var(--surface) 100%);
 }
 
 .create-entry-modal .primary-button {
@@ -1240,6 +1260,10 @@ button {
   .create-entry-modal .pending-after-toggle {
     margin-bottom: 10px;
     padding: 9px 11px;
+  }
+
+  .create-entry-modal .composer-actions-modal {
+    padding-top: 8px;
   }
 }
 
