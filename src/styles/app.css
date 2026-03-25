@@ -194,6 +194,10 @@ button {
   gap: 10px;
 }
 
+.field-row-compact {
+  gap: 8px;
+}
+
 .autocomplete-shell {
   position: relative;
 }
@@ -332,19 +336,29 @@ button {
   margin-bottom: 16px;
 }
 
-.pending-after-toggle {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  border: 1px solid #e5edf6;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
+.weight-fields {
+  align-items: start;
 }
 
-.pending-after-toggle-modal {
-  margin-bottom: 0;
+.field-with-inline-toggle {
+  min-width: 0;
+}
+
+.pending-after-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #d9e5f1;
+  border-radius: 999px;
+  background: #f8fbfe;
+  color: #526377;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .pending-after-checkbox {
@@ -355,19 +369,10 @@ button {
   flex: 0 0 auto;
 }
 
-.pending-after-copy {
-  display: grid;
-  gap: 2px;
-}
-
-.pending-after-copy strong {
-  font-size: 0.95rem;
-  letter-spacing: -0.01em;
-}
-
-.pending-after-copy span {
-  color: var(--muted);
-  font-size: 0.88rem;
+.pending-after-checkbox-inline {
+  width: 15px;
+  height: 15px;
+  margin: 0;
 }
 
 .status-copy,
@@ -830,15 +835,10 @@ button {
   margin-bottom: 12px;
 }
 
-.create-entry-modal .pending-after-toggle {
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-}
-
-.create-entry-modal .pending-after-copy strong {
-  font-size: 0.9rem;
+.create-entry-modal .pending-after-inline {
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 0.68rem;
 }
 
 .composer-actions {
@@ -1281,11 +1281,6 @@ button {
     margin-bottom: 10px;
   }
 
-  .create-entry-modal .pending-after-toggle {
-    margin-bottom: 10px;
-    padding: 9px 11px;
-  }
-
   .create-entry-footer {
     margin-right: -12px;
     margin-left: -12px;
@@ -1296,6 +1291,10 @@ button {
 @media (max-width: 640px) {
   .inline-fields {
     grid-template-columns: 1fr;
+  }
+
+  .modal-card .weight-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .settings-row,

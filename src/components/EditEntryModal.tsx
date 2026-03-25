@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
@@ -48,6 +48,9 @@ export function EditEntryModal({
   const [error, setError] = useState('');
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const beforeWeightInputId = useId();
+  const afterWeightInputId = useId();
+  const afterWeightRequiredId = useId();
 
   const foodInputRef = useRef<HTMLInputElement>(null);
   const beforeInputRef = useRef<HTMLInputElement>(null);
@@ -342,10 +345,13 @@ export function EditEntryModal({
           ) : null}
         </div>
 
-        <div className="inline-fields screenshot-fields">
-          <label className="field">
-            <span className="field-label">Before (g)</span>
+        <div className="inline-fields screenshot-fields weight-fields">
+          <div className="field">
+            <label className="field-label" htmlFor={beforeWeightInputId}>
+              Before (g)
+            </label>
             <input
+              id={beforeWeightInputId}
               ref={beforeInputRef}
               className="field-input number-field"
               name="food-edit-before"
@@ -371,13 +377,32 @@ export function EditEntryModal({
                 }
               }}
             />
-          </label>
+          </div>
 
-          <label className="field">
-            <span className="field-label">
-              After (g) <span className="field-label-optional">(opt)</span>
-            </span>
+          <div className="field field-with-inline-toggle">
+            <div className="field-row field-row-compact">
+              <label className="field-label" htmlFor={afterWeightInputId}>
+                After (g)
+              </label>
+              <label className="pending-after-inline" htmlFor={afterWeightRequiredId}>
+                <input
+                  id={afterWeightRequiredId}
+                  className="pending-after-checkbox pending-after-checkbox-inline"
+                  type="checkbox"
+                  checked={form.needsAfterWeight}
+                  onChange={(event) => {
+                    setForm((current) => ({
+                      ...current,
+                      needsAfterWeight: event.target.checked
+                    }));
+                    setError('');
+                  }}
+                />
+                <span>Required</span>
+              </label>
+            </div>
             <input
+              id={afterWeightInputId}
               ref={afterInputRef}
               className="field-input number-field"
               name="food-edit-after"
@@ -403,29 +428,8 @@ export function EditEntryModal({
                 }
               }}
             />
-          </label>
+          </div>
         </div>
-
-        <label className="pending-after-toggle pending-after-toggle-modal">
-          <input
-            className="pending-after-checkbox"
-            type="checkbox"
-            checked={form.needsAfterWeight}
-            onChange={(event) => {
-              setForm((current) => ({
-                ...current,
-                needsAfterWeight: event.target.checked
-              }));
-              setError('');
-            }}
-          />
-          <span className="pending-after-copy">
-            <strong>After weight still required</strong>
-            <span>
-              Keep this enabled if the item should stay marked until an after weight is added.
-            </span>
-          </span>
-        </label>
 
         <label className="field modal-note-field">
           <span className="field-label">
