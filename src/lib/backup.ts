@@ -1,13 +1,12 @@
-import type { ExportFormat, FoodProfile } from './types';
+import type { FoodProfile } from './types';
 
 interface BackupSettings {
-  exportFormat: ExportFormat;
   exportLeadIn: string;
 }
 
 interface FoodMemoryBackup {
   app: 'FoodSnap';
-  version: 2;
+  version: 3;
   exportedAt: string;
   foods: FoodProfile[];
   settings: BackupSettings;
@@ -16,7 +15,7 @@ interface FoodMemoryBackup {
 export function downloadFoodMemoryBackup(foods: FoodProfile[], settings: BackupSettings) {
   const payload: FoodMemoryBackup = {
     app: 'FoodSnap',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     foods,
     settings

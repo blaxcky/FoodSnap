@@ -1,26 +1,21 @@
 import { useEffect, useState } from 'react';
-import type { ExportFormat } from '../lib/types';
 
 interface ExportPanelProps {
-  exportFormat: ExportFormat;
   exportText: string;
   visibleExportText: string;
   exportLeadIn: string;
   copyState: 'idle' | 'copied' | 'error';
   sessionCount: number;
-  onChangeFormat: (format: ExportFormat) => void;
   onCopy: () => void;
   onResetSession: () => void;
 }
 
 export function ExportPanel({
-  exportFormat,
   exportText,
   visibleExportText,
   exportLeadIn,
   copyState,
   sessionCount,
-  onChangeFormat,
   onCopy,
   onResetSession
 }: ExportPanelProps) {
@@ -64,23 +59,6 @@ export function ExportPanel({
         </button>
       </div>
 
-      <div className="mode-toggle export-toggle" role="tablist" aria-label="Export format">
-        <button
-          className={`mode-pill${exportFormat === 'simple' ? ' active' : ''}`}
-          type="button"
-          onClick={() => onChangeFormat('simple')}
-        >
-          Simple
-        </button>
-        <button
-          className={`mode-pill${exportFormat === 'raw' ? ' active' : ''}`}
-          type="button"
-          onClick={() => onChangeFormat('raw')}
-        >
-          Raw difference
-        </button>
-      </div>
-
       {exportLeadIn.trim() ? (
         <div className="export-lead-in-preview" aria-label="Copied intro text">
           <span className="export-lead-in-label">Copied intro</span>
@@ -97,7 +75,7 @@ export function ExportPanel({
       <p className="helper-copy">
         {copyState === 'error'
           ? 'Clipboard access failed. Select the text manually.'
-          : 'Use Simple for AI input. Your custom intro text is included before the exported foods.'}
+          : 'Your custom intro text is included before the exported foods.'}
       </p>
 
       <section className="export-danger-zone" aria-labelledby="export-reset-title">

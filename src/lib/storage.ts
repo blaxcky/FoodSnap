@@ -6,7 +6,6 @@ export const defaultAppState: PersistedAppState = {
   version: 1,
   foods: [],
   currentSession: [],
-  exportFormat: 'simple',
   exportLeadIn: ''
 };
 
@@ -27,7 +26,6 @@ export function loadAppState(): PersistedAppState {
       version: 1,
       foods: Array.isArray(parsed.foods) ? parsed.foods : [],
       currentSession: Array.isArray(parsed.currentSession) ? parsed.currentSession : [],
-      exportFormat: parsed.exportFormat === 'raw' ? 'raw' : 'simple',
       exportLeadIn: typeof parsed.exportLeadIn === 'string' ? parsed.exportLeadIn : ''
     };
   } catch {

@@ -2,8 +2,6 @@ export type EntryMode = 'direct' | 'difference';
 
 export type EntryUnit = 'g' | 'pcs';
 
-export type ExportFormat = 'simple' | 'raw';
-
 export interface FoodProfile {
   id: string;
   name: string;
@@ -47,6 +45,5 @@ export interface PersistedAppState {
   version: 1;
   foods: FoodProfile[];
   currentSession: SessionEntry[];
-  exportFormat: ExportFormat;
   exportLeadIn: string;
 }

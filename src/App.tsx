@@ -12,7 +12,6 @@ import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import type {
   EntryPayload,
-  ExportFormat,
   FoodProfile,
   SessionEntry
 } from './lib/types';
@@ -75,7 +74,6 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload, countAsSave: boo
 export default function App() {
   const [foods, setFoods] = useState<FoodProfile[]>(defaultAppState.foods);
   const [entries, setEntries] = useState<SessionEntry[]>(defaultAppState.currentSession);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>(defaultAppState.exportFormat);
   const [exportLeadIn, setExportLeadIn] = useState(defaultAppState.exportLeadIn);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -91,7 +89,6 @@ export default function App() {
     const state = loadAppState();
     setFoods(state.foods);
     setEntries(normalizeLoadedEntries(state.currentSession));
-    setExportFormat(state.exportFormat);
     setExportLeadIn(state.exportLeadIn);
     setIsHydrated(true);
   }, []);
@@ -105,10 +102,9 @@ export default function App() {
       version: 1,
       foods,
       currentSession: entries,
-      exportFormat,
       exportLeadIn
     });
-  }, [foods, entries, exportFormat, exportLeadIn, isHydrated]);
+  }, [foods, entries, exportLeadIn, isHydrated]);
 
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,
@@ -126,13 +122,13 @@ export default function App() {
   );
 
   const exportText = useMemo(
-    () => formatExportWithLeadIn(exportLeadIn, formatExport(activeEntries, exportFormat)),
-    [activeEntries, exportFormat, exportLeadIn]
+    () => formatExportWithLeadIn(exportLeadIn, formatExport(activeEntries)),
+    [activeEntries, exportLeadIn]
   );
 
   const visibleExportText = useMemo(
-    () => formatExport(activeEntries, exportFormat),
-    [activeEntries, exportFormat]
+    () => formatExport(activeEntries),
+    [activeEntries]
   );
 
   const isInputDialogOpen = isComposerOpen || editingEntryId != null;
@@ -337,7 +333,6 @@ export default function App() {
   function handleExportFoodMemory() {
     try {
       downloadFoodMemoryBackup(foods, {
-        exportFormat,
         exportLeadIn
       });
       setExportBackupState('done');
@@ -439,16 +434,11 @@ export default function App() {
       {activeTab === 'export' ? (
         <section className="screen-section">
           <ExportPanel
-            exportFormat={exportFormat}
             exportText={exportText}
             visibleExportText={visibleExportText}
             exportLeadIn={exportLeadIn}
             copyState={copyState}
             sessionCount={entries.length}
-            onChangeFormat={(format) => {
-              setExportFormat(format);
-              setCopyState('idle');
-            }}
             onCopy={handleCopy}
             onResetSession={handleResetSession}
           />

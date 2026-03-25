@@ -1,6 +1,5 @@
-import type { ExportFormat, SessionEntry } from './types';
+import type { SessionEntry } from './types';
 import {
-  formatDifferenceBreakdown,
   formatNumber,
   isAfterWeightPending,
   isBeforeWeightPending,
@@ -33,35 +32,10 @@ function formatSimpleEntry(entry: SessionEntry) {
   return appendNote(`${formatNumber(entry.amount)} ${entry.foodName}`, entry.note);
 }
 
-function formatRawEntry(entry: SessionEntry) {
-  if (isBeforeWeightPending(entry)) {
-    return appendNote(
-      `${entry.foodName} after ${formatNumber(entry.afterWeight ?? 0)}g -> before pending`,
-      entry.note
-    );
-  }
-
-  if (isAfterWeightPending(entry)) {
-    return appendNote(
-      `${entry.foodName} before ${formatNumber(entry.beforeWeight ?? entry.amount)}g -> after pending`,
-      entry.note
-    );
-  }
-
-  if (entry.mode === 'difference') {
-    return appendNote(
-      `${entry.foodName} ${formatNumber(entry.amount)}g ${formatDifferenceBreakdown(entry)}`,
-      entry.note
-    );
-  }
-
-  return formatSimpleEntry(entry);
-}
-
-export function formatExport(entries: SessionEntry[], format: ExportFormat) {
+export function formatExport(entries: SessionEntry[]) {
   return entries
     .filter((entry) => !isEntryDeleted(entry))
-    .map((entry) => (format === 'raw' ? formatRawEntry(entry) : formatSimpleEntry(entry)))
+    .map((entry) => formatSimpleEntry(entry))
     .join('\n');
 }
 
