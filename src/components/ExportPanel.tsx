@@ -131,7 +131,11 @@ export function ExportPanel({
       </section>
 
       {isResetDialogOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setIsResetDialogOpen(false)}>
+        <div
+          className="modal-backdrop confirm-backdrop"
+          role="presentation"
+          onClick={() => setIsResetDialogOpen(false)}
+        >
           <section
             className="modal-card confirm-dialog"
             role="dialog"

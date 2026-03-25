@@ -1122,6 +1122,12 @@ button {
   width: min(100%, 520px);
 }
 
+.confirm-backdrop {
+  align-items: flex-end;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(var(--bottom-nav-space) + 16px + env(safe-area-inset-bottom));
+}
+
 .destructive-fill {
   background: var(--danger);
 }
@@ -1268,6 +1274,10 @@ button {
   .modal-backdrop {
     padding-top: calc(8px + env(safe-area-inset-top));
     padding-bottom: 12px;
+  }
+
+  .confirm-backdrop {
+    padding-bottom: calc(var(--bottom-nav-space) + 12px + env(safe-area-inset-bottom));
   }
 
   .create-entry-modal {
