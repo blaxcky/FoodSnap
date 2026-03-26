@@ -98,7 +98,10 @@ export function ExportPanel({
               <button
                 className="ghost-button settings-inline-button destructive-action"
                 type="button"
-                onClick={() => setIsResetDialogOpen(true)}
+                onClick={(event) => {
+                  event.currentTarget.blur();
+                  setIsResetDialogOpen(true);
+                }}
                 disabled={sessionCount === 0}
               >
                 Clear

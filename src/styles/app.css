@@ -730,6 +730,7 @@ button {
   background: #f8fafc;
   box-shadow: none;
   font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-inline-icon {
