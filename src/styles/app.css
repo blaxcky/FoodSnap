@@ -372,6 +372,11 @@ button {
   white-space: nowrap;
 }
 
+.pending-after-inline-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .pending-after-checkbox {
   width: 18px;
   height: 18px;
