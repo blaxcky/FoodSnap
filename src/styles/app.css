@@ -341,6 +341,11 @@ button {
   align-items: start;
 }
 
+.nutrition-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
 .field-with-inline-toggle {
   min-width: 0;
 }
@@ -1324,6 +1329,10 @@ button {
   }
 
   .modal-card .weight-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-card .nutrition-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

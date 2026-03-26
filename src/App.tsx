@@ -195,6 +195,10 @@ export default function App() {
                 afterWeight: payload.afterWeight,
                 needsAfterWeight: payload.needsAfterWeight,
                 note: payload.note,
+                calories: payload.calories,
+                carbs: payload.carbs,
+                fat: payload.fat,
+                protein: payload.protein,
                 updatedAt: timestamp
               }
             : entry
@@ -212,6 +216,10 @@ export default function App() {
         afterWeight: payload.afterWeight,
         needsAfterWeight: payload.needsAfterWeight,
         note: payload.note,
+        calories: payload.calories,
+        carbs: payload.carbs,
+        fat: payload.fat,
+        protein: payload.protein,
         createdAt: timestamp,
         updatedAt: timestamp
       };

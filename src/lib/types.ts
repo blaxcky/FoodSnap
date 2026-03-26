@@ -24,6 +24,10 @@ export interface SessionEntry {
   afterWeight?: number;
   needsAfterWeight?: boolean;
   note: string;
+  calories?: number;
+  carbs?: number;
+  fat?: number;
+  protein?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
@@ -39,6 +43,10 @@ export interface EntryPayload {
   afterWeight?: number;
   needsAfterWeight?: boolean;
   note: string;
+  calories?: number;
+  carbs?: number;
+  fat?: number;
+  protein?: number;
 }
 
 export interface PersistedAppState {

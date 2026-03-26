@@ -17,6 +17,10 @@ interface EditorState {
   afterWeight: string;
   needsAfterWeight: boolean;
   note: string;
+  calories: string;
+  carbs: string;
+  fat: string;
+  protein: string;
 }
 
 function mapEntryToState(entry: SessionEntry): EditorState {
@@ -33,8 +37,28 @@ function mapEntryToState(entry: SessionEntry): EditorState {
     afterWeight:
       entry.mode === 'difference' || pendingBeforeWeight ? String(entry.afterWeight ?? '') : '',
     needsAfterWeight: Boolean(entry.needsAfterWeight),
-    note: entry.note
+    note: entry.note,
+    calories: entry.calories != null ? String(entry.calories) : '',
+    carbs: entry.carbs != null ? String(entry.carbs) : '',
+    fat: entry.fat != null ? String(entry.fat) : '',
+    protein: entry.protein != null ? String(entry.protein) : ''
   };
+}
+
+function parseOptionalNutritionValue(value: string, label: string) {
+  const trimmed = value.trim();
+
+  if (trimmed === '') {
+    return { value: undefined };
+  }
+
+  const parsed = Number(trimmed);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return { error: `Enter a valid ${label} value.` };
+  }
+
+  return { value: parsed };
 }
 
 export function EditEntryModal({
@@ -51,10 +75,18 @@ export function EditEntryModal({
   const beforeWeightInputId = useId();
   const afterWeightInputId = useId();
   const afterWeightRequiredId = useId();
+  const caloriesInputId = useId();
+  const carbsInputId = useId();
+  const fatInputId = useId();
+  const proteinInputId = useId();
 
   const foodInputRef = useRef<HTMLInputElement>(null);
   const beforeInputRef = useRef<HTMLInputElement>(null);
   const afterInputRef = useRef<HTMLInputElement>(null);
+  const caloriesInputRef = useRef<HTMLInputElement>(null);
+  const carbsInputRef = useRef<HTMLInputElement>(null);
+  const fatInputRef = useRef<HTMLInputElement>(null);
+  const proteinInputRef = useRef<HTMLInputElement>(null);
 
   const deferredQuery = useDeferredValue(form.foodName);
   const suggestions = useMemo(
@@ -106,9 +138,34 @@ export function EditEntryModal({
     const afterWeightValue = form.afterWeight.trim();
     const hasBeforeWeight = beforeWeightValue !== '';
     const hasAfterWeight = afterWeightValue !== '';
+    const note = form.note.trim();
+    const caloriesResult = parseOptionalNutritionValue(form.calories, 'kcal');
+    const carbsResult = parseOptionalNutritionValue(form.carbs, 'Kohlenhydrate');
+    const fatResult = parseOptionalNutritionValue(form.fat, 'Fett');
+    const proteinResult = parseOptionalNutritionValue(form.protein, 'Eiweiß');
 
     if (!foodName) {
       setError('Enter a food name.');
+      return;
+    }
+
+    if (caloriesResult.error) {
+      setError(caloriesResult.error);
+      return;
+    }
+
+    if (carbsResult.error) {
+      setError(carbsResult.error);
+      return;
+    }
+
+    if (fatResult.error) {
+      setError(fatResult.error);
+      return;
+    }
+
+    if (proteinResult.error) {
+      setError(proteinResult.error);
       return;
     }
 
@@ -132,7 +189,11 @@ export function EditEntryModal({
         unit: 'g',
         afterWeight,
         needsAfterWeight: false,
-        note: form.note.trim()
+        note,
+        calories: caloriesResult.value,
+        carbs: carbsResult.value,
+        fat: fatResult.value,
+        protein: proteinResult.value
       });
       return;
     }
@@ -152,7 +213,11 @@ export function EditEntryModal({
         unit: 'g',
         beforeWeight: form.needsAfterWeight ? beforeWeight : undefined,
         needsAfterWeight: form.needsAfterWeight,
-        note: form.note.trim()
+        note,
+        calories: caloriesResult.value,
+        carbs: carbsResult.value,
+        fat: fatResult.value,
+        protein: proteinResult.value
       });
       return;
     }
@@ -183,7 +248,11 @@ export function EditEntryModal({
       beforeWeight,
       afterWeight,
       needsAfterWeight: form.needsAfterWeight,
-      note: form.note.trim()
+      note,
+      calories: caloriesResult.value,
+      carbs: carbsResult.value,
+      fat: fatResult.value,
+      protein: proteinResult.value
     });
   }
 
@@ -433,11 +502,137 @@ export function EditEntryModal({
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
-                  submitForm();
+                  caloriesInputRef.current?.focus();
                 }
               }}
             />
           </div>
+        </div>
+
+        <div className="inline-fields nutrition-fields">
+          <label className="field">
+            <span className="field-label">kcal</span>
+            <input
+              id={caloriesInputId}
+              ref={caloriesInputRef}
+              className="field-input number-field"
+              name="food-edit-calories"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
+              inputMode="decimal"
+              placeholder="0"
+              value={form.calories}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, calories: event.target.value }));
+                setError('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  carbsInputRef.current?.focus();
+                }
+              }}
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Kohlenhydrate (g)</span>
+            <input
+              id={carbsInputId}
+              ref={carbsInputRef}
+              className="field-input number-field"
+              name="food-edit-carbs"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
+              inputMode="decimal"
+              placeholder="0"
+              value={form.carbs}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, carbs: event.target.value }));
+                setError('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  fatInputRef.current?.focus();
+                }
+              }}
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Fett (g)</span>
+            <input
+              id={fatInputId}
+              ref={fatInputRef}
+              className="field-input number-field"
+              name="food-edit-fat"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
+              inputMode="decimal"
+              placeholder="0"
+              value={form.fat}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, fat: event.target.value }));
+                setError('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  proteinInputRef.current?.focus();
+                }
+              }}
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Eiweiß (g)</span>
+            <input
+              id={proteinInputId}
+              ref={proteinInputRef}
+              className="field-input number-field"
+              name="food-edit-protein"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="done"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
+              inputMode="decimal"
+              placeholder="0"
+              value={form.protein}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, protein: event.target.value }));
+                setError('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  submitForm();
+                }
+              }}
+            />
+          </label>
         </div>
 
         <label className="field modal-note-field">
@@ -456,7 +651,8 @@ export function EditEntryModal({
         </label>
 
         <p className="helper-copy">
-          The note is appended in parentheses in the text export, for example `Schnitzel (Hendl)`.
+          Note and nutrition details are appended in parentheses in the text export, for example
+          `Schnitzel (Hendl, 520 kcal, 12g Kohlenhydrate, 28g Fett, 41g Eiweiß)`.
         </p>
 
         <div className="modal-actions">

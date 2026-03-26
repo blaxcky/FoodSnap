@@ -6,30 +6,52 @@ import {
   isEntryDeleted
 } from './utils';
 
-function appendNote(base: string, note: string) {
-  return note.trim() ? `${base} (${note.trim()})` : base;
+function appendDetails(base: string, entry: SessionEntry) {
+  const details: string[] = [];
+
+  if (entry.note.trim()) {
+    details.push(entry.note.trim());
+  }
+
+  if (entry.calories != null) {
+    details.push(`${formatNumber(entry.calories)} kcal`);
+  }
+
+  if (entry.carbs != null) {
+    details.push(`${formatNumber(entry.carbs)}g Kohlenhydrate`);
+  }
+
+  if (entry.fat != null) {
+    details.push(`${formatNumber(entry.fat)}g Fett`);
+  }
+
+  if (entry.protein != null) {
+    details.push(`${formatNumber(entry.protein)}g Eiweiß`);
+  }
+
+  return details.length > 0 ? `${base} (${details.join(', ')})` : base;
 }
 
 function formatSimpleEntry(entry: SessionEntry) {
   if (isBeforeWeightPending(entry)) {
-    return appendNote(
+    return appendDetails(
       `${entry.foodName} after ${formatNumber(entry.afterWeight ?? 0)}g (before pending)`,
-      entry.note
+      entry
     );
   }
 
   if (isAfterWeightPending(entry)) {
-    return appendNote(
+    return appendDetails(
       `${entry.foodName} before ${formatNumber(entry.beforeWeight ?? entry.amount)}g (after pending)`,
-      entry.note
+      entry
     );
   }
 
   if (entry.unit === 'g') {
-    return appendNote(`${formatNumber(entry.amount)}g ${entry.foodName}`, entry.note);
+    return appendDetails(`${formatNumber(entry.amount)}g ${entry.foodName}`, entry);
   }
 
-  return appendNote(`${formatNumber(entry.amount)} ${entry.foodName}`, entry.note);
+  return appendDetails(`${formatNumber(entry.amount)} ${entry.foodName}`, entry);
 }
 
 export function formatExport(entries: SessionEntry[]) {
