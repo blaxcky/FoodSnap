@@ -417,41 +417,46 @@ export function EditEntryModal({
         <div className="inline-fields screenshot-fields weight-fields">
           <div className="field">
             <label className="field-label" htmlFor={beforeWeightInputId}>
-              Before (g)
+              Before
             </label>
-            <input
-              id={beforeWeightInputId}
-              ref={beforeInputRef}
-              className="field-input number-field"
-              name="food-edit-before"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              enterKeyHint="next"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-bwignore="true"
-              inputMode="decimal"
-              placeholder="0"
-              value={form.beforeWeight}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, beforeWeight: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  afterInputRef.current?.focus();
-                }
-              }}
-            />
+            <div className="input-suffix-shell">
+              <input
+                id={beforeWeightInputId}
+                ref={beforeInputRef}
+                className="field-input number-field field-input-with-suffix"
+                name="food-edit-before"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="next"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-bwignore="true"
+                inputMode="decimal"
+                placeholder="0"
+                value={form.beforeWeight}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, beforeWeight: event.target.value }));
+                  setError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    afterInputRef.current?.focus();
+                  }
+                }}
+              />
+              <span className="input-suffix" aria-hidden="true">
+                g
+              </span>
+            </div>
           </div>
 
           <div className="field field-with-inline-toggle">
             <div className="field-row field-row-compact">
               <label className="field-label" htmlFor={afterWeightInputId}>
-                After (g)
+                After
               </label>
               <label className="pending-after-inline" htmlFor={afterWeightRequiredId}>
                 <input
@@ -470,33 +475,38 @@ export function EditEntryModal({
                 <span>Required</span>
               </label>
             </div>
-            <input
-              id={afterWeightInputId}
-              ref={afterInputRef}
-              className="field-input number-field"
-              name="food-edit-after"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              enterKeyHint="done"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-bwignore="true"
-              inputMode="decimal"
-              placeholder="0"
-              value={form.afterWeight}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, afterWeight: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  caloriesInputRef.current?.focus();
-                }
-              }}
-            />
+            <div className="input-suffix-shell">
+              <input
+                id={afterWeightInputId}
+                ref={afterInputRef}
+                className="field-input number-field field-input-with-suffix"
+                name="food-edit-after"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="done"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-bwignore="true"
+                inputMode="decimal"
+                placeholder="0"
+                value={form.afterWeight}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, afterWeight: event.target.value }));
+                  setError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    caloriesInputRef.current?.focus();
+                  }
+                }}
+              />
+              <span className="input-suffix" aria-hidden="true">
+                g
+              </span>
+            </div>
           </div>
         </div>
 
