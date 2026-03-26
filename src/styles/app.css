@@ -889,6 +889,11 @@ button {
   --weight-field-header-height: 26px;
 }
 
+.edit-entry-modal .pending-after-inline-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .composer-actions {
   display: grid;
   gap: 8px;
