@@ -552,7 +552,7 @@ export function EditEntryModal({
           </label>
 
           <label className="field">
-            <span className="field-label">Kohlenhydrate</span>
+            <span className="field-label">KH</span>
             <div className="input-suffix-shell">
               <input
                 id={carbsInputId}

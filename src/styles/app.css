@@ -1360,6 +1360,30 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .edit-entry-modal .nutrition-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .edit-entry-modal .nutrition-fields .field-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.01em;
+  }
+
+  .edit-entry-modal .nutrition-fields .field-input {
+    min-height: 52px;
+    padding: 10px 12px;
+  }
+
+  .edit-entry-modal .nutrition-fields .field-input-with-suffix {
+    padding-right: 28px;
+  }
+
+  .edit-entry-modal .nutrition-fields .input-suffix {
+    right: 10px;
+    font-size: 0.88rem;
+  }
+
   .settings-row,
   .settings-row-danger {
     align-items: flex-start;
