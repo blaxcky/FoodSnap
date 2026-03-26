@@ -377,11 +377,6 @@ button {
   white-space: nowrap;
 }
 
-.pending-after-inline-placeholder {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .pending-after-checkbox {
   width: 18px;
   height: 18px;
@@ -863,6 +858,16 @@ button {
 }
 
 .create-entry-modal .weight-fields {
+  --weight-field-header-height: 26px;
+}
+
+.edit-entry-modal .pending-after-inline {
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 0.68rem;
+}
+
+.edit-entry-modal .weight-fields {
   --weight-field-header-height: 26px;
 }
 

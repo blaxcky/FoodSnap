@@ -276,7 +276,7 @@ export function EditEntryModal({
   return (
     <div className="modal-backdrop" role="presentation" onClick={onCancel}>
       <section
-        className="modal-card"
+        className="modal-card edit-entry-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-entry-title"
@@ -415,19 +415,10 @@ export function EditEntryModal({
         </div>
 
         <div className="inline-fields screenshot-fields weight-fields">
-          <div className="field field-with-inline-toggle">
-            <div className="field-row field-row-compact">
-              <label className="field-label" htmlFor={beforeWeightInputId}>
-                Before (g)
-              </label>
-              <span
-                className="pending-after-inline pending-after-inline-placeholder"
-                aria-hidden="true"
-              >
-                <span className="pending-after-checkbox pending-after-checkbox-inline" />
-                <span>Required</span>
-              </span>
-            </div>
+          <div className="field">
+            <label className="field-label" htmlFor={beforeWeightInputId}>
+              Before (g)
+            </label>
             <input
               id={beforeWeightInputId}
               ref={beforeInputRef}
