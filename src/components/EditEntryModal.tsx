@@ -533,96 +533,111 @@ export function EditEntryModal({
           </label>
 
           <label className="field">
-            <span className="field-label">Kohlenhydrate (g)</span>
-            <input
-              id={carbsInputId}
-              ref={carbsInputRef}
-              className="field-input number-field"
-              name="food-edit-carbs"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              enterKeyHint="next"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-bwignore="true"
-              inputMode="decimal"
-              placeholder="0"
-              value={form.carbs}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, carbs: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  fatInputRef.current?.focus();
-                }
-              }}
-            />
+            <span className="field-label">Kohlenhydrate</span>
+            <div className="input-suffix-shell">
+              <input
+                id={carbsInputId}
+                ref={carbsInputRef}
+                className="field-input number-field field-input-with-suffix"
+                name="food-edit-carbs"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="next"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-bwignore="true"
+                inputMode="decimal"
+                placeholder="0"
+                value={form.carbs}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, carbs: event.target.value }));
+                  setError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    fatInputRef.current?.focus();
+                  }
+                }}
+              />
+              <span className="input-suffix" aria-hidden="true">
+                g
+              </span>
+            </div>
           </label>
 
           <label className="field">
-            <span className="field-label">Fett (g)</span>
-            <input
-              id={fatInputId}
-              ref={fatInputRef}
-              className="field-input number-field"
-              name="food-edit-fat"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              enterKeyHint="next"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-bwignore="true"
-              inputMode="decimal"
-              placeholder="0"
-              value={form.fat}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, fat: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  proteinInputRef.current?.focus();
-                }
-              }}
-            />
+            <span className="field-label">Fett</span>
+            <div className="input-suffix-shell">
+              <input
+                id={fatInputId}
+                ref={fatInputRef}
+                className="field-input number-field field-input-with-suffix"
+                name="food-edit-fat"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="next"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-bwignore="true"
+                inputMode="decimal"
+                placeholder="0"
+                value={form.fat}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, fat: event.target.value }));
+                  setError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    proteinInputRef.current?.focus();
+                  }
+                }}
+              />
+              <span className="input-suffix" aria-hidden="true">
+                g
+              </span>
+            </div>
           </label>
 
           <label className="field">
-            <span className="field-label">Eiweiß (g)</span>
-            <input
-              id={proteinInputId}
-              ref={proteinInputRef}
-              className="field-input number-field"
-              name="food-edit-protein"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              enterKeyHint="done"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-bwignore="true"
-              inputMode="decimal"
-              placeholder="0"
-              value={form.protein}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, protein: event.target.value }));
-                setError('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  submitForm();
-                }
-              }}
-            />
+            <span className="field-label">Eiweiß</span>
+            <div className="input-suffix-shell">
+              <input
+                id={proteinInputId}
+                ref={proteinInputRef}
+                className="field-input number-field field-input-with-suffix"
+                name="food-edit-protein"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="done"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-bwignore="true"
+                inputMode="decimal"
+                placeholder="0"
+                value={form.protein}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, protein: event.target.value }));
+                  setError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    submitForm();
+                  }
+                }}
+              />
+              <span className="input-suffix" aria-hidden="true">
+                g
+              </span>
+            </div>
           </label>
         </div>
 

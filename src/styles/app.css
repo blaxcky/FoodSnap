@@ -342,12 +342,30 @@ button {
 }
 
 .nutrition-fields {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
 }
 
 .field-with-inline-toggle {
   min-width: 0;
+}
+
+.input-suffix-shell {
+  position: relative;
+}
+
+.field-input-with-suffix {
+  padding-right: 42px;
+}
+
+.input-suffix {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .weight-fields .field > .field-label,
@@ -1334,10 +1352,6 @@ button {
   }
 
   .modal-card .weight-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .modal-card .nutrition-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
