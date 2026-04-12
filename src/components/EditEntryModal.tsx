@@ -508,7 +508,7 @@ export function EditEntryModal({
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     event.preventDefault();
-                    caloriesInputRef.current?.focus();
+                    submitForm();
                   }
                 }}
               />
