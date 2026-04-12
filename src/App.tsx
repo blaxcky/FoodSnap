@@ -10,6 +10,8 @@ import { downloadFoodMemoryBackup } from './lib/backup';
 import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
+import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
+import type { ThemePreference } from './lib/theme';
 import type {
   EntryPayload,
   FoodProfile,
@@ -82,6 +84,7 @@ export default function App() {
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(loadThemePreference);
   const dialogHistoryActiveRef = useRef(false);
 
   useEffect(() => {
@@ -105,6 +108,12 @@ export default function App() {
       exportLeadIn
     });
   }, [foods, entries, exportLeadIn, isHydrated]);
+
+  useEffect(() => {
+    applyTheme(themePreference);
+    saveThemePreference(themePreference);
+    return listenForSystemThemeChange(themePreference, () => applyTheme(themePreference));
+  }, [themePreference]);
 
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,
@@ -461,12 +470,14 @@ export default function App() {
             exportState={exportBackupState}
             exportLeadIn={exportLeadIn}
             refreshState={refreshState}
+            themePreference={themePreference}
             onExportFoodMemory={handleExportFoodMemory}
             onChangeExportLeadIn={(value) => {
               setExportLeadIn(value);
               setCopyState('idle');
             }}
             onForceRefresh={handleForceRefresh}
+            onChangeTheme={setThemePreference}
           />
         </section>
       ) : null}

@@ -1,4 +1,5 @@
-import { BoltIcon, ExportIcon, SettingsIcon } from './Icons';
+import type { ThemePreference } from '../lib/theme';
+import { BoltIcon, ExportIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from './Icons';
 
 interface SettingsPanelProps {
   foodCount: number;
@@ -6,10 +7,18 @@ interface SettingsPanelProps {
   exportState: 'idle' | 'done' | 'error';
   exportLeadIn: string;
   refreshState: 'idle' | 'working' | 'error';
+  themePreference: ThemePreference;
   onExportFoodMemory: () => void;
   onChangeExportLeadIn: (value: string) => void;
   onForceRefresh: () => Promise<void>;
+  onChangeTheme: (preference: ThemePreference) => void;
 }
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof SunIcon }[] = [
+  { value: 'system', label: 'System', Icon: MonitorIcon },
+  { value: 'light', label: 'Light', Icon: SunIcon },
+  { value: 'dark', label: 'Dark', Icon: MoonIcon }
+];
 
 export function SettingsPanel({
   foodCount,
@@ -17,9 +26,11 @@ export function SettingsPanel({
   exportState,
   exportLeadIn,
   refreshState,
+  themePreference,
   onExportFoodMemory,
   onChangeExportLeadIn,
-  onForceRefresh
+  onForceRefresh,
+  onChangeTheme
 }: SettingsPanelProps) {
   return (
     <section className="panel settings-panel">
@@ -111,6 +122,46 @@ export function SettingsPanel({
             <div className="settings-row-value">{foodCount}</div>
           </div>
         </div>
+      </section>
+
+      <section className="settings-section" aria-labelledby="settings-appearance-title">
+        <div className="settings-section-header">
+          <p id="settings-appearance-title" className="settings-section-title">
+            Appearance
+          </p>
+          <p className="settings-section-caption">Theme and display preferences</p>
+        </div>
+
+        <div className="settings-list">
+          <div className="settings-row settings-row-action">
+            <div className="settings-row-copy">
+              <h3>Theme</h3>
+              <p>Choose between light and dark mode, or follow your system setting.</p>
+            </div>
+            <div className="settings-row-control">
+              <div className="mode-toggle" role="radiogroup" aria-label="Theme preference">
+                {THEME_OPTIONS.map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    className={`mode-pill${themePreference === value ? ' active' : ''}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={themePreference === value}
+                    onClick={() => onChangeTheme(value)}
+                  >
+                    <Icon className="settings-inline-icon" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="settings-feedback">
+          {themePreference === 'system'
+            ? 'Theme follows your operating system preference.'
+            : `Using ${themePreference} mode.`}
+        </p>
       </section>
 
       <section className="settings-section" aria-labelledby="settings-backup-title">
