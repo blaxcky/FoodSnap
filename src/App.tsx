@@ -566,8 +566,11 @@ export default function App() {
     }
   }
 
-  async function handleAddPhotoFiles(fileList: FileList | null) {
-    const files = fileList ? Array.from(fileList).filter((file) => file.type.startsWith('image/')) : [];
+  async function handleAddPhotoFiles(fileList: FileList | File[] | null) {
+    const candidateFiles = fileList ? Array.from(fileList) : [];
+    const files = candidateFiles.filter(
+      (file) => file.type === '' || file.type.startsWith('image/')
+    );
 
     if (files.length === 0) {
       setPhotoFeedbackTone('error');
@@ -611,9 +614,9 @@ export default function App() {
   }
 
   async function handlePhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
-    const fileList = event.target.files;
+    const files = event.target.files ? Array.from(event.target.files) : [];
     event.target.value = '';
-    await handleAddPhotoFiles(fileList);
+    await handleAddPhotoFiles(files);
   }
 
   async function handleDeletePendingPhoto(photoId: string) {
