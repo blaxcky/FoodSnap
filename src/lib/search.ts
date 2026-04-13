@@ -22,8 +22,20 @@ function isSubsequence(query: string, target: string) {
   return queryIndex === query.length;
 }
 
+function normalizeSearchText(value: string) {
+  return normalizeText(value)
+    .replace(/ae/g, 'a')
+    .replace(/oe/g, 'o')
+    .replace(/ue/g, 'u')
+    .replace(/[ä]/g, 'a')
+    .replace(/[ö]/g, 'o')
+    .replace(/[ü]/g, 'u')
+    .replace(/ss/g, 's')
+    .replace(/[ß]/g, 's');
+}
+
 function scoreFood(food: FoodProfile, query: string) {
-  const normalizedName = food.normalizedName;
+  const normalizedName = normalizeSearchText(food.normalizedName);
   let score = 0;
 
   if (normalizedName === query) {
@@ -51,7 +63,7 @@ function scoreFood(food: FoodProfile, query: string) {
 }
 
 export function getFoodSuggestions(foods: FoodProfile[], query: string, limit = 6) {
-  const normalizedQuery = normalizeText(query);
+  const normalizedQuery = normalizeSearchText(query);
 
   if (!normalizedQuery) {
     return getQuickFoods(foods, limit);
@@ -90,4 +102,3 @@ export function getQuickFoods(foods: FoodProfile[], limit = 6) {
     })
     .slice(0, limit);
 }
-

@@ -373,12 +373,6 @@ export function EditEntryModal({
 
                   if (event.key === 'Enter') {
                     event.preventDefault();
-
-                    if (suggestionsOpen && suggestions[highlightedIndex]) {
-                      applyFood(suggestions[highlightedIndex]);
-                      return;
-                    }
-
                     beforeInputRef.current?.focus();
                   }
 

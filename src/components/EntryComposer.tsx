@@ -220,12 +220,6 @@ export function EntryComposer({
 
                 if (event.key === 'Enter') {
                   event.preventDefault();
-
-                  if (suggestionsOpen && suggestions[highlightedIndex]) {
-                    applyFood(suggestions[highlightedIndex]);
-                    return;
-                  }
-
                   focusWeightField();
                 }
 
