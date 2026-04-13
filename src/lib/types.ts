@@ -2,6 +2,8 @@ export type EntryMode = 'direct' | 'difference';
 
 export type EntryUnit = 'g' | 'pcs';
 
+export type PhotoStatus = 'pending' | 'archived';
+
 export interface FoodProfile {
   id: string;
   name: string;
@@ -17,6 +19,7 @@ export interface SessionEntry {
   id: string;
   foodId: string;
   foodName: string;
+  sourcePhotoId?: string;
   mode: EntryMode;
   amount: number;
   unit: EntryUnit;
@@ -49,9 +52,21 @@ export interface EntryPayload {
   protein?: number;
 }
 
+export interface PhotoItem {
+  id: string;
+  status: PhotoStatus;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  foodName?: string;
+  weightGrams?: number;
+  linkedEntryId?: string;
+}
+
 export interface PersistedAppState {
-  version: 1;
+  version: 2;
   foods: FoodProfile[];
   currentSession: SessionEntry[];
+  photoItems: PhotoItem[];
   exportLeadIn: string;
 }

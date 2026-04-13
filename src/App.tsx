@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { CreateEntryModal } from './components/CreateEntryModal';
 import { EditEntryModal } from './components/EditEntryModal';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
-import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon, SettingsIcon } from './components/Icons';
+import { BookIcon, ExportIcon, HistoryIcon, LogIcon, PhotoIcon, SettingsIcon, BoltIcon } from './components/Icons';
+import { PhotoPanel } from './components/PhotoPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SessionList } from './components/SessionList';
 import {
@@ -12,17 +13,26 @@ import {
   parseFoodMemoryBackup,
   type FoodImportMode
 } from './lib/backup';
-import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
+import {
+  deletePhotoBlob,
+  deletePhotoBlobs,
+  preparePhotoBlob,
+  savePhotoBlob
+} from './lib/photoStorage';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
+import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
 import type { ThemePreference } from './lib/theme';
-import type {
-  EntryPayload,
-  FoodProfile,
-  SessionEntry
-} from './lib/types';
+import type { EntryPayload, FoodProfile, PhotoItem, SessionEntry } from './lib/types';
 import { createId, isEntryDeleted, normalizeText, nowIso } from './lib/utils';
+
+type AppTab = 'log' | 'history' | 'photos' | 'library' | 'export' | 'settings';
+
+interface CommitEntryOptions {
+  forceEntryId?: string;
+  sourcePhotoId?: string;
+}
 
 function normalizeLoadedEntries(entries: SessionEntry[]) {
   return entries.map((entry) => {
@@ -78,9 +88,30 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload, countAsSave: boo
   };
 }
 
+function isPhotoCompatiblePayload(payload: EntryPayload) {
+  return (
+    payload.mode === 'direct' &&
+    payload.unit === 'g' &&
+    payload.beforeWeight == null &&
+    payload.afterWeight == null &&
+    !payload.needsAfterWeight
+  );
+}
+
+function makePhotoEntryPayload(foodName: string, weightGrams: number): EntryPayload {
+  return {
+    foodName,
+    mode: 'direct',
+    amount: weightGrams,
+    unit: 'g',
+    note: ''
+  };
+}
+
 export default function App() {
   const [foods, setFoods] = useState<FoodProfile[]>(defaultAppState.foods);
   const [entries, setEntries] = useState<SessionEntry[]>(defaultAppState.currentSession);
+  const [photoItems, setPhotoItems] = useState<PhotoItem[]>(defaultAppState.photoItems);
   const [exportLeadIn, setExportLeadIn] = useState(defaultAppState.exportLeadIn);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -89,16 +120,24 @@ export default function App() {
   const [importBackupState, setImportBackupState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
   const [importBackupMessage, setImportBackupMessage] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
-  const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
+  const [activeTab, setActiveTab] = useState<AppTab>('log');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(loadThemePreference);
+  const [activePhotoFilter, setActivePhotoFilter] = useState<'pending' | 'archived'>('pending');
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const [photoFeedbackMessage, setPhotoFeedbackMessage] = useState('');
+  const [photoFeedbackTone, setPhotoFeedbackTone] = useState<'idle' | 'error'>('idle');
+  const [photoActionState, setPhotoActionState] = useState<'idle' | 'working'>('idle');
   const dialogHistoryActiveRef = useRef(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     clearRefreshQueryParam();
     const state = loadAppState();
     setFoods(state.foods);
     setEntries(normalizeLoadedEntries(state.currentSession));
+    setPhotoItems(state.photoItems);
     setExportLeadIn(state.exportLeadIn);
     setIsHydrated(true);
   }, []);
@@ -109,12 +148,13 @@ export default function App() {
     }
 
     saveAppState({
-      version: 1,
+      version: 2,
       foods,
       currentSession: entries,
+      photoItems,
       exportLeadIn
     });
-  }, [foods, entries, exportLeadIn, isHydrated]);
+  }, [foods, entries, photoItems, exportLeadIn, isHydrated]);
 
   useEffect(() => {
     applyTheme(themePreference);
@@ -137,6 +177,27 @@ export default function App() {
     [entries]
   );
 
+  const pendingPhotos = useMemo(
+    () =>
+      [...photoItems]
+        .filter((photo) => photo.status === 'pending')
+        .sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
+    [photoItems]
+  );
+
+  const archivedPhotos = useMemo(
+    () =>
+      [...photoItems]
+        .filter((photo) => photo.status === 'archived')
+        .sort((left, right) => (right.completedAt ?? right.updatedAt).localeCompare(left.completedAt ?? left.updatedAt)),
+    [photoItems]
+  );
+
+  const selectedPhoto = useMemo(
+    () => photoItems.find((photo) => photo.id === selectedPhotoId) ?? null,
+    [photoItems, selectedPhotoId]
+  );
+
   const exportText = useMemo(
     () => formatExportWithLeadIn(exportLeadIn, formatExport(activeEntries)),
     [activeEntries, exportLeadIn]
@@ -148,6 +209,17 @@ export default function App() {
   );
 
   const isInputDialogOpen = isComposerOpen || editingEntryId != null;
+
+  useEffect(() => {
+    if (!selectedPhotoId) {
+      return;
+    }
+
+    const exists = photoItems.some((photo) => photo.id === selectedPhotoId);
+    if (!exists) {
+      setSelectedPhotoId(null);
+    }
+  }, [photoItems, selectedPhotoId]);
 
   useEffect(() => {
     if (activeTab !== 'log' && isComposerOpen) {
@@ -179,6 +251,11 @@ export default function App() {
     };
   }, [isInputDialogOpen]);
 
+  function resetPhotoFeedback() {
+    setPhotoFeedbackMessage('');
+    setPhotoFeedbackTone('idle');
+  }
+
   function closeInputDialog() {
     const shouldConsumeHistory = dialogHistoryActiveRef.current;
 
@@ -191,19 +268,24 @@ export default function App() {
     }
   }
 
-  function commitEntry(payload: EntryPayload, targetEntryId: string | null) {
+  function commitEntry(payload: EntryPayload, targetEntryId: string | null, options: CommitEntryOptions = {}) {
     const learning = learnFood(foods, payload, targetEntryId == null);
     const timestamp = nowIso();
+    const existingEntry = targetEntryId
+      ? entries.find((entry) => entry.id === targetEntryId) ?? null
+      : null;
+    const keepLinkedPhoto = Boolean(existingEntry?.sourcePhotoId && isPhotoCompatiblePayload(payload));
 
     setFoods(learning.foods);
     setEntries((currentEntries) => {
-      if (targetEntryId) {
+      if (targetEntryId && existingEntry) {
         return currentEntries.map((entry) =>
           entry.id === targetEntryId
             ? {
                 ...entry,
                 foodId: learning.foodId,
                 foodName: payload.foodName,
+                sourcePhotoId: keepLinkedPhoto ? existingEntry.sourcePhotoId : undefined,
                 mode: payload.mode,
                 amount: payload.amount,
                 unit: payload.unit,
@@ -222,9 +304,10 @@ export default function App() {
       }
 
       const nextEntry: SessionEntry = {
-        id: createId(),
+        id: options.forceEntryId ?? createId(),
         foodId: learning.foodId,
         foodName: payload.foodName,
+        sourcePhotoId: options.sourcePhotoId,
         mode: payload.mode,
         amount: payload.amount,
         unit: payload.unit,
@@ -242,6 +325,33 @@ export default function App() {
 
       return [nextEntry, ...currentEntries];
     });
+
+    if (targetEntryId && existingEntry?.sourcePhotoId) {
+      setPhotoItems((currentPhotos) =>
+        currentPhotos.map((photo) => {
+          if (photo.id !== existingEntry.sourcePhotoId) {
+            return photo;
+          }
+
+          if (!keepLinkedPhoto) {
+            return {
+              ...photo,
+              linkedEntryId: undefined,
+              updatedAt: timestamp
+            };
+          }
+
+          return {
+            ...photo,
+            foodName: payload.foodName,
+            weightGrams: payload.amount,
+            linkedEntryId: targetEntryId,
+            updatedAt: timestamp
+          };
+        })
+      );
+    }
+
     setCopyState('idle');
   }
 
@@ -298,6 +408,14 @@ export default function App() {
     setCopyState('idle');
   }
 
+  function handleOpenLinkedPhoto(photoId: string) {
+    setActiveTab('photos');
+    setActivePhotoFilter('archived');
+    setSelectedPhotoId(photoId);
+    setIsComposerOpen(false);
+    setEditingEntryId(null);
+  }
+
   function handleRenameFood(foodId: string, nextName: string) {
     const trimmedName = nextName.trim();
     const normalizedName = normalizeText(trimmedName);
@@ -312,6 +430,10 @@ export default function App() {
     if (conflict) {
       return false;
     }
+
+    const affectedEntryIds = entries
+      .filter((entry) => entry.foodId === foodId && entry.sourcePhotoId)
+      .map((entry) => entry.id);
 
     setFoods((currentFoods) =>
       currentFoods.map((food) =>
@@ -336,6 +458,20 @@ export default function App() {
           : entry
       )
     );
+
+    if (affectedEntryIds.length > 0) {
+      setPhotoItems((currentPhotos) =>
+        currentPhotos.map((photo) =>
+          photo.linkedEntryId && affectedEntryIds.includes(photo.linkedEntryId)
+            ? {
+                ...photo,
+                foodName: trimmedName,
+                updatedAt: nowIso()
+              }
+            : photo
+        )
+      );
+    }
 
     return true;
   }
@@ -395,9 +531,24 @@ export default function App() {
     }
   }
 
-  function handleResetSession() {
+  async function handleResetSession() {
+    const archivedLinkedPhotoIds = photoItems
+      .filter((photo) => photo.status === 'archived' && photo.linkedEntryId)
+      .map((photo) => photo.id);
+
+    try {
+      if (archivedLinkedPhotoIds.length > 0) {
+        await deletePhotoBlobs(archivedLinkedPhotoIds);
+      }
+    } catch {
+      setPhotoFeedbackTone('error');
+      setPhotoFeedbackMessage('Some archived photo files could not be removed.');
+    }
+
+    setPhotoItems((currentPhotos) => currentPhotos.filter((photo) => photo.status === 'pending'));
     setEntries([]);
     setEditingEntryId(null);
+    setSelectedPhotoId(null);
     setCopyState('idle');
   }
 
@@ -412,6 +563,153 @@ export default function App() {
       await forceFreshAppLoad();
     } catch {
       setRefreshState('error');
+    }
+  }
+
+  async function handleAddPhotoFiles(fileList: FileList | null) {
+    const files = fileList ? Array.from(fileList).filter((file) => file.type.startsWith('image/')) : [];
+
+    if (files.length === 0) {
+      setPhotoFeedbackTone('error');
+      setPhotoFeedbackMessage('Choose a valid image file.');
+      return;
+    }
+
+    setPhotoActionState('working');
+    resetPhotoFeedback();
+
+    const uploadedPhotos: PhotoItem[] = [];
+
+    try {
+      for (const file of files) {
+        const processedBlob = await preparePhotoBlob(file);
+        const photoId = createId();
+        const timestamp = nowIso();
+
+        await savePhotoBlob(photoId, processedBlob);
+        uploadedPhotos.push({
+          id: photoId,
+          status: 'pending',
+          createdAt: timestamp,
+          updatedAt: timestamp
+        });
+      }
+
+      setPhotoItems((currentPhotos) => [...currentPhotos, ...uploadedPhotos]);
+      setActiveTab('photos');
+      setActivePhotoFilter('pending');
+      setSelectedPhotoId(null);
+    } catch {
+      if (uploadedPhotos.length > 0) {
+        await deletePhotoBlobs(uploadedPhotos.map((photo) => photo.id)).catch(() => undefined);
+      }
+      setPhotoFeedbackTone('error');
+      setPhotoFeedbackMessage('The photo could not be stored on this device.');
+    } finally {
+      setPhotoActionState('idle');
+    }
+  }
+
+  async function handlePhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const fileList = event.target.files;
+    event.target.value = '';
+    await handleAddPhotoFiles(fileList);
+  }
+
+  async function handleDeletePendingPhoto(photoId: string) {
+    try {
+      await deletePhotoBlob(photoId);
+      setPhotoItems((currentPhotos) => currentPhotos.filter((photo) => photo.id !== photoId));
+      if (selectedPhotoId === photoId) {
+        setSelectedPhotoId(null);
+      }
+    } catch {
+      setPhotoFeedbackTone('error');
+      setPhotoFeedbackMessage('The open photo could not be deleted.');
+    }
+  }
+
+  function findNextPendingPhotoId(currentPhotoId: string) {
+    const currentIndex = pendingPhotos.findIndex((photo) => photo.id === currentPhotoId);
+    if (currentIndex === -1) {
+      return null;
+    }
+
+    return pendingPhotos[currentIndex + 1]?.id ?? null;
+  }
+
+  async function handleSavePhoto(photoId: string, payload: { foodName: string; weightGrams: number }) {
+    const photo = photoItems.find((item) => item.id === photoId);
+
+    if (!photo) {
+      return;
+    }
+
+    setPhotoActionState('working');
+    resetPhotoFeedback();
+
+    try {
+      if (photo.status === 'pending') {
+        const entryId = createId();
+        const timestamp = nowIso();
+
+        commitEntry(makePhotoEntryPayload(payload.foodName, payload.weightGrams), null, {
+          forceEntryId: entryId,
+          sourcePhotoId: photoId
+        });
+
+        setPhotoItems((currentPhotos) =>
+          currentPhotos.map((item) =>
+            item.id === photoId
+              ? {
+                  ...item,
+                  status: 'archived',
+                  foodName: payload.foodName,
+                  weightGrams: payload.weightGrams,
+                  linkedEntryId: entryId,
+                  completedAt: timestamp,
+                  updatedAt: timestamp
+                }
+              : item
+          )
+        );
+
+        setActivePhotoFilter('pending');
+        setSelectedPhotoId(findNextPendingPhotoId(photoId));
+        return;
+      }
+
+      if (photo.linkedEntryId) {
+        const linkedEntry = entries.find((entry) => entry.id === photo.linkedEntryId);
+
+        commitEntry(
+          {
+            ...makePhotoEntryPayload(payload.foodName, payload.weightGrams),
+            note: linkedEntry?.note ?? '',
+            calories: linkedEntry?.calories,
+            carbs: linkedEntry?.carbs,
+            fat: linkedEntry?.fat,
+            protein: linkedEntry?.protein
+          },
+          photo.linkedEntryId
+        );
+        return;
+      }
+
+      setPhotoItems((currentPhotos) =>
+        currentPhotos.map((item) =>
+          item.id === photoId
+            ? {
+                ...item,
+                foodName: payload.foodName,
+                weightGrams: payload.weightGrams,
+                updatedAt: nowIso()
+              }
+            : item
+        )
+      );
+    } finally {
+      setPhotoActionState('idle');
     }
   }
 
@@ -443,6 +741,7 @@ export default function App() {
             onEdit={startEditing}
             onDelete={handleDelete}
             onRestore={handleRestore}
+            onOpenPhoto={handleOpenLinkedPhoto}
           />
         </section>
       ) : null}
@@ -456,6 +755,33 @@ export default function App() {
             onEdit={startEditing}
             onDelete={handleDelete}
             onRestore={handleRestore}
+            onOpenPhoto={handleOpenLinkedPhoto}
+          />
+        </section>
+      ) : null}
+
+      {activeTab === 'photos' ? (
+        <section className={`screen-section${selectedPhoto ? ' screen-section-photo-detail' : ''}`}>
+          <PhotoPanel
+            foods={foods}
+            pendingPhotos={pendingPhotos}
+            archivedPhotos={archivedPhotos}
+            activeFilter={activePhotoFilter}
+            selectedPhoto={selectedPhoto}
+            isBusy={photoActionState === 'working'}
+            feedbackMessage={photoFeedbackMessage}
+            feedbackTone={photoFeedbackTone}
+            onChangeFilter={setActivePhotoFilter}
+            onOpenCamera={() => cameraInputRef.current?.click()}
+            onOpenGallery={() => galleryInputRef.current?.click()}
+            onSelectPhoto={setSelectedPhotoId}
+            onCloseDetail={() => setSelectedPhotoId(null)}
+            onDeletePendingPhoto={(photoId) => {
+              void handleDeletePendingPhoto(photoId);
+            }}
+            onSavePhoto={(photoId, payload) => {
+              void handleSavePhoto(photoId, payload);
+            }}
           />
         </section>
       ) : null}
@@ -491,7 +817,7 @@ export default function App() {
             visibleExportText={visibleExportText}
             exportLeadIn={exportLeadIn}
             copyState={copyState}
-            sessionCount={entries.length}
+            sessionCount={activeEntries.length}
             onCopy={handleCopy}
             onResetSession={handleResetSession}
           />
@@ -537,6 +863,14 @@ export default function App() {
         >
           <HistoryIcon className="ui-icon" />
           <span>History</span>
+        </button>
+        <button
+          className={`bottom-nav-item${activeTab === 'photos' ? ' active' : ''}`}
+          type="button"
+          onClick={() => setActiveTab('photos')}
+        >
+          <PhotoIcon className="ui-icon" />
+          <span>Photos</span>
         </button>
         <button
           className={`bottom-nav-item${activeTab === 'library' ? ' active' : ''}`}
@@ -587,6 +921,26 @@ export default function App() {
           onSave={handleUpdateEntry}
         />
       ) : null}
+
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="visually-hidden"
+        onChange={(event) => {
+          void handlePhotoInputChange(event);
+        }}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="visually-hidden"
+        onChange={(event) => {
+          void handlePhotoInputChange(event);
+        }}
+      />
     </main>
   );
 }

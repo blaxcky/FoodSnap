@@ -1,4 +1,4 @@
-import { CheckIcon, PencilIcon } from './Icons';
+import { CheckIcon, PencilIcon, PhotoIcon } from './Icons';
 import type { SessionEntry } from '../lib/types';
 import {
   formatEntryMeta,
@@ -16,6 +16,7 @@ interface SessionListProps {
   onEdit: (entryId: string) => void;
   onDelete: (entryId: string) => void;
   onRestore: (entryId: string) => void;
+  onOpenPhoto: (photoId: string) => void;
 }
 
 export function SessionList({
@@ -24,7 +25,8 @@ export function SessionList({
   editingEntryId,
   onEdit,
   onDelete,
-  onRestore
+  onRestore,
+  onOpenPhoto
 }: SessionListProps) {
   const isHistory = mode === 'history';
 
@@ -80,6 +82,16 @@ export function SessionList({
                   </div>
 
                   <div className="entry-actions">
+                    {entry.sourcePhotoId ? (
+                      <button
+                        className="icon-action photo-link-action"
+                        type="button"
+                        onClick={() => onOpenPhoto(entry.sourcePhotoId!)}
+                        aria-label={`Open linked photo for ${entry.foodName}`}
+                      >
+                        <PhotoIcon className="ui-icon" />
+                      </button>
+                    ) : null}
                     {deleted ? (
                       <button
                         className="ghost-button compact"

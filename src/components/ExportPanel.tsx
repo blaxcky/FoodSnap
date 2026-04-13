@@ -7,7 +7,7 @@ interface ExportPanelProps {
   copyState: 'idle' | 'copied' | 'error';
   sessionCount: number;
   onCopy: () => void;
-  onResetSession: () => void;
+  onResetSession: () => void | Promise<void>;
 }
 
 export function ExportPanel({
@@ -84,7 +84,8 @@ export function ExportPanel({
             Reset session
           </p>
           <p className="settings-section-caption">
-            Clears only the current session. Food memory stays stored.
+            Clears the current session and removes archived photo items that already became log
+            entries. Open photos stay stored.
           </p>
         </div>
 
@@ -132,7 +133,8 @@ export function ExportPanel({
             </div>
 
             <p className="helper-copy">
-              This removes all current session entries from Log and Export. Remembered foods stay untouched.
+              This removes all current session entries from Log and Export. Linked archived photos
+              are deleted too, while open photos and remembered foods stay untouched.
             </p>
 
             <div className="modal-actions">
