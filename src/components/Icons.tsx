@@ -177,8 +177,15 @@ export function ArrowLeftIcon(props: IconProps) {
 export function SettingsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
-      <path d="M12 3.5 14 5l2.5-.2 1.2 2.2L20 8l-.6 2.4 1.2 2.2-1.7 1.8.2 2.5-2.2 1.2-1.8 2.1-2.4-.6-2.4.6-1.8-2.1-2.2-1.2.2-2.5L4.6 12l1.2-2.2L5.2 8l2.3-1.1 1.2-2.2L11 5l1-1.5Z" />
       <circle cx="12" cy="12" r="3.25" />
+      <path d="M12 2.75v2.1" />
+      <path d="M12 19.15v2.1" />
+      <path d="m5.46 5.46 1.48 1.48" />
+      <path d="m17.06 17.06 1.48 1.48" />
+      <path d="M2.75 12h2.1" />
+      <path d="M19.15 12h2.1" />
+      <path d="m5.46 18.54 1.48-1.48" />
+      <path d="m17.06 6.94 1.48-1.48" />
     </svg>
   );
 }
