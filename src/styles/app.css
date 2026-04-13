@@ -1737,10 +1737,6 @@ button {
   width: 100%;
 }
 
-.photo-detail-suggestions {
-  position: relative;
-}
-
 .confirm-dialog {
   width: min(100%, 520px);
 }
