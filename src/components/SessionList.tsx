@@ -1,4 +1,4 @@
-import { PencilIcon, TrashIcon } from './Icons';
+import { CheckIcon, PencilIcon } from './Icons';
 import type { SessionEntry } from '../lib/types';
 import {
   formatEntryMeta,
@@ -42,7 +42,7 @@ export function SessionList({
           <p>{isHistory ? 'No history yet.' : 'No entries yet.'}</p>
           <span>
             {isHistory
-              ? 'Deleted items stay here and can be restored at any time.'
+              ? 'Hidden items stay here and can be restored at any time.'
               : 'Start with a food name, then save and keep moving.'}
           </span>
         </div>
@@ -70,7 +70,7 @@ export function SessionList({
                     <h3>{entry.foodName}</h3>
                     <p>
                       {deleted
-                        ? `Removed from log • ${amountSummary}`
+                        ? `Hidden from log • ${amountSummary}`
                         : incompleteWeight
                         ? formatEntryMeta(entry)
                         : `${entry.unit === 'g'
@@ -102,9 +102,9 @@ export function SessionList({
                           className="icon-action"
                           type="button"
                           onClick={() => onDelete(entry.id)}
-                          aria-label={`Delete ${entry.foodName}`}
+                          aria-label={`Hide ${entry.foodName} from log and export`}
                         >
-                          <TrashIcon className="ui-icon" />
+                          <CheckIcon className="ui-icon" />
                         </button>
                       </>
                     )}
