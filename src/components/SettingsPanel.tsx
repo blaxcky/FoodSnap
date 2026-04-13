@@ -1,14 +1,19 @@
+import { useEffect, useRef, useState } from 'react';
+import type { FoodImportMode } from '../lib/backup';
 import type { ThemePreference } from '../lib/theme';
-import { BoltIcon, ExportIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from './Icons';
+import { BoltIcon, ExportIcon, ImportIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from './Icons';
 
 interface SettingsPanelProps {
   foodCount: number;
   sessionCount: number;
   exportState: 'idle' | 'done' | 'error';
+  importState: 'idle' | 'working' | 'done' | 'error';
+  importMessage: string;
   exportLeadIn: string;
   refreshState: 'idle' | 'working' | 'error';
   themePreference: ThemePreference;
   onExportFoodMemory: () => void;
+  onImportFoodMemory: (file: File, mode: FoodImportMode) => Promise<void>;
   onChangeExportLeadIn: (value: string) => void;
   onForceRefresh: () => Promise<void>;
   onChangeTheme: (preference: ThemePreference) => void;
@@ -24,14 +29,67 @@ export function SettingsPanel({
   foodCount,
   sessionCount,
   exportState,
+  importState,
+  importMessage,
   exportLeadIn,
   refreshState,
   themePreference,
   onExportFoodMemory,
+  onImportFoodMemory,
   onChangeExportLeadIn,
   onForceRefresh,
   onChangeTheme
 }: SettingsPanelProps) {
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+  const [importMode, setImportMode] = useState<FoodImportMode>('merge');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!pendingImportFile) {
+      return;
+    }
+
+    const { body } = document;
+    const scrollY = window.scrollY;
+    const previousOverflow = body.style.overflow;
+    const previousPosition = body.style.position;
+    const previousTop = body.style.top;
+    const previousWidth = body.style.width;
+
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.position = previousPosition;
+      body.style.top = previousTop;
+      body.style.width = previousWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [pendingImportFile]);
+
+  function closeImportDialog() {
+    setPendingImportFile(null);
+    setImportMode('merge');
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  const backupFeedback =
+    importState === 'done' || importState === 'error'
+      ? importMessage
+      : exportState === 'done'
+        ? 'Backup downloaded successfully.'
+        : exportState === 'error'
+          ? 'Backup export failed. Try again.'
+          : `Available for ${foodCount} remembered food${foodCount === 1 ? '' : 's'}.`;
+
+  const backupFeedbackIsError = importState === 'error' || exportState === 'error';
+
   return (
     <section className="panel settings-panel">
       <div className="settings-hero">
@@ -191,6 +249,39 @@ export function SettingsPanel({
             </div>
           </div>
 
+          <div className="settings-row settings-row-action">
+            <div className="settings-row-copy">
+              <h3>Import food memory backup</h3>
+              <p>Reads a FoodSnap backup JSON and updates remembered foods plus your export intro text.</p>
+            </div>
+            <div className="settings-row-control">
+              <input
+                ref={fileInputRef}
+                className="settings-hidden-file-input"
+                type="file"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const nextFile = event.target.files?.[0];
+
+                  if (!nextFile) {
+                    return;
+                  }
+
+                  setPendingImportFile(nextFile);
+                }}
+              />
+              <button
+                className="ghost-button settings-inline-button"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importState === 'working'}
+              >
+                <ImportIcon className="settings-inline-icon" />
+                {importState === 'working' ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+
           <div className="settings-row">
             <div className="settings-row-copy">
               <h3>Current session entries</h3>
@@ -200,12 +291,8 @@ export function SettingsPanel({
           </div>
         </div>
 
-        <p className={`settings-feedback${exportState === 'error' ? ' is-error' : ''}`}>
-          {exportState === 'done'
-            ? 'Backup downloaded successfully.'
-            : exportState === 'error'
-              ? 'Backup export failed. Try again.'
-              : `Available for ${foodCount} remembered food${foodCount === 1 ? '' : 's'}.`}
+        <p className={`settings-feedback${backupFeedbackIsError ? ' is-error' : ''}`}>
+          {backupFeedback}
         </p>
       </section>
 
@@ -267,6 +354,86 @@ export function SettingsPanel({
             : 'Use this when the installed app still shows an older deployment.'}
         </p>
       </section>
+
+      {pendingImportFile ? (
+        <div
+          className="modal-backdrop confirm-backdrop"
+          role="presentation"
+          onClick={importState === 'working' ? undefined : closeImportDialog}
+        >
+          <section
+            className="modal-card confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="import-backup-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="section-heading modal-heading">
+              <div>
+                <p className="section-kicker">Import backup</p>
+                <h2 id="import-backup-title">Restore remembered foods?</h2>
+              </div>
+            </div>
+
+            <p className="helper-copy">
+              File: <strong>{pendingImportFile.name}</strong>
+            </p>
+
+            <p className="helper-copy">
+              Session entries stay unchanged. The backup export intro text will be imported as well.
+            </p>
+
+            <div className="import-mode-picker" role="radiogroup" aria-label="Import mode">
+              <button
+                className={`mode-pill import-mode-pill${importMode === 'merge' ? ' active' : ''}`}
+                type="button"
+                role="radio"
+                aria-checked={importMode === 'merge'}
+                onClick={() => setImportMode('merge')}
+              >
+                Merge
+              </button>
+              <button
+                className={`mode-pill import-mode-pill${importMode === 'replace' ? ' active' : ''}`}
+                type="button"
+                role="radio"
+                aria-checked={importMode === 'replace'}
+                onClick={() => setImportMode('replace')}
+              >
+                Replace
+              </button>
+            </div>
+
+            <p className="settings-feedback import-mode-copy">
+              {importMode === 'merge'
+                ? 'Imported foods are merged into your existing library. If a name already exists, the backup entry replaces the local one.'
+                : 'Your current remembered foods are replaced with the backup list. Session entries remain as they are.'}
+            </p>
+
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={closeImportDialog}
+                disabled={importState === 'working'}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-button modal-save-button"
+                type="button"
+                onClick={async () => {
+                  await onImportFoodMemory(pendingImportFile, importMode);
+                  closeImportDialog();
+                }}
+                disabled={importState === 'working'}
+              >
+                {importState === 'working' ? 'Importing...' : 'Import backup'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -1276,6 +1276,10 @@ button {
   height: 1rem;
 }
 
+.settings-hidden-file-input {
+  display: none;
+}
+
 .settings-feedback {
   margin: 0;
   padding: 0 2px;
@@ -1285,6 +1289,24 @@ button {
 
 .settings-feedback.is-error {
   color: var(--danger);
+}
+
+.import-mode-picker {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 3px;
+  border-radius: var(--r-sm);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+}
+
+.import-mode-pill {
+  min-width: 112px;
+}
+
+.import-mode-copy {
+  margin-top: 12px;
 }
 
 .settings-danger-card {

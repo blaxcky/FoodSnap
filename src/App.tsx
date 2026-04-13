@@ -6,7 +6,12 @@ import { FoodLibrary } from './components/FoodLibrary';
 import { BookIcon, BoltIcon, ExportIcon, HistoryIcon, LogIcon, SettingsIcon } from './components/Icons';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SessionList } from './components/SessionList';
-import { downloadFoodMemoryBackup } from './lib/backup';
+import {
+  downloadFoodMemoryBackup,
+  importFoodMemoryBackup,
+  parseFoodMemoryBackup,
+  type FoodImportMode
+} from './lib/backup';
 import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
@@ -81,6 +86,8 @@ export default function App() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
   const [exportBackupState, setExportBackupState] = useState<'idle' | 'done' | 'error'>('idle');
+  const [importBackupState, setImportBackupState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
+  const [importBackupMessage, setImportBackupMessage] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'library' | 'export' | 'settings'>('log');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -348,6 +355,9 @@ export default function App() {
   }
 
   function handleExportFoodMemory() {
+    setImportBackupState('idle');
+    setImportBackupMessage('');
+
     try {
       downloadFoodMemoryBackup(foods, {
         exportLeadIn
@@ -356,6 +366,32 @@ export default function App() {
       window.setTimeout(() => setExportBackupState('idle'), 1800);
     } catch {
       setExportBackupState('error');
+    }
+  }
+
+  async function handleImportFoodMemory(file: File, mode: FoodImportMode) {
+    setExportBackupState('idle');
+    setImportBackupState('working');
+    setImportBackupMessage('');
+    setCopyState('idle');
+
+    try {
+      const raw = await file.text();
+      const backup = parseFoodMemoryBackup(raw);
+      const result = importFoodMemoryBackup(foods, backup, mode);
+
+      setFoods(result.foods);
+      setExportLeadIn(result.exportLeadIn);
+      setImportBackupState('done');
+      setImportBackupMessage(
+        mode === 'merge'
+          ? `Merged ${result.importedFoodCount} backup food${result.importedFoodCount === 1 ? '' : 's'}. ${result.totalFoodCount} remembered food${result.totalFoodCount === 1 ? '' : 's'} now available.`
+          : `Imported ${result.totalFoodCount} remembered food${result.totalFoodCount === 1 ? '' : 's'} from backup.`
+      );
+      window.setTimeout(() => setImportBackupState('idle'), 2400);
+    } catch {
+      setImportBackupState('error');
+      setImportBackupMessage('Backup import failed. Use a valid FoodSnap backup JSON file.');
     }
   }
 
@@ -468,10 +504,13 @@ export default function App() {
             foodCount={foods.length}
             sessionCount={activeEntries.length}
             exportState={exportBackupState}
+            importState={importBackupState}
+            importMessage={importBackupMessage}
             exportLeadIn={exportLeadIn}
             refreshState={refreshState}
             themePreference={themePreference}
             onExportFoodMemory={handleExportFoodMemory}
+            onImportFoodMemory={handleImportFoodMemory}
             onChangeExportLeadIn={(value) => {
               setExportLeadIn(value);
               setCopyState('idle');
