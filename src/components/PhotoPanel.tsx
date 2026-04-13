@@ -187,12 +187,16 @@ function PhotoDetail({
     photo.weightGrams != null ? String(photo.weightGrams) : ''
   );
   const [error, setError] = useState('');
+  const [isInputMode, setIsInputMode] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [detailStyle, setDetailStyle] = useState<CSSProperties | undefined>(undefined);
 
   const foodInputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
+  const sheetContentRef = useRef<HTMLDivElement>(null);
+  const collapseTimeoutRef = useRef<number | null>(null);
   const deferredQuery = useDeferredValue(foodName);
   const suggestions = useMemo(
     () => getFoodSuggestions(foods, deferredQuery, 5),
@@ -203,12 +207,10 @@ function PhotoDetail({
     setFoodName(photo.foodName ?? '');
     setWeightGrams(photo.weightGrams != null ? String(photo.weightGrams) : '');
     setError('');
+    setIsInputMode(false);
+    setIsKeyboardOpen(false);
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
-
-    window.requestAnimationFrame(() => {
-      foodInputRef.current?.focus();
-    });
   }, [photo]);
 
   useEffect(() => {
@@ -225,14 +227,17 @@ function PhotoDetail({
       frameId = window.requestAnimationFrame(() => {
         const viewportHeight = Math.round(viewport.height);
         const keyboardOpen = window.innerHeight - viewport.height > 120;
-        const mediaHeight = keyboardOpen
-          ? Math.max(120, Math.min(180, Math.round(viewport.height * 0.22)))
-          : Math.max(220, Math.min(360, Math.round(viewport.height * 0.38)));
+        const collapsedHeight = 108;
+        const expandedHeight = keyboardOpen
+          ? Math.max(280, Math.min(420, Math.round(viewport.height * 0.68)))
+          : Math.max(232, Math.min(340, Math.round(viewport.height * 0.46)));
 
         setDetailStyle({
           ['--photo-detail-vh' as string]: `${viewportHeight}px`,
-          ['--photo-media-height' as string]: `${mediaHeight}px`
+          ['--photo-sheet-collapsed-height' as string]: `${collapsedHeight}px`,
+          ['--photo-sheet-expanded-height' as string]: `${expandedHeight}px`
         } as CSSProperties);
+        setIsKeyboardOpen(keyboardOpen);
       });
     };
 
@@ -246,6 +251,56 @@ function PhotoDetail({
       viewport.removeEventListener('scroll', updateViewport);
     };
   }, []);
+
+  useEffect(() => {
+    if (suggestionsOpen) {
+      setIsInputMode(true);
+    }
+  }, [suggestionsOpen]);
+
+  useEffect(
+    () => () => {
+      if (collapseTimeoutRef.current != null) {
+        window.clearTimeout(collapseTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  function clearCollapseTimeout() {
+    if (collapseTimeoutRef.current != null) {
+      window.clearTimeout(collapseTimeoutRef.current);
+      collapseTimeoutRef.current = null;
+    }
+  }
+
+  function openInputMode(target: 'food' | 'weight' = 'food') {
+    clearCollapseTimeout();
+    setIsInputMode(true);
+    window.requestAnimationFrame(() => {
+      const targetInput = target === 'food' ? foodInputRef.current : weightInputRef.current;
+      targetInput?.focus();
+      targetInput?.select?.();
+    });
+  }
+
+  function scheduleCollapseCheck() {
+    clearCollapseTimeout();
+    collapseTimeoutRef.current = window.setTimeout(() => {
+      const activeElement = document.activeElement;
+      const sheetContent = sheetContentRef.current;
+
+      if (suggestionsOpen) {
+        return;
+      }
+
+      if (sheetContent && activeElement instanceof Node && sheetContent.contains(activeElement)) {
+        return;
+      }
+
+      setIsInputMode(false);
+    }, 140);
+  }
 
   function applyFoodSuggestion(name: string) {
     setFoodName(name);
@@ -281,10 +336,23 @@ function PhotoDetail({
   }
 
   return (
-    <section className="photo-detail-screen" style={detailStyle}>
-      <div className="section-heading photo-detail-heading">
+    <section
+      className={`photo-detail-screen${isInputMode ? ' input-mode' : ''}${isKeyboardOpen ? ' keyboard-open' : ''}`}
+      style={detailStyle}
+    >
+      <div className="photo-detail-media-layer" aria-hidden="true">
+        <StoredPhoto
+          photoId={photo.id}
+          alt={photo.foodName ? `${photo.foodName} photo` : 'Food photo'}
+          className="photo-detail-image"
+        />
+        <div className="photo-detail-gradient photo-detail-gradient-top" />
+        <div className="photo-detail-gradient photo-detail-gradient-bottom" />
+      </div>
+
+      <div className="photo-detail-topbar">
         <div className="photo-detail-heading-copy">
-          <button className="ghost-button compact photo-back-button" type="button" onClick={onBack}>
+          <button className="ghost-button compact photo-back-button photo-overlay-button" type="button" onClick={onBack}>
             <ArrowLeftIcon className="ui-icon" />
             <span>Back</span>
           </button>
@@ -298,158 +366,187 @@ function PhotoDetail({
         </span>
       </div>
 
-      <div className="photo-detail-card">
-        <div className="photo-detail-media">
-          <StoredPhoto
-            photoId={photo.id}
-            alt={photo.foodName ? `${photo.foodName} photo` : 'Food photo'}
-            className="photo-detail-image"
-          />
+      <div className="photo-detail-sheet">
+        <div className="photo-detail-sheet-handle" aria-hidden="true" />
+
+        <div className="photo-detail-sheet-summary">
+          <div className="photo-detail-sheet-copy">
+            <span className="field-label">
+              {photo.status === 'pending' ? 'Open Photo' : 'Archived Photo'}
+            </span>
+            <strong>{foodName.trim() || 'Add food details'}</strong>
+            <span>
+              {weightGrams.trim()
+                ? `${weightGrams.trim()}g`
+                : 'Food name and grams stay ready in one quick sheet.'}
+            </span>
+          </div>
+          <button
+            className="primary-button compact-button"
+            type="button"
+            onClick={() => openInputMode('food')}
+          >
+            {photo.status === 'pending' ? 'Add details' : 'Edit details'}
+          </button>
         </div>
 
-        <form
-          className="photo-detail-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submitForm();
-          }}
-        >
-          <div className="field-stack autocomplete-shell">
-            <label className="field">
-              <span className="field-label">Food</span>
-              <div className="search-field">
-                <input
-                  ref={foodInputRef}
-                  className="field-input field-input-lg"
-                  name="photo-food-name"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  enterKeyHint="next"
-                  inputMode="text"
-                  placeholder="Enter food name..."
-                  value={foodName}
-                  onChange={(event) => {
-                    setFoodName(event.target.value);
-                    setError('');
-                    setSuggestionsOpen(true);
-                    setHighlightedIndex(0);
-                  }}
-                  onFocus={() => setSuggestionsOpen(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setSuggestionsOpen(false), 120);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'ArrowDown' && suggestions.length > 0) {
-                      event.preventDefault();
-                      setHighlightedIndex((current) => (current + 1) % suggestions.length);
-                      return;
-                    }
+        <div className="photo-detail-sheet-body" ref={sheetContentRef}>
+          {isInputMode ? (
+            <form
+              className="photo-detail-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitForm();
+              }}
+            >
+              <div className="field-stack autocomplete-shell">
+                <label className="field">
+                  <span className="field-label">Food</span>
+                  <div className="search-field">
+                    <input
+                      ref={foodInputRef}
+                      className="field-input field-input-lg"
+                      name="photo-food-name"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      enterKeyHint="next"
+                      inputMode="text"
+                      placeholder="Enter food name..."
+                      value={foodName}
+                      onChange={(event) => {
+                        setFoodName(event.target.value);
+                        setError('');
+                        setSuggestionsOpen(true);
+                        setHighlightedIndex(0);
+                      }}
+                      onFocus={() => {
+                        clearCollapseTimeout();
+                        setIsInputMode(true);
+                        setSuggestionsOpen(true);
+                      }}
+                      onBlur={() => {
+                        window.setTimeout(() => setSuggestionsOpen(false), 120);
+                        scheduleCollapseCheck();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'ArrowDown' && suggestions.length > 0) {
+                          event.preventDefault();
+                          setHighlightedIndex((current) => (current + 1) % suggestions.length);
+                          return;
+                        }
 
-                    if (event.key === 'ArrowUp' && suggestions.length > 0) {
-                      event.preventDefault();
-                      setHighlightedIndex((current) =>
-                        current === 0 ? suggestions.length - 1 : current - 1
-                      );
-                      return;
-                    }
+                        if (event.key === 'ArrowUp' && suggestions.length > 0) {
+                          event.preventDefault();
+                          setHighlightedIndex((current) =>
+                            current === 0 ? suggestions.length - 1 : current - 1
+                          );
+                          return;
+                        }
 
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
 
-                      if (suggestionsOpen && suggestions[highlightedIndex]) {
-                        applyFoodSuggestion(suggestions[highlightedIndex].name);
-                        return;
+                          if (suggestionsOpen && suggestions[highlightedIndex]) {
+                            applyFoodSuggestion(suggestions[highlightedIndex].name);
+                            return;
+                          }
+
+                          weightInputRef.current?.focus();
+                        }
+
+                        if (event.key === 'Escape') {
+                          setSuggestionsOpen(false);
+                        }
+                      }}
+                    />
+                    <span className="field-icon" aria-hidden="true">
+                      <SearchIcon className="ui-icon search-icon-strong" />
+                    </span>
+                  </div>
+                </label>
+
+                {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
+                  <div className="suggestions-dropdown photo-detail-suggestions">
+                    <div className="suggestions" role="listbox" aria-label="Food suggestions">
+                      {suggestions.map((food, index) => (
+                        <button
+                          key={food.id}
+                          className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => applyFoodSuggestion(food.name)}
+                        >
+                          <span className="suggestion-copy">
+                            <strong>{food.name}</strong>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <label className="field">
+                <span className="field-label">Weight</span>
+                <div className="input-suffix-shell">
+                  <input
+                    ref={weightInputRef}
+                    className="field-input number-field field-input-with-suffix"
+                    name="photo-weight"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    enterKeyHint="done"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={weightGrams}
+                    onChange={(event) => {
+                      setWeightGrams(event.target.value);
+                      setError('');
+                    }}
+                    onFocus={() => {
+                      clearCollapseTimeout();
+                      setIsInputMode(true);
+                    }}
+                    onBlur={scheduleCollapseCheck}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        submitForm();
                       }
-
-                      weightInputRef.current?.focus();
-                    }
-
-                    if (event.key === 'Escape') {
-                      setSuggestionsOpen(false);
-                    }
-                  }}
-                />
-                <span className="field-icon" aria-hidden="true">
-                  <SearchIcon className="ui-icon search-icon-strong" />
-                </span>
-              </div>
-            </label>
-
-            {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
-              <div className="suggestions-dropdown">
-                <div className="suggestions" role="listbox" aria-label="Food suggestions">
-                  {suggestions.map((food, index) => (
-                    <button
-                      key={food.id}
-                      className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => applyFoodSuggestion(food.name)}
-                    >
-                      <span className="suggestion-copy">
-                        <strong>{food.name}</strong>
-                      </span>
-                    </button>
-                  ))}
+                    }}
+                  />
+                  <span className="input-suffix" aria-hidden="true">
+                    g
+                  </span>
                 </div>
+              </label>
+
+              <p className="helper-copy photo-detail-helper">
+                {photo.status === 'pending'
+                  ? 'Save to archive the photo and create a normal log entry.'
+                  : 'Changes here stay synced with the linked log entry while it remains a direct gram entry.'}
+              </p>
+
+              {error ? <p className="error-copy">{error}</p> : null}
+
+              <div className="photo-detail-footer">
+                <button className="primary-button photo-save-button" type="submit" disabled={isBusy}>
+                  {photo.status === 'pending'
+                    ? isBusy
+                      ? 'Saving...'
+                      : 'Save and archive'
+                    : isBusy
+                    ? 'Saving...'
+                    : 'Update photo'}
+                </button>
               </div>
-            ) : null}
-          </div>
-
-          <label className="field">
-            <span className="field-label">Weight</span>
-            <div className="input-suffix-shell">
-              <input
-                ref={weightInputRef}
-                className="field-input number-field field-input-with-suffix"
-                name="photo-weight"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                enterKeyHint="done"
-                inputMode="decimal"
-                placeholder="0"
-                value={weightGrams}
-                onChange={(event) => {
-                  setWeightGrams(event.target.value);
-                  setError('');
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    submitForm();
-                  }
-                }}
-              />
-              <span className="input-suffix" aria-hidden="true">
-                g
-              </span>
-            </div>
-          </label>
-
-          <p className="helper-copy photo-detail-helper">
-            {photo.status === 'pending'
-              ? 'Save to archive the photo and create a normal log entry.'
-              : 'Changes here stay synced with the linked log entry while it remains a direct gram entry.'}
-          </p>
-
-          {error ? <p className="error-copy">{error}</p> : null}
-
-          <div className="photo-detail-footer">
-            <button className="primary-button photo-save-button" type="submit" disabled={isBusy}>
-              {photo.status === 'pending'
-                ? isBusy
-                  ? 'Saving...'
-                  : 'Save and archive'
-                : isBusy
-                ? 'Saving...'
-                : 'Update photo'}
-            </button>
-          </div>
-        </form>
+            </form>
+          ) : null}
+        </div>
       </div>
     </section>
   );
