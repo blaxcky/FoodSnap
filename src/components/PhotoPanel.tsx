@@ -3,7 +3,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  type CSSProperties
 } from 'react';
 import { getFoodSuggestions } from '../lib/search';
 import { getPhotoBlob } from '../lib/photoStorage';
@@ -186,8 +187,10 @@ function PhotoDetail({
     photo.weightGrams != null ? String(photo.weightGrams) : ''
   );
   const [error, setError] = useState('');
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [detailStyle, setDetailStyle] = useState<CSSProperties | undefined>(undefined);
 
   const foodInputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
@@ -201,9 +204,48 @@ function PhotoDetail({
     setFoodName(photo.foodName ?? '');
     setWeightGrams(photo.weightGrams != null ? String(photo.weightGrams) : '');
     setError('');
+    setIsKeyboardOpen(false);
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
   }, [photo]);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+
+    if (!viewport) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateViewport = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const keyboardHeight = Math.max(0, Math.round(window.innerHeight - viewport.height));
+        const keyboardOpen = keyboardHeight > 120;
+
+        setIsKeyboardOpen(keyboardOpen);
+        setDetailStyle({
+          ['--photo-detail-keyboard-offset' as string]: keyboardOpen
+            ? `${keyboardHeight + 24}px`
+            : '0px',
+          ['--photo-detail-media-min-height' as string]: keyboardOpen
+            ? '180px'
+            : 'clamp(260px, 48dvh, 520px)'
+        } as CSSProperties);
+      });
+    };
+
+    updateViewport();
+    viewport.addEventListener('resize', updateViewport);
+    viewport.addEventListener('scroll', updateViewport);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      viewport.removeEventListener('resize', updateViewport);
+      viewport.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
 
   function applyFoodSuggestion(name: string) {
     setFoodName(name);
@@ -239,7 +281,10 @@ function PhotoDetail({
   }
 
   return (
-    <section className="photo-detail-screen">
+    <section
+      className={`photo-detail-screen${isKeyboardOpen ? ' keyboard-open' : ''}`}
+      style={detailStyle}
+    >
       <div className="section-heading photo-detail-heading">
         <div className="photo-detail-heading-copy">
           <button className="ghost-button compact photo-back-button" type="button" onClick={onBack}>
