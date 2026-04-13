@@ -207,7 +207,7 @@ function PhotoDetail({
     setFoodName(photo.foodName ?? '');
     setWeightGrams(photo.weightGrams != null ? String(photo.weightGrams) : '');
     setError('');
-    setIsInputMode(false);
+    setIsInputMode(true);
     setIsKeyboardOpen(false);
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
