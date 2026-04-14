@@ -1596,6 +1596,22 @@ button {
   margin-bottom: 16px;
 }
 
+.modal-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.modal-heading-save-button {
+  width: auto;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  font-size: 0.88rem;
+  box-shadow: none;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

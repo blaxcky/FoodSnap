@@ -287,9 +287,18 @@ export function EditEntryModal({
             <p className="section-kicker">Edit entry</p>
             <h2 id="edit-entry-title">Update saved item</h2>
           </div>
-          <button className="ghost-button compact" type="button" onClick={onCancel}>
-            Close
-          </button>
+          <div className="modal-heading-actions">
+            <button className="ghost-button compact" type="button" onClick={onCancel}>
+              Close
+            </button>
+            <button
+              className="primary-button modal-heading-save-button"
+              type="button"
+              onClick={submitForm}
+            >
+              Save
+            </button>
+          </div>
         </div>
 
         <div className="field-stack autocomplete-shell">
