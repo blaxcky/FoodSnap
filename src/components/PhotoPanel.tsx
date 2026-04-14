@@ -217,6 +217,9 @@ function PhotoDetail({
     const previousViewportHeight = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-height'
     );
+    const previousBottomOffset = scrollContainer.style.getPropertyValue(
+      '--photo-detail-bottom-offset'
+    );
     let frameId = 0;
 
     const updateViewport = () => {
@@ -226,6 +229,7 @@ function PhotoDetail({
           '--photo-detail-viewport-height',
           `${Math.round(viewport.height)}px`
         );
+        scrollContainer.style.setProperty('--photo-detail-bottom-offset', '0px');
       });
     };
 
@@ -241,6 +245,11 @@ function PhotoDetail({
         scrollContainer.style.setProperty('--photo-detail-viewport-height', previousViewportHeight);
       } else {
         scrollContainer.style.removeProperty('--photo-detail-viewport-height');
+      }
+      if (previousBottomOffset) {
+        scrollContainer.style.setProperty('--photo-detail-bottom-offset', previousBottomOffset);
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-bottom-offset');
       }
     };
   }, []);
