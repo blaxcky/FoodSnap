@@ -1039,6 +1039,8 @@ button {
   color: var(--text-2);
   font-size: 0.82rem;
   line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .export-textarea {
