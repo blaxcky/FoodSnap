@@ -1772,6 +1772,7 @@ button {
 .photo-detail-card {
   display: grid;
   gap: 16px;
+  align-content: start;
 }
 
 .photo-detail-media {
@@ -1793,6 +1794,19 @@ button {
 .photo-detail-form {
   display: grid;
   gap: 14px;
+}
+
+.photo-detail-screen.keyboard-open .photo-detail-form {
+  position: sticky;
+  bottom: var(--photo-detail-form-offset, 0px);
+  z-index: 2;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: color-mix(in srgb, var(--modal-bg) 92%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--card-shadow);
 }
 
 .photo-detail-helper {
