@@ -214,23 +214,18 @@ function PhotoDetail({
       return;
     }
 
-    const previousHeight = scrollContainer.style.height;
-    const previousMaxHeight = scrollContainer.style.maxHeight;
+    const previousViewportHeight = scrollContainer.style.getPropertyValue(
+      '--photo-detail-viewport-height'
+    );
     let frameId = 0;
 
     const updateViewport = () => {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        const header = document.querySelector('.app-header');
-        const bottomNav = document.querySelector('.bottom-nav');
-        const headerBottom =
-          header instanceof HTMLElement ? Math.round(header.getBoundingClientRect().bottom) : 0;
-        const bottomNavTop =
-          bottomNav instanceof HTMLElement ? Math.round(bottomNav.getBoundingClientRect().top) : Math.round(viewport.height);
-        const availableHeight = Math.max(240, bottomNavTop - headerBottom);
-
-        scrollContainer.style.height = `${availableHeight}px`;
-        scrollContainer.style.maxHeight = `${availableHeight}px`;
+        scrollContainer.style.setProperty(
+          '--photo-detail-viewport-height',
+          `${Math.round(viewport.height)}px`
+        );
       });
     };
 
@@ -242,8 +237,11 @@ function PhotoDetail({
       window.cancelAnimationFrame(frameId);
       viewport.removeEventListener('resize', updateViewport);
       viewport.removeEventListener('scroll', updateViewport);
-      scrollContainer.style.height = previousHeight;
-      scrollContainer.style.maxHeight = previousMaxHeight;
+      if (previousViewportHeight) {
+        scrollContainer.style.setProperty('--photo-detail-viewport-height', previousViewportHeight);
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-viewport-height');
+      }
     };
   }, []);
 
