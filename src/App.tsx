@@ -233,6 +233,7 @@ export default function App() {
     () => photoItems.find((photo) => photo.id === selectedPhotoId) ?? null,
     [photoItems, selectedPhotoId]
   );
+  const isPhotoDetailActive = activeTab === 'photos' && selectedPhoto != null;
 
   const exportText = useMemo(
     () => formatExportWithLeadIn(exportLeadIn, formatExport(activeEntries)),
@@ -779,7 +780,7 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${isPhotoDetailActive ? ' app-shell-photo-detail' : ''}`}>
       <header className="app-header">
         <div className="brand-markup">
           <span className="brand-icon">
@@ -914,48 +915,50 @@ export default function App() {
         </section>
       ) : null}
 
-      <nav className="bottom-nav" aria-label="Primary">
-        <button
-          className={`bottom-nav-item${activeTab === 'log' ? ' active' : ''}`}
-          type="button"
-          onClick={() => setActiveTab('log')}
-        >
-          <LogIcon className="ui-icon" />
-          <span>Log</span>
-        </button>
-        <button
-          className={`bottom-nav-item${activeTab === 'history' ? ' active' : ''}`}
-          type="button"
-          onClick={() => setActiveTab('history')}
-        >
-          <HistoryIcon className="ui-icon" />
-          <span>History</span>
-        </button>
-        <button
-          className={`bottom-nav-item${activeTab === 'photos' ? ' active' : ''}`}
-          type="button"
-          onClick={() => setActiveTab('photos')}
-        >
-          <PhotoIcon className="ui-icon" />
-          <span>Photos</span>
-        </button>
-        <button
-          className={`bottom-nav-item${activeTab === 'library' ? ' active' : ''}`}
-          type="button"
-          onClick={() => setActiveTab('library')}
-        >
-          <BookIcon className="ui-icon" />
-          <span>Library</span>
-        </button>
-        <button
-          className={`bottom-nav-item${activeTab === 'export' ? ' active' : ''}`}
-          type="button"
-          onClick={() => setActiveTab('export')}
-        >
-          <ExportIcon className="ui-icon" />
-          <span>Export</span>
-        </button>
-      </nav>
+      {!isPhotoDetailActive ? (
+        <nav className="bottom-nav" aria-label="Primary">
+          <button
+            className={`bottom-nav-item${activeTab === 'log' ? ' active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab('log')}
+          >
+            <LogIcon className="ui-icon" />
+            <span>Log</span>
+          </button>
+          <button
+            className={`bottom-nav-item${activeTab === 'history' ? ' active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab('history')}
+          >
+            <HistoryIcon className="ui-icon" />
+            <span>History</span>
+          </button>
+          <button
+            className={`bottom-nav-item${activeTab === 'photos' ? ' active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab('photos')}
+          >
+            <PhotoIcon className="ui-icon" />
+            <span>Photos</span>
+          </button>
+          <button
+            className={`bottom-nav-item${activeTab === 'library' ? ' active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab('library')}
+          >
+            <BookIcon className="ui-icon" />
+            <span>Library</span>
+          </button>
+          <button
+            className={`bottom-nav-item${activeTab === 'export' ? ' active' : ''}`}
+            type="button"
+            onClick={() => setActiveTab('export')}
+          >
+            <ExportIcon className="ui-icon" />
+            <span>Export</span>
+          </button>
+        </nav>
+      ) : null}
 
       {activeTab === 'log' && !isComposerOpen ? (
         <div className="fab-anchor">
