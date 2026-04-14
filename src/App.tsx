@@ -171,6 +171,7 @@ export default function App() {
     () => entries.filter((entry) => !isEntryDeleted(entry)),
     [entries]
   );
+  const sessionEntryCount = entries.length;
 
   const logEntries = useMemo(
     () => entries.filter((entry) => !isEntryDeleted(entry)),
@@ -820,7 +821,7 @@ export default function App() {
             visibleExportText={visibleExportText}
             exportLeadIn={exportLeadIn}
             copyState={copyState}
-            sessionCount={activeEntries.length}
+            sessionCount={sessionEntryCount}
             onCopy={handleCopy}
             onResetSession={handleResetSession}
           />
@@ -831,7 +832,7 @@ export default function App() {
         <section className="screen-section">
           <SettingsPanel
             foodCount={foods.length}
-            sessionCount={activeEntries.length}
+            sessionCount={sessionEntryCount}
             exportState={exportBackupState}
             importState={importBackupState}
             importMessage={importBackupMessage}
