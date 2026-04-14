@@ -1753,7 +1753,6 @@ button {
 .photo-detail-screen {
   display: grid;
   gap: 16px;
-  padding-bottom: var(--photo-detail-keyboard-offset, 0px);
 }
 
 .photo-detail-image {
@@ -1779,16 +1778,12 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--photo-detail-media-min-height, clamp(260px, 48dvh, 520px));
+  min-height: clamp(260px, 48dvh, 520px);
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   background: linear-gradient(180deg, var(--bg-raised) 0%, var(--bg-input) 100%);
   overflow: hidden;
-}
-
-.photo-detail-screen.keyboard-open .photo-detail-media {
-  min-height: var(--photo-detail-media-min-height, 180px);
 }
 
 .photo-detail-form {

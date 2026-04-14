@@ -3,8 +3,7 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
-  type CSSProperties
+  useState
 } from 'react';
 import { getFoodSuggestions } from '../lib/search';
 import { getPhotoBlob } from '../lib/photoStorage';
@@ -187,11 +186,10 @@ function PhotoDetail({
     photo.weightGrams != null ? String(photo.weightGrams) : ''
   );
   const [error, setError] = useState('');
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const [detailStyle, setDetailStyle] = useState<CSSProperties | undefined>(undefined);
 
+  const detailScreenRef = useRef<HTMLElement>(null);
   const foodInputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const deferredQuery = useDeferredValue(foodName);
@@ -204,35 +202,35 @@ function PhotoDetail({
     setFoodName(photo.foodName ?? '');
     setWeightGrams(photo.weightGrams != null ? String(photo.weightGrams) : '');
     setError('');
-    setIsKeyboardOpen(false);
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
   }, [photo]);
 
   useEffect(() => {
+    const scrollContainer = detailScreenRef.current?.closest('.screen-section-photo-detail');
     const viewport = window.visualViewport;
 
-    if (!viewport) {
+    if (!(scrollContainer instanceof HTMLElement) || !viewport) {
       return;
     }
 
+    const previousHeight = scrollContainer.style.height;
+    const previousMaxHeight = scrollContainer.style.maxHeight;
     let frameId = 0;
 
     const updateViewport = () => {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        const keyboardHeight = Math.max(0, Math.round(window.innerHeight - viewport.height));
-        const keyboardOpen = keyboardHeight > 120;
+        const header = document.querySelector('.app-header');
+        const bottomNav = document.querySelector('.bottom-nav');
+        const headerBottom =
+          header instanceof HTMLElement ? Math.round(header.getBoundingClientRect().bottom) : 0;
+        const bottomNavTop =
+          bottomNav instanceof HTMLElement ? Math.round(bottomNav.getBoundingClientRect().top) : Math.round(viewport.height);
+        const availableHeight = Math.max(240, bottomNavTop - headerBottom);
 
-        setIsKeyboardOpen(keyboardOpen);
-        setDetailStyle({
-          ['--photo-detail-keyboard-offset' as string]: keyboardOpen
-            ? `${keyboardHeight + 24}px`
-            : '0px',
-          ['--photo-detail-media-min-height' as string]: keyboardOpen
-            ? 'clamp(120px, 26dvh, 180px)'
-            : 'clamp(260px, 48dvh, 520px)'
-        } as CSSProperties);
+        scrollContainer.style.height = `${availableHeight}px`;
+        scrollContainer.style.maxHeight = `${availableHeight}px`;
       });
     };
 
@@ -244,6 +242,8 @@ function PhotoDetail({
       window.cancelAnimationFrame(frameId);
       viewport.removeEventListener('resize', updateViewport);
       viewport.removeEventListener('scroll', updateViewport);
+      scrollContainer.style.height = previousHeight;
+      scrollContainer.style.maxHeight = previousMaxHeight;
     };
   }, []);
 
@@ -281,7 +281,7 @@ function PhotoDetail({
   }
 
   return (
-    <section className={`photo-detail-screen${isKeyboardOpen ? ' keyboard-open' : ''}`} style={detailStyle}>
+    <section ref={detailScreenRef} className="photo-detail-screen">
       <div className="section-heading photo-detail-heading">
         <div className="photo-detail-heading-copy">
           <button className="ghost-button compact photo-back-button" type="button" onClick={onBack}>
