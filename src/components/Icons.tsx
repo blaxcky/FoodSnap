@@ -1,3 +1,4 @@
+import { Settings as LucideSettings } from 'lucide-react';
 import type { SVGProps } from 'react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -175,12 +176,7 @@ export function ArrowLeftIcon(props: IconProps) {
 }
 
 export function SettingsIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
-      <circle cx="12" cy="12" r="3.2" />
-      <path d="M10.35 2.75h3.3l.45 2.05c.62.16 1.2.4 1.74.72l1.77-1.12 2.33 2.33-1.12 1.77c.32.54.56 1.12.72 1.74l2.05.45v3.3l-2.05.45a7.55 7.55 0 0 1-.72 1.74l1.12 1.77-2.33 2.33-1.77-1.12c-.54.32-1.12.56-1.74.72l-.45 2.05h-3.3l-.45-2.05a7.55 7.55 0 0 1-1.74-.72L6.4 19.6l-2.33-2.33 1.12-1.77a7.55 7.55 0 0 1-.72-1.74l-2.05-.45v-3.3l2.05-.45c.16-.62.4-1.2.72-1.74L4.07 6.73 6.4 4.4l1.77 1.12c.54-.32 1.12-.56 1.74-.72l.45-2.05Z" />
-    </svg>
-  );
+  return <LucideSettings aria-hidden="true" {...props} />;
 }
 
 export function SunIcon(props: IconProps) {
