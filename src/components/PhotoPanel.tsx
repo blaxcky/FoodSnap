@@ -229,9 +229,6 @@ function PhotoDetail({
           ['--photo-detail-keyboard-offset' as string]: keyboardOpen
             ? `${keyboardHeight + 24}px`
             : '0px',
-          ['--photo-detail-form-offset' as string]: keyboardOpen
-            ? `${keyboardHeight + 12}px`
-            : '0px',
           ['--photo-detail-media-min-height' as string]: keyboardOpen
             ? 'clamp(120px, 26dvh, 180px)'
             : 'clamp(260px, 48dvh, 520px)'
