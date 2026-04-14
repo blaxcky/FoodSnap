@@ -1014,9 +1014,15 @@ button {
   background: var(--accent-surface-tint);
 }
 
+.export-lead-in-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .export-lead-in-label {
   display: inline-block;
-  margin-bottom: 4px;
   color: var(--accent);
   font-size: 0.66rem;
   font-weight: 700;
@@ -1024,8 +1030,12 @@ button {
   text-transform: uppercase;
 }
 
+.export-lead-in-toggle {
+  flex: 0 0 auto;
+}
+
 .export-lead-in-preview p {
-  margin: 0;
+  margin: 10px 0 0;
   color: var(--text-2);
   font-size: 0.82rem;
   line-height: 1.5;

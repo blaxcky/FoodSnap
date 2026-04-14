@@ -20,6 +20,13 @@ export function ExportPanel({
   onResetSession
 }: ExportPanelProps) {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isLeadInExpanded, setIsLeadInExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!exportLeadIn.trim()) {
+      setIsLeadInExpanded(false);
+    }
+  }, [exportLeadIn]);
 
   useEffect(() => {
     if (!isResetDialogOpen) {
@@ -61,8 +68,18 @@ export function ExportPanel({
 
       {exportLeadIn.trim() ? (
         <div className="export-lead-in-preview" aria-label="Copied intro text">
-          <span className="export-lead-in-label">Copied intro</span>
-          <p>{exportLeadIn.trim()}</p>
+          <div className="export-lead-in-header">
+            <span className="export-lead-in-label">Copied intro</span>
+            <button
+              className="ghost-button compact export-lead-in-toggle"
+              type="button"
+              onClick={() => setIsLeadInExpanded((current) => !current)}
+              aria-expanded={isLeadInExpanded}
+            >
+              {isLeadInExpanded ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {isLeadInExpanded ? <p>{exportLeadIn.trim()}</p> : null}
         </div>
       ) : null}
 
