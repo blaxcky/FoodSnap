@@ -1834,6 +1834,12 @@ button {
   gap: 8px;
 }
 
+.photo-detail-heading-copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .photo-detail-card {
   display: grid;
   gap: 16px;
