@@ -192,8 +192,10 @@ function PhotoDetail({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [detailStyle, setDetailStyle] = useState<CSSProperties | undefined>(undefined);
 
+  const detailScreenRef = useRef<HTMLElement>(null);
   const foodInputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
+  const lastScrollTopRef = useRef(0);
   const deferredQuery = useDeferredValue(foodName);
   const suggestions = useMemo(
     () => getFoodSuggestions(foods, deferredQuery, 5),
@@ -230,7 +232,7 @@ function PhotoDetail({
             ? `${keyboardHeight + 24}px`
             : '0px',
           ['--photo-detail-media-min-height' as string]: keyboardOpen
-            ? '180px'
+            ? 'clamp(120px, 26dvh, 180px)'
             : 'clamp(260px, 48dvh, 520px)'
         } as CSSProperties);
       });
@@ -246,6 +248,42 @@ function PhotoDetail({
       viewport.removeEventListener('scroll', updateViewport);
     };
   }, []);
+
+  useEffect(() => {
+    const scrollContainer = detailScreenRef.current?.closest('.screen-section-photo-detail');
+
+    if (!(scrollContainer instanceof HTMLElement)) {
+      return;
+    }
+
+    lastScrollTopRef.current = scrollContainer.scrollTop;
+
+    const handleScroll = () => {
+      const nextScrollTop = scrollContainer.scrollTop;
+      const isScrollingUp = nextScrollTop < lastScrollTopRef.current - 8;
+
+      lastScrollTopRef.current = nextScrollTop;
+
+      if (!isKeyboardOpen || !isScrollingUp) {
+        return;
+      }
+
+      const activeElement = document.activeElement;
+
+      if (
+        (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) &&
+        detailScreenRef.current?.contains(activeElement)
+      ) {
+        activeElement.blur();
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [isKeyboardOpen]);
 
   function applyFoodSuggestion(name: string) {
     setFoodName(name);
@@ -282,6 +320,7 @@ function PhotoDetail({
 
   return (
     <section
+      ref={detailScreenRef}
       className={`photo-detail-screen${isKeyboardOpen ? ' keyboard-open' : ''}`}
       style={detailStyle}
     >
