@@ -30,6 +30,19 @@ export async function forceFreshAppLoad() {
   window.location.replace(currentUrl.toString());
 }
 
+export function consumeLaunchAction() {
+  const currentUrl = new URL(window.location.href);
+  const launchAction = currentUrl.searchParams.get('launch');
+
+  if (launchAction !== 'photo') {
+    return null;
+  }
+
+  currentUrl.searchParams.delete('launch');
+  window.history.replaceState({}, '', currentUrl.toString());
+  return launchAction;
+}
+
 export function clearRefreshQueryParam() {
   const currentUrl = new URL(window.location.href);
 

@@ -26,7 +26,7 @@ import {
   savePhotoBlob
 } from './lib/photoStorage';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
-import { clearRefreshQueryParam, forceFreshAppLoad } from './lib/pwa';
+import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from './lib/pwa';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
 import type { ThemePreference } from './lib/theme';
@@ -136,11 +136,13 @@ export default function App() {
   const [photoFeedbackTone, setPhotoFeedbackTone] = useState<'idle' | 'error'>('idle');
   const [photoActionState, setPhotoActionState] = useState<'idle' | 'working'>('idle');
   const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
+  const [launchAction, setLaunchAction] = useState<'photo' | null>(null);
   const dialogHistoryActiveRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setLaunchAction(consumeLaunchAction());
     clearRefreshQueryParam();
     const state = loadAppState();
     setFoods(state.foods);
@@ -173,6 +175,27 @@ export default function App() {
   useEffect(() => {
     saveCameraPreference(cameraPreference);
   }, [cameraPreference]);
+
+  useEffect(() => {
+    if (!isHydrated || launchAction !== 'photo') {
+      return;
+    }
+
+    setIsComposerOpen(false);
+    setEditingEntryId(null);
+    setActiveTab('photos');
+    setActivePhotoFilter('pending');
+    setSelectedPhotoId(null);
+    resetPhotoFeedback();
+
+    if (cameraPreference === 'direct') {
+      setIsDirectCameraOpen(true);
+    } else {
+      setPhotoFeedbackMessage('Photo shortcut opened. Tap Take photo to continue.');
+    }
+
+    setLaunchAction(null);
+  }, [cameraPreference, isHydrated, launchAction]);
 
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,

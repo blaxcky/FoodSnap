@@ -46,6 +46,22 @@ export default defineConfig(({ mode }) => {
               type: 'image/svg+xml',
               purpose: 'maskable'
             }
+          ],
+          shortcuts: [
+            {
+              name: 'Take food photo',
+              short_name: 'Photo',
+              description: 'Jump straight into the food photo flow.',
+              url: `${base}?launch=photo`,
+              icons: [
+                {
+                  src: 'pwa-icon.svg',
+                  sizes: 'any',
+                  type: 'image/svg+xml',
+                  purpose: 'any'
+                }
+              ]
+            }
           ]
         },
         workbox: {
@@ -55,4 +71,3 @@ export default defineConfig(({ mode }) => {
     ]
   };
 });
-
