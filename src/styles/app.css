@@ -883,6 +883,29 @@ button {
   color: var(--ink);
 }
 
+.food-name-button {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.food-name-button:hover {
+  color: var(--accent-hover);
+}
+
+.food-name-button:focus-visible {
+  outline: none;
+  box-shadow: var(--accent-focus-ring);
+  border-radius: 6px;
+}
+
 .entry-main p,
 .food-row p,
 .entry-note {
@@ -893,6 +916,17 @@ button {
 
 .entry-note {
   margin-top: 6px;
+}
+
+.inline-feedback {
+  margin-top: 4px;
+  color: var(--success-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.inline-feedback.is-error {
+  color: var(--danger);
 }
 
 .entry-note-pending {

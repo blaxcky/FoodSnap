@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { CheckIcon, PencilIcon, PhotoIcon } from './Icons';
+import { copyTextToClipboard } from '../lib/clipboard';
 import type { SessionEntry } from '../lib/types';
 import {
   formatEntryMeta,
@@ -29,6 +31,34 @@ export function SessionList({
   onOpenPhoto
 }: SessionListProps) {
   const isHistory = mode === 'history';
+  const [clipboardFeedback, setClipboardFeedback] = useState<{
+    entryId: string;
+    tone: 'copied' | 'error';
+  } | null>(null);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (feedbackTimeoutRef.current != null) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  async function handleCopyFoodName(entryId: string, foodName: string) {
+    const didCopy = await copyTextToClipboard(foodName);
+
+    if (feedbackTimeoutRef.current != null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+    }
+
+    setClipboardFeedback({
+      entryId,
+      tone: didCopy ? 'copied' : 'error'
+    });
+    feedbackTimeoutRef.current = window.setTimeout(() => setClipboardFeedback(null), 1800);
+  }
 
   return (
     <section className="panel">
@@ -55,6 +85,12 @@ export function SessionList({
             const pendingAfterWeight = isAfterWeightPending(entry);
             const deleted = isEntryDeleted(entry);
             const zeroBefore = isZeroBeforeEntry(entry);
+            const clipboardFeedbackMessage =
+              clipboardFeedback?.entryId === entry.id
+                ? clipboardFeedback.tone === 'copied'
+                  ? 'Copied to clipboard'
+                  : 'Clipboard access failed'
+                : null;
             const incompleteWeight = pendingBeforeWeight || pendingAfterWeight;
             const amountSummary = incompleteWeight
               ? formatEntryMeta(entry)
@@ -69,7 +105,16 @@ export function SessionList({
               >
                 <div className="entry-row">
                   <div className="entry-main">
-                    <h3>{entry.foodName}</h3>
+                    <h3>
+                      <button
+                        className="food-name-button"
+                        type="button"
+                        onClick={() => handleCopyFoodName(entry.id, entry.foodName)}
+                        aria-label={`Copy ${entry.foodName} to clipboard`}
+                      >
+                        {entry.foodName}
+                      </button>
+                    </h3>
                     <p>
                       {deleted
                         ? `Hidden from log • ${amountSummary}`
@@ -79,6 +124,13 @@ export function SessionList({
                             ? `${formatNumber(entry.amount)}g`
                             : `${formatNumber(entry.amount)} pcs`}${entry.mode === 'difference' ? ` ${formatEntryMeta(entry)}` : ''}`}
                     </p>
+                    {clipboardFeedbackMessage ? (
+                      <p
+                        className={`inline-feedback${clipboardFeedback?.tone === 'error' ? ' is-error' : ''}`}
+                      >
+                        {clipboardFeedbackMessage}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="entry-actions">

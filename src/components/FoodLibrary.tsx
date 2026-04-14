@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarIcon, TrashIcon } from './Icons';
+import { copyTextToClipboard } from '../lib/clipboard';
 import type { FoodProfile } from '../lib/types';
 
 interface FoodLibraryProps {
@@ -18,6 +19,20 @@ export function FoodLibrary({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [renameError, setRenameError] = useState('');
+  const [clipboardFeedback, setClipboardFeedback] = useState<{
+    foodId: string;
+    tone: 'copied' | 'error';
+  } | null>(null);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (feedbackTimeoutRef.current != null) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   const sortedFoods = useMemo(
     () =>
@@ -34,6 +49,20 @@ export function FoodLibrary({
       }),
     [foods]
   );
+
+  async function handleCopyFoodName(foodId: string, foodName: string) {
+    const didCopy = await copyTextToClipboard(foodName);
+
+    if (feedbackTimeoutRef.current != null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+    }
+
+    setClipboardFeedback({
+      foodId,
+      tone: didCopy ? 'copied' : 'error'
+    });
+    feedbackTimeoutRef.current = window.setTimeout(() => setClipboardFeedback(null), 1800);
+  }
 
   return (
     <section className="panel">
@@ -53,6 +82,12 @@ export function FoodLibrary({
         <div className="food-library">
           {sortedFoods.map((food) => {
             const isEditing = editingId === food.id;
+            const clipboardFeedbackMessage =
+              clipboardFeedback?.foodId === food.id
+                ? clipboardFeedback.tone === 'copied'
+                  ? 'Copied to clipboard'
+                  : 'Clipboard access failed'
+                : null;
 
             return (
               <article key={food.id} className="food-row">
@@ -88,8 +123,24 @@ export function FoodLibrary({
                     />
                   ) : (
                     <>
-                      <h3>{food.name}</h3>
+                      <h3>
+                        <button
+                          className="food-name-button"
+                          type="button"
+                          onClick={() => handleCopyFoodName(food.id, food.name)}
+                          aria-label={`Copy ${food.name} to clipboard`}
+                        >
+                          {food.name}
+                        </button>
+                      </h3>
                       <p>{food.usageCount} saves</p>
+                      {clipboardFeedbackMessage ? (
+                        <p
+                          className={`inline-feedback${clipboardFeedback?.tone === 'error' ? ' is-error' : ''}`}
+                        >
+                          {clipboardFeedbackMessage}
+                        </p>
+                      ) : null}
                     </>
                   )}
                 </div>
