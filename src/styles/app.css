@@ -1885,11 +1885,14 @@ button {
 .fab-inner {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   width: min(100%, 768px);
   margin: 0 auto;
   padding: 0 22px;
 }
 
+.floating-photo-button,
 .floating-compose-button {
   pointer-events: auto;
   display: inline-flex;
@@ -1907,6 +1910,28 @@ button {
   box-shadow: var(--fab-shadow);
   transition: transform 200ms ease, box-shadow 200ms ease;
   animation: fab-glow 4s ease-in-out infinite;
+}
+
+.floating-photo-button {
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--border-vis);
+  border-radius: var(--r-pill);
+  background: var(--bg-raised);
+  color: var(--accent);
+  box-shadow: var(--card-shadow);
+  animation: none;
+}
+
+.floating-photo-button .ui-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.floating-photo-button:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-border);
+  transform: translateY(-2px);
 }
 
 .floating-compose-button:hover {
@@ -2105,9 +2130,13 @@ button {
     width: 100%;
   }
 
+  .floating-photo-button,
   .floating-compose-button {
     width: 52px;
     height: 52px;
+  }
+
+  .floating-compose-button {
     font-size: 1.8rem;
   }
 

@@ -4,7 +4,7 @@ import { CameraCaptureModal } from './components/CameraCaptureModal';
 import { EditEntryModal } from './components/EditEntryModal';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
-import { BookIcon, ExportIcon, HistoryIcon, LogIcon, PhotoIcon, SettingsIcon, BoltIcon } from './components/Icons';
+import { BookIcon, CameraIcon, ExportIcon, HistoryIcon, LogIcon, PhotoIcon, SettingsIcon, BoltIcon } from './components/Icons';
 import { PhotoPanel } from './components/PhotoPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SessionList } from './components/SessionList';
@@ -937,6 +937,14 @@ export default function App() {
       {activeTab === 'log' && !isComposerOpen ? (
         <div className="fab-anchor">
           <div className="fab-inner">
+            <button
+              className="floating-photo-button"
+              type="button"
+              onClick={handleOpenCamera}
+              aria-label="Capture a food photo"
+            >
+              <CameraIcon className="ui-icon" />
+            </button>
             <button
               className="floating-compose-button"
               type="button"
