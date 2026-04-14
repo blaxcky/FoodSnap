@@ -1414,6 +1414,71 @@ button {
   padding-right: 50px;
 }
 
+.camera-capture-backdrop {
+  align-items: center;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.camera-capture-modal {
+  width: min(100%, 560px);
+}
+
+.camera-capture-stage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(circle at top, var(--accent-radial) 0%, transparent 52%),
+    linear-gradient(180deg, var(--bg-raised) 0%, var(--bg-input) 100%);
+  aspect-ratio: 3 / 4;
+}
+
+.camera-capture-video,
+.camera-capture-empty-state {
+  width: 100%;
+  height: 100%;
+}
+
+.camera-capture-video {
+  display: block;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.camera-capture-video.ready {
+  opacity: 1;
+}
+
+.camera-capture-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.camera-capture-empty-state .ui-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--accent);
+}
+
+.camera-capture-empty-state p {
+  margin: 0;
+  max-width: 30ch;
+}
+
+.camera-capture-copy {
+  margin-top: 12px;
+}
+
+.camera-capture-actions {
+  margin-top: 16px;
+}
+
 .create-entry-modal .field-icon {
   right: 14px;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { CreateEntryModal } from './components/CreateEntryModal';
+import { CameraCaptureModal } from './components/CameraCaptureModal';
 import { EditEntryModal } from './components/EditEntryModal';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
@@ -13,6 +14,11 @@ import {
   parseFoodMemoryBackup,
   type FoodImportMode
 } from './lib/backup';
+import {
+  loadCameraPreference,
+  saveCameraPreference,
+  type CameraPreference
+} from './lib/cameraPreference';
 import {
   deletePhotoBlob,
   deletePhotoBlobs,
@@ -123,11 +129,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('log');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(loadThemePreference);
+  const [cameraPreference, setCameraPreference] = useState<CameraPreference>(loadCameraPreference);
   const [activePhotoFilter, setActivePhotoFilter] = useState<'pending' | 'archived'>('pending');
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoFeedbackMessage, setPhotoFeedbackMessage] = useState('');
   const [photoFeedbackTone, setPhotoFeedbackTone] = useState<'idle' | 'error'>('idle');
   const [photoActionState, setPhotoActionState] = useState<'idle' | 'working'>('idle');
+  const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
   const dialogHistoryActiveRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -161,6 +169,10 @@ export default function App() {
     saveThemePreference(themePreference);
     return listenForSystemThemeChange(themePreference, () => applyTheme(themePreference));
   }, [themePreference]);
+
+  useEffect(() => {
+    saveCameraPreference(cameraPreference);
+  }, [cameraPreference]);
 
   const editingEntry = useMemo(
     () => entries.find((entry) => entry.id === editingEntryId) ?? null,
@@ -255,6 +267,21 @@ export default function App() {
   function resetPhotoFeedback() {
     setPhotoFeedbackMessage('');
     setPhotoFeedbackTone('idle');
+  }
+
+  function openSystemCamera() {
+    cameraInputRef.current?.click();
+  }
+
+  function handleOpenCamera() {
+    resetPhotoFeedback();
+
+    if (cameraPreference === 'direct') {
+      setIsDirectCameraOpen(true);
+      return;
+    }
+
+    openSystemCamera();
   }
 
   function closeInputDialog() {
@@ -567,16 +594,16 @@ export default function App() {
     }
   }
 
-  async function handleAddPhotoFiles(fileList: FileList | File[] | null) {
-    const candidateFiles = fileList ? Array.from(fileList) : [];
-    const files = candidateFiles.filter(
-      (file) => file.type === '' || file.type.startsWith('image/')
+  async function handleAddPhotoBlobs(blobList: Blob[] | null) {
+    const candidateBlobs = blobList ? Array.from(blobList) : [];
+    const blobs = candidateBlobs.filter(
+      (blob) => blob.type === '' || blob.type.startsWith('image/')
     );
 
-    if (files.length === 0) {
+    if (blobs.length === 0) {
       setPhotoFeedbackTone('error');
-      setPhotoFeedbackMessage('Choose a valid image file.');
-      return;
+      setPhotoFeedbackMessage('Choose a valid image.');
+      return false;
     }
 
     setPhotoActionState('working');
@@ -585,8 +612,8 @@ export default function App() {
     const uploadedPhotos: PhotoItem[] = [];
 
     try {
-      for (const file of files) {
-        const processedBlob = await preparePhotoBlob(file);
+      for (const blob of blobs) {
+        const processedBlob = await preparePhotoBlob(blob);
         const photoId = createId();
         const timestamp = nowIso();
 
@@ -609,15 +636,26 @@ export default function App() {
       }
       setPhotoFeedbackTone('error');
       setPhotoFeedbackMessage('The photo could not be stored on this device.');
+      return false;
     } finally {
       setPhotoActionState('idle');
     }
+
+    return true;
   }
 
   async function handlePhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
     const files = event.target.files ? Array.from(event.target.files) : [];
     event.target.value = '';
-    await handleAddPhotoFiles(files);
+    await handleAddPhotoBlobs(files);
+  }
+
+  async function handleDirectCameraCapture(blob: Blob) {
+    const saved = await handleAddPhotoBlobs([blob]);
+
+    if (saved) {
+      setIsDirectCameraOpen(false);
+    }
   }
 
   async function handleDeletePendingPhoto(photoId: string) {
@@ -776,7 +814,7 @@ export default function App() {
             feedbackMessage={photoFeedbackMessage}
             feedbackTone={photoFeedbackTone}
             onChangeFilter={setActivePhotoFilter}
-            onOpenCamera={() => cameraInputRef.current?.click()}
+            onOpenCamera={handleOpenCamera}
             onOpenGallery={() => galleryInputRef.current?.click()}
             onSelectPhoto={setSelectedPhotoId}
             onCloseDetail={() => setSelectedPhotoId(null)}
@@ -839,6 +877,7 @@ export default function App() {
             exportLeadIn={exportLeadIn}
             refreshState={refreshState}
             themePreference={themePreference}
+            cameraPreference={cameraPreference}
             onExportFoodMemory={handleExportFoodMemory}
             onImportFoodMemory={handleImportFoodMemory}
             onChangeExportLeadIn={(value) => {
@@ -847,6 +886,7 @@ export default function App() {
             }}
             onForceRefresh={handleForceRefresh}
             onChangeTheme={setThemePreference}
+            onChangeCameraPreference={setCameraPreference}
           />
         </section>
       ) : null}
@@ -923,6 +963,14 @@ export default function App() {
           entry={editingEntry}
           onCancel={closeInputDialog}
           onSave={handleUpdateEntry}
+        />
+      ) : null}
+
+      {isDirectCameraOpen ? (
+        <CameraCaptureModal
+          onCancel={() => setIsDirectCameraOpen(false)}
+          onCapture={handleDirectCameraCapture}
+          onFallback={openSystemCamera}
         />
       ) : null}
 

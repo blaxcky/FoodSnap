@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FoodImportMode } from '../lib/backup';
+import type { CameraPreference } from '../lib/cameraPreference';
 import type { ThemePreference } from '../lib/theme';
 import { BoltIcon, ExportIcon, ImportIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from './Icons';
 
@@ -12,12 +13,19 @@ interface SettingsPanelProps {
   exportLeadIn: string;
   refreshState: 'idle' | 'working' | 'error';
   themePreference: ThemePreference;
+  cameraPreference: CameraPreference;
   onExportFoodMemory: () => void;
   onImportFoodMemory: (file: File, mode: FoodImportMode) => Promise<void>;
   onChangeExportLeadIn: (value: string) => void;
   onForceRefresh: () => Promise<void>;
   onChangeTheme: (preference: ThemePreference) => void;
+  onChangeCameraPreference: (preference: CameraPreference) => void;
 }
+
+const CAMERA_OPTIONS: { value: CameraPreference; label: string }[] = [
+  { value: 'system', label: 'Standard' },
+  { value: 'direct', label: 'Direct' }
+];
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof SunIcon }[] = [
   { value: 'system', label: 'System', Icon: MonitorIcon },
@@ -34,11 +42,13 @@ export function SettingsPanel({
   exportLeadIn,
   refreshState,
   themePreference,
+  cameraPreference,
   onExportFoodMemory,
   onImportFoodMemory,
   onChangeExportLeadIn,
   onForceRefresh,
-  onChangeTheme
+  onChangeTheme,
+  onChangeCameraPreference
 }: SettingsPanelProps) {
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<FoodImportMode>('merge');
@@ -219,6 +229,49 @@ export function SettingsPanel({
           {themePreference === 'system'
             ? 'Theme follows your operating system preference.'
             : `Using ${themePreference} mode.`}
+        </p>
+      </section>
+
+      <section className="settings-section" aria-labelledby="settings-camera-title">
+        <div className="settings-section-header">
+          <p id="settings-camera-title" className="settings-section-title">
+            Camera
+          </p>
+          <p className="settings-section-caption">Choose how food photos are captured</p>
+        </div>
+
+        <div className="settings-list">
+          <div className="settings-row settings-row-action">
+            <div className="settings-row-copy">
+              <h3>Capture mode</h3>
+              <p>
+                Standard uses the Android/browser camera chooser. Direct opens an in-app camera
+                and saves the shot immediately.
+              </p>
+            </div>
+            <div className="settings-row-control">
+              <div className="mode-toggle" role="radiogroup" aria-label="Camera capture mode">
+                {CAMERA_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    className={`mode-pill${cameraPreference === value ? ' active' : ''}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={cameraPreference === value}
+                    onClick={() => onChangeCameraPreference(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="settings-feedback">
+          {cameraPreference === 'direct'
+            ? 'Direct capture is active. If a device has trouble with it, switch back to Standard here.'
+            : 'Standard capture is active. This is the safer fallback if direct camera access misbehaves.'}
         </p>
       </section>
 

@@ -119,7 +119,7 @@ function loadImageFromFile(file: Blob) {
   });
 }
 
-export async function preparePhotoBlob(file: File) {
+export async function preparePhotoBlob(file: Blob) {
   const image = await loadImageFromFile(file);
   const longestEdge = Math.max(image.naturalWidth, image.naturalHeight);
   const scale = longestEdge > 1600 ? 1600 / longestEdge : 1;
