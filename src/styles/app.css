@@ -1811,7 +1811,7 @@ button {
   height: calc(var(--photo-detail-viewport-height, 100dvh) - var(--header-height) - env(safe-area-inset-top) - var(--photo-detail-bottom-offset, var(--bottom-nav-space)) - env(safe-area-inset-bottom));
   max-height: calc(var(--photo-detail-viewport-height, 100vh) - var(--header-height) - env(safe-area-inset-top) - var(--photo-detail-bottom-offset, var(--bottom-nav-space)) - env(safe-area-inset-bottom));
   max-height: calc(var(--photo-detail-viewport-height, 100dvh) - var(--header-height) - env(safe-area-inset-top) - var(--photo-detail-bottom-offset, var(--bottom-nav-space)) - env(safe-area-inset-bottom));
-  padding: 20px 20px calc(var(--bottom-nav-space) + 24px + env(safe-area-inset-bottom));
+  padding: 20px 20px 24px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
