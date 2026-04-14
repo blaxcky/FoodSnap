@@ -980,6 +980,21 @@ export default function App() {
         </div>
       ) : null}
 
+      {activeTab === 'photos' && !selectedPhoto ? (
+        <div className="fab-anchor">
+          <div className="fab-inner">
+            <button
+              className="floating-photo-button"
+              type="button"
+              onClick={handleOpenCamera}
+              aria-label="Take a food photo"
+            >
+              <CameraIcon className="ui-icon" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {isComposerOpen ? (
         <CreateEntryModal
           foods={foods}
