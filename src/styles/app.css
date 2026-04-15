@@ -918,6 +918,10 @@ button {
   font-size: 0.86rem;
 }
 
+.food-nutrition-summary {
+  margin-top: 4px;
+}
+
 .entry-note {
   margin-top: 6px;
 }
@@ -1002,7 +1006,35 @@ button {
 
 /* ---- Food Library ---- */
 .food-row-main {
+  min-width: 0;
   flex: 1;
+}
+
+.food-edit-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.food-library-nutrition-fields {
+  margin-top: 0;
+}
+
+.food-library-nutrition-fields .field-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+
+.food-library-nutrition-fields .field-input {
+  min-height: 46px;
+}
+
+.food-library-nutrition-fields .field-input-with-suffix {
+  padding-right: 28px;
+}
+
+.food-library-nutrition-fields .input-suffix {
+  right: 10px;
+  font-size: 0.84rem;
 }
 
 /* ---- Export Panel ---- */
@@ -2187,6 +2219,10 @@ button {
   .edit-entry-modal .nutrition-fields .input-suffix {
     right: 10px;
     font-size: 0.86rem;
+  }
+
+  .food-library-nutrition-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .settings-row,

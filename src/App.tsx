@@ -488,8 +488,17 @@ export default function App() {
     setEditingEntryId(null);
   }
 
-  function handleRenameFood(foodId: string, nextName: string) {
-    const trimmedName = nextName.trim();
+  function handleUpdateFood(
+    foodId: string,
+    payload: {
+      name: string;
+      calories?: number;
+      carbs?: number;
+      fat?: number;
+      protein?: number;
+    }
+  ) {
+    const trimmedName = payload.name.trim();
     const normalizedName = normalizeText(trimmedName);
 
     if (!trimmedName) {
@@ -513,7 +522,11 @@ export default function App() {
           ? {
               ...food,
               name: trimmedName,
-              normalizedName
+              normalizedName,
+              calories: payload.calories,
+              carbs: payload.carbs,
+              fat: payload.fat,
+              protein: payload.protein
             }
           : food
       )
@@ -888,7 +901,7 @@ export default function App() {
                 )
               );
             }}
-            onRenameFood={handleRenameFood}
+            onUpdateFood={handleUpdateFood}
             onDeleteFood={(foodId) => {
               setFoods((currentFoods) => currentFoods.filter((food) => food.id !== foodId));
             }}

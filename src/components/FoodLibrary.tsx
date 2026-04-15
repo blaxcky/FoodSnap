@@ -2,23 +2,82 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarIcon, TrashIcon } from './Icons';
 import { copyTextToClipboard } from '../lib/clipboard';
 import type { FoodProfile } from '../lib/types';
+import { formatNumber } from '../lib/utils';
 
 interface FoodLibraryProps {
   foods: FoodProfile[];
   onToggleFavorite: (foodId: string) => void;
-  onRenameFood: (foodId: string, nextName: string) => boolean;
+  onUpdateFood: (
+    foodId: string,
+    payload: {
+      name: string;
+      calories?: number;
+      carbs?: number;
+      fat?: number;
+      protein?: number;
+    }
+  ) => boolean;
   onDeleteFood: (foodId: string) => void;
+}
+
+interface FoodDraftState {
+  name: string;
+  calories: string;
+  carbs: string;
+  fat: string;
+  protein: string;
+}
+
+function formatNutritionInputValue(value: number | undefined) {
+  return value != null ? String(value) : '';
+}
+
+function formatNutritionSummary(food: FoodProfile) {
+  const details = [
+    food.calories != null ? `${formatNumber(food.calories)} kcal` : null,
+    food.carbs != null ? `${formatNumber(food.carbs)}g KH` : null,
+    food.fat != null ? `${formatNumber(food.fat)}g Fett` : null,
+    food.protein != null ? `${formatNumber(food.protein)}g Eiweiß` : null
+  ].filter((value): value is string => value != null);
+
+  return details.length > 0 ? details.join(' • ') : 'No nutrition defaults saved';
+}
+
+function createDraft(food: FoodProfile): FoodDraftState {
+  return {
+    name: food.name,
+    calories: formatNutritionInputValue(food.calories),
+    carbs: formatNutritionInputValue(food.carbs),
+    fat: formatNutritionInputValue(food.fat),
+    protein: formatNutritionInputValue(food.protein)
+  };
+}
+
+function parseOptionalNutritionValue(value: string, label: string) {
+  const trimmed = value.trim();
+
+  if (trimmed === '') {
+    return { value: undefined };
+  }
+
+  const parsed = Number(trimmed);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return { error: `Enter a valid ${label} value.` };
+  }
+
+  return { value: parsed };
 }
 
 export function FoodLibrary({
   foods,
   onToggleFavorite,
-  onRenameFood,
+  onUpdateFood,
   onDeleteFood
 }: FoodLibraryProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftName, setDraftName] = useState('');
-  const [renameError, setRenameError] = useState('');
+  const [draft, setDraft] = useState<FoodDraftState | null>(null);
+  const [editError, setEditError] = useState('');
   const [clipboardFeedback, setClipboardFeedback] = useState<{
     foodId: string;
     tone: 'copied' | 'error';
@@ -49,6 +108,70 @@ export function FoodLibrary({
       }),
     [foods]
   );
+
+  function resetEditing() {
+    setEditingId(null);
+    setDraft(null);
+    setEditError('');
+  }
+
+  function startEditing(food: FoodProfile) {
+    setEditingId(food.id);
+    setDraft(createDraft(food));
+    setEditError('');
+  }
+
+  function saveFood(foodId: string) {
+    if (!draft) {
+      return;
+    }
+
+    const trimmedName = draft.name.trim();
+    const caloriesResult = parseOptionalNutritionValue(draft.calories, 'kcal');
+    const carbsResult = parseOptionalNutritionValue(draft.carbs, 'Kohlenhydrate');
+    const fatResult = parseOptionalNutritionValue(draft.fat, 'Fett');
+    const proteinResult = parseOptionalNutritionValue(draft.protein, 'Eiweiß');
+
+    if (!trimmedName) {
+      setEditError('Pick a unique, non-empty name.');
+      return;
+    }
+
+    if (caloriesResult.error) {
+      setEditError(caloriesResult.error);
+      return;
+    }
+
+    if (carbsResult.error) {
+      setEditError(carbsResult.error);
+      return;
+    }
+
+    if (fatResult.error) {
+      setEditError(fatResult.error);
+      return;
+    }
+
+    if (proteinResult.error) {
+      setEditError(proteinResult.error);
+      return;
+    }
+
+    const didSave = onUpdateFood(foodId, {
+      name: trimmedName,
+      calories: caloriesResult.value,
+      carbs: carbsResult.value,
+      fat: fatResult.value,
+      protein: proteinResult.value
+    });
+
+    if (!didSave) {
+      setEditError('Pick a unique, non-empty name.');
+      return;
+    }
+
+    resetEditing();
+  }
 
   async function handleCopyFoodName(foodId: string, foodName: string) {
     const didCopy = await copyTextToClipboard(foodName);
@@ -102,25 +225,105 @@ export function FoodLibrary({
 
                 <div className="food-row-main">
                   {isEditing ? (
-                    <input
-                      className="field-input"
-                      value={draftName}
-                      onChange={(event) => {
-                        setDraftName(event.target.value);
-                        setRenameError('');
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          const didSave = onRenameFood(food.id, draftName);
-                          if (didSave) {
-                            setEditingId(null);
-                            setDraftName('');
-                          } else {
-                            setRenameError('Pick a unique, non-empty name.');
+                    <div className="food-edit-fields">
+                      <input
+                        className="field-input"
+                        value={draft?.name ?? ''}
+                        onChange={(event) => {
+                          setDraft((current) =>
+                            current ? { ...current, name: event.target.value } : current
+                          );
+                          setEditError('');
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            saveFood(food.id);
                           }
-                        }
-                      }}
-                    />
+                        }}
+                      />
+
+                      <div className="inline-fields nutrition-fields food-library-nutrition-fields">
+                        <label className="field">
+                          <span className="field-label">kcal</span>
+                          <input
+                            className="field-input number-field"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={draft?.calories ?? ''}
+                            onChange={(event) => {
+                              setDraft((current) =>
+                                current ? { ...current, calories: event.target.value } : current
+                              );
+                              setEditError('');
+                            }}
+                          />
+                        </label>
+
+                        <label className="field">
+                          <span className="field-label">KH</span>
+                          <div className="input-suffix-shell">
+                            <input
+                              className="field-input number-field field-input-with-suffix"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={draft?.carbs ?? ''}
+                              onChange={(event) => {
+                                setDraft((current) =>
+                                  current ? { ...current, carbs: event.target.value } : current
+                                );
+                                setEditError('');
+                              }}
+                            />
+                            <span className="input-suffix" aria-hidden="true">
+                              g
+                            </span>
+                          </div>
+                        </label>
+
+                        <label className="field">
+                          <span className="field-label">Fett</span>
+                          <div className="input-suffix-shell">
+                            <input
+                              className="field-input number-field field-input-with-suffix"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={draft?.fat ?? ''}
+                              onChange={(event) => {
+                                setDraft((current) =>
+                                  current ? { ...current, fat: event.target.value } : current
+                                );
+                                setEditError('');
+                              }}
+                            />
+                            <span className="input-suffix" aria-hidden="true">
+                              g
+                            </span>
+                          </div>
+                        </label>
+
+                        <label className="field">
+                          <span className="field-label">Eiweiß</span>
+                          <div className="input-suffix-shell">
+                            <input
+                              className="field-input number-field field-input-with-suffix"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={draft?.protein ?? ''}
+                              onChange={(event) => {
+                                setDraft((current) =>
+                                  current ? { ...current, protein: event.target.value } : current
+                                );
+                                setEditError('');
+                              }}
+                            />
+                            <span className="input-suffix" aria-hidden="true">
+                              g
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
                   ) : (
                     <>
                       <h3>
@@ -134,6 +337,7 @@ export function FoodLibrary({
                         </button>
                       </h3>
                       <p>{food.usageCount} saves</p>
+                      <p className="food-nutrition-summary">{formatNutritionSummary(food)}</p>
                       {clipboardFeedbackMessage ? (
                         <p
                           className={`inline-feedback${clipboardFeedback?.tone === 'error' ? ' is-error' : ''}`}
@@ -150,26 +354,14 @@ export function FoodLibrary({
                     <button
                       className="ghost-button"
                       type="button"
-                      onClick={() => {
-                        const didSave = onRenameFood(food.id, draftName);
-                        if (didSave) {
-                          setEditingId(null);
-                          setDraftName('');
-                        } else {
-                          setRenameError('Pick a unique, non-empty name.');
-                        }
-                      }}
+                      onClick={() => saveFood(food.id)}
                     >
                       Save
                     </button>
                     <button
                       className="ghost-button"
                       type="button"
-                      onClick={() => {
-                        setEditingId(null);
-                        setDraftName('');
-                        setRenameError('');
-                      }}
+                      onClick={resetEditing}
                     >
                       Cancel
                     </button>
@@ -179,23 +371,19 @@ export function FoodLibrary({
                     <button
                       className="ghost-button"
                       type="button"
-                      onClick={() => {
-                        setEditingId(food.id);
-                        setDraftName(food.name);
-                        setRenameError('');
-                      }}
+                      onClick={() => startEditing(food)}
                     >
-                      Rename
+                      Edit
                     </button>
                     <button
                       className="icon-action destructive-action"
                       type="button"
                       onClick={() => {
                         if (editingId === food.id) {
+                          setDraft(null);
                           setEditingId(null);
-                          setDraftName('');
                         }
-                        setRenameError('');
+                        setEditError('');
                         onDeleteFood(food.id);
                       }}
                       aria-label={`Delete remembered food ${food.name}`}
@@ -210,7 +398,7 @@ export function FoodLibrary({
         </div>
       )}
 
-      {renameError ? <p className="error-copy">{renameError}</p> : null}
+      {editError ? <p className="error-copy">{editError}</p> : null}
     </section>
   );
 }
