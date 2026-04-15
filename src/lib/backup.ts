@@ -1,5 +1,5 @@
 import type { EntryUnit, FoodProfile } from './types';
-import { normalizeText } from './utils';
+import { normalizeText, pickNutritionFields } from './utils';
 
 interface BackupSettings {
   exportLeadIn: string;
@@ -65,7 +65,8 @@ function parseFoodProfile(value: unknown) {
     lastUsedAt,
     createdAt,
     isFavorite,
-    lastUnit
+    lastUnit,
+    ...pickNutritionFields(value)
   } satisfies FoodProfile;
 }
 

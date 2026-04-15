@@ -4,7 +4,14 @@ export type EntryUnit = 'g' | 'pcs';
 
 export type PhotoStatus = 'pending' | 'archived';
 
-export interface FoodProfile {
+export interface NutritionFields {
+  calories?: number;
+  carbs?: number;
+  fat?: number;
+  protein?: number;
+}
+
+export interface FoodProfile extends NutritionFields {
   id: string;
   name: string;
   normalizedName: string;
@@ -15,7 +22,7 @@ export interface FoodProfile {
   lastUnit: EntryUnit;
 }
 
-export interface SessionEntry {
+export interface SessionEntry extends NutritionFields {
   id: string;
   foodId: string;
   foodName: string;
@@ -27,17 +34,13 @@ export interface SessionEntry {
   afterWeight?: number;
   needsAfterWeight?: boolean;
   note: string;
-  calories?: number;
-  carbs?: number;
-  fat?: number;
-  protein?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
   undoExpiresAt?: string;
 }
 
-export interface EntryPayload {
+export interface EntryPayload extends NutritionFields {
   foodName: string;
   mode: EntryMode;
   amount: number;
@@ -46,10 +49,6 @@ export interface EntryPayload {
   afterWeight?: number;
   needsAfterWeight?: boolean;
   note: string;
-  calories?: number;
-  carbs?: number;
-  fat?: number;
-  protein?: number;
 }
 
 export interface PhotoItem {

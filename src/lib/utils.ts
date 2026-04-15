@@ -1,4 +1,4 @@
-import type { EntryUnit, SessionEntry } from './types';
+import type { EntryUnit, FoodProfile, NutritionFields, SessionEntry } from './types';
 
 export function createId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -14,6 +14,72 @@ export function nowIso() {
 
 export function normalizeText(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+const nutritionKeys = ['calories', 'carbs', 'fat', 'protein'] as const;
+
+export function isNutritionValue(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+export function pickNutritionFields(source: Partial<NutritionFields> | null | undefined) {
+  return {
+    calories: isNutritionValue(source?.calories) ? source.calories : undefined,
+    carbs: isNutritionValue(source?.carbs) ? source.carbs : undefined,
+    fat: isNutritionValue(source?.fat) ? source.fat : undefined,
+    protein: isNutritionValue(source?.protein) ? source.protein : undefined
+  } satisfies NutritionFields;
+}
+
+export function mergeDefinedNutrition<T extends NutritionFields>(
+  target: T,
+  source: Partial<NutritionFields> | null | undefined
+) {
+  const nextValue = { ...target } as T & NutritionFields;
+
+  for (const key of nutritionKeys) {
+    const value = source?.[key];
+
+    if (isNutritionValue(value)) {
+      nextValue[key] = value;
+    }
+  }
+
+  return nextValue as T;
+}
+
+export function applyNutritionDefaults<T extends NutritionFields>(
+  target: T,
+  defaults: Partial<NutritionFields> | null | undefined
+) {
+  const nextValue = { ...target } as T & NutritionFields;
+
+  for (const key of nutritionKeys) {
+    if (nextValue[key] != null) {
+      continue;
+    }
+
+    const value = defaults?.[key];
+
+    if (isNutritionValue(value)) {
+      nextValue[key] = value;
+    }
+  }
+
+  return nextValue as T;
+}
+
+export function findFoodProfile(foods: FoodProfile[], foodName: string, foodId?: string) {
+  if (foodId) {
+    const matchingFood = foods.find((food) => food.id === foodId);
+
+    if (matchingFood) {
+      return matchingFood;
+    }
+  }
+
+  const normalizedName = normalizeText(foodName);
+  return foods.find((food) => food.normalizedName === normalizedName) ?? null;
 }
 
 export function formatNumber(value: number) {

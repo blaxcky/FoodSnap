@@ -31,7 +31,14 @@ import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
 import type { ThemePreference } from './lib/theme';
 import type { EntryPayload, FoodProfile, PhotoItem, SessionEntry } from './lib/types';
-import { createId, isEntryDeleted, normalizeText, nowIso } from './lib/utils';
+import {
+  applyNutritionDefaults,
+  createId,
+  isEntryDeleted,
+  mergeDefinedNutrition,
+  normalizeText,
+  nowIso
+} from './lib/utils';
 
 type AppTab = 'log' | 'history' | 'photos' | 'library' | 'export' | 'settings';
 
@@ -60,14 +67,17 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload, countAsSave: boo
   if (existingFood) {
     const nextFoods = foods.map((food) =>
       food.id === existingFood.id
-        ? {
-            ...food,
-            name: payload.foodName,
-            normalizedName,
-            usageCount: countAsSave ? food.usageCount + 1 : food.usageCount,
-            lastUsedAt: countAsSave ? timestamp : food.lastUsedAt,
-            lastUnit: payload.unit
-          }
+        ? mergeDefinedNutrition(
+            {
+              ...food,
+              name: payload.foodName,
+              normalizedName,
+              usageCount: countAsSave ? food.usageCount + 1 : food.usageCount,
+              lastUsedAt: countAsSave ? timestamp : food.lastUsedAt,
+              lastUnit: payload.unit
+            },
+            payload
+          )
         : food
     );
 
@@ -85,7 +95,11 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload, countAsSave: boo
     lastUsedAt: timestamp,
     createdAt: timestamp,
     isFavorite: false,
-    lastUnit: payload.unit
+    lastUnit: payload.unit,
+    calories: payload.calories,
+    carbs: payload.carbs,
+    fat: payload.fat,
+    protein: payload.protein
   };
 
   return {
@@ -321,12 +335,18 @@ export default function App() {
   }
 
   function commitEntry(payload: EntryPayload, targetEntryId: string | null, options: CommitEntryOptions = {}) {
-    const learning = learnFood(foods, payload, targetEntryId == null);
+    const rememberedFood = foods.find(
+      (food) => food.normalizedName === normalizeText(payload.foodName)
+    );
+    const resolvedPayload = applyNutritionDefaults(payload, rememberedFood);
+    const learning = learnFood(foods, resolvedPayload, targetEntryId == null);
     const timestamp = nowIso();
     const existingEntry = targetEntryId
       ? entries.find((entry) => entry.id === targetEntryId) ?? null
       : null;
-    const keepLinkedPhoto = Boolean(existingEntry?.sourcePhotoId && isPhotoCompatiblePayload(payload));
+    const keepLinkedPhoto = Boolean(
+      existingEntry?.sourcePhotoId && isPhotoCompatiblePayload(resolvedPayload)
+    );
 
     setFoods(learning.foods);
     setEntries((currentEntries) => {
@@ -336,19 +356,19 @@ export default function App() {
             ? {
                 ...entry,
                 foodId: learning.foodId,
-                foodName: payload.foodName,
+                foodName: resolvedPayload.foodName,
                 sourcePhotoId: keepLinkedPhoto ? existingEntry.sourcePhotoId : undefined,
-                mode: payload.mode,
-                amount: payload.amount,
-                unit: payload.unit,
-                beforeWeight: payload.beforeWeight,
-                afterWeight: payload.afterWeight,
-                needsAfterWeight: payload.needsAfterWeight,
-                note: payload.note,
-                calories: payload.calories,
-                carbs: payload.carbs,
-                fat: payload.fat,
-                protein: payload.protein,
+                mode: resolvedPayload.mode,
+                amount: resolvedPayload.amount,
+                unit: resolvedPayload.unit,
+                beforeWeight: resolvedPayload.beforeWeight,
+                afterWeight: resolvedPayload.afterWeight,
+                needsAfterWeight: resolvedPayload.needsAfterWeight,
+                note: resolvedPayload.note,
+                calories: resolvedPayload.calories,
+                carbs: resolvedPayload.carbs,
+                fat: resolvedPayload.fat,
+                protein: resolvedPayload.protein,
                 updatedAt: timestamp
               }
             : entry
@@ -358,19 +378,19 @@ export default function App() {
       const nextEntry: SessionEntry = {
         id: options.forceEntryId ?? createId(),
         foodId: learning.foodId,
-        foodName: payload.foodName,
+        foodName: resolvedPayload.foodName,
         sourcePhotoId: options.sourcePhotoId,
-        mode: payload.mode,
-        amount: payload.amount,
-        unit: payload.unit,
-        beforeWeight: payload.beforeWeight,
-        afterWeight: payload.afterWeight,
-        needsAfterWeight: payload.needsAfterWeight,
-        note: payload.note,
-        calories: payload.calories,
-        carbs: payload.carbs,
-        fat: payload.fat,
-        protein: payload.protein,
+        mode: resolvedPayload.mode,
+        amount: resolvedPayload.amount,
+        unit: resolvedPayload.unit,
+        beforeWeight: resolvedPayload.beforeWeight,
+        afterWeight: resolvedPayload.afterWeight,
+        needsAfterWeight: resolvedPayload.needsAfterWeight,
+        note: resolvedPayload.note,
+        calories: resolvedPayload.calories,
+        carbs: resolvedPayload.carbs,
+        fat: resolvedPayload.fat,
+        protein: resolvedPayload.protein,
         createdAt: timestamp,
         updatedAt: timestamp
       };
@@ -395,8 +415,8 @@ export default function App() {
 
           return {
             ...photo,
-            foodName: payload.foodName,
-            weightGrams: payload.amount,
+            foodName: resolvedPayload.foodName,
+            weightGrams: resolvedPayload.amount,
             linkedEntryId: targetEntryId,
             updatedAt: timestamp
           };

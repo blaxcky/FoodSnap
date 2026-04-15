@@ -2,7 +2,12 @@ import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'r
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
 import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
-import { isAfterWeightPending, isBeforeWeightPending } from '../lib/utils';
+import {
+  applyNutritionDefaults,
+  findFoodProfile,
+  isAfterWeightPending,
+  isBeforeWeightPending
+} from '../lib/utils';
 
 interface EditEntryModalProps {
   foods: FoodProfile[];
@@ -23,8 +28,22 @@ interface EditorState {
   protein: string;
 }
 
-function mapEntryToState(entry: SessionEntry): EditorState {
+function formatNutritionInputValue(value: number | undefined) {
+  return value != null ? String(value) : '';
+}
+
+function mapEntryToState(entry: SessionEntry, foods: FoodProfile[]): EditorState {
   const pendingBeforeWeight = isBeforeWeightPending(entry);
+  const rememberedFood = findFoodProfile(foods, entry.foodName, entry.foodId);
+  const nutrition = applyNutritionDefaults(
+    {
+      calories: entry.calories,
+      carbs: entry.carbs,
+      fat: entry.fat,
+      protein: entry.protein
+    },
+    rememberedFood
+  );
 
   return {
     foodName: entry.foodName,
@@ -38,10 +57,10 @@ function mapEntryToState(entry: SessionEntry): EditorState {
       entry.mode === 'difference' || pendingBeforeWeight ? String(entry.afterWeight ?? '') : '',
     needsAfterWeight: Boolean(entry.needsAfterWeight),
     note: entry.note,
-    calories: entry.calories != null ? String(entry.calories) : '',
-    carbs: entry.carbs != null ? String(entry.carbs) : '',
-    fat: entry.fat != null ? String(entry.fat) : '',
-    protein: entry.protein != null ? String(entry.protein) : ''
+    calories: formatNutritionInputValue(nutrition.calories),
+    carbs: formatNutritionInputValue(nutrition.carbs),
+    fat: formatNutritionInputValue(nutrition.fat),
+    protein: formatNutritionInputValue(nutrition.protein)
   };
 }
 
@@ -67,7 +86,7 @@ export function EditEntryModal({
   onCancel,
   onSave
 }: EditEntryModalProps) {
-  const [form, setForm] = useState<EditorState>(() => mapEntryToState(entry));
+  const [form, setForm] = useState<EditorState>(() => mapEntryToState(entry, foods));
   const [isNameEditable, setIsNameEditable] = useState(false);
   const [error, setError] = useState('');
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -95,7 +114,7 @@ export function EditEntryModal({
   );
 
   useEffect(() => {
-    setForm(mapEntryToState(entry));
+    setForm(mapEntryToState(entry, foods));
     setIsNameEditable(false);
     setError('');
     setSuggestionsOpen(false);
@@ -110,7 +129,7 @@ export function EditEntryModal({
       beforeInputRef.current?.focus();
       beforeInputRef.current?.select();
     });
-  }, [entry]);
+  }, [entry, foods]);
 
   useEffect(() => {
     const { documentElement, body } = document;
@@ -263,7 +282,11 @@ export function EditEntryModal({
 
     setForm((current) => ({
       ...current,
-      foodName: food.name
+      foodName: food.name,
+      calories: formatNutritionInputValue(food.calories),
+      carbs: formatNutritionInputValue(food.carbs),
+      fat: formatNutritionInputValue(food.fat),
+      protein: formatNutritionInputValue(food.protein)
     }));
     setError('');
     setSuggestionsOpen(false);
@@ -382,6 +405,11 @@ export function EditEntryModal({
 
                   if (event.key === 'Enter') {
                     event.preventDefault();
+                    if (suggestionsOpen && suggestions[highlightedIndex]) {
+                      applyFood(suggestions[highlightedIndex]);
+                      return;
+                    }
+
                     beforeInputRef.current?.focus();
                   }
 
