@@ -375,12 +375,6 @@ function PhotoDetail({
 
                     if (event.key === 'Enter') {
                       event.preventDefault();
-
-                      if (suggestionsOpen && suggestions[highlightedIndex]) {
-                        applyFoodSuggestion(suggestions[highlightedIndex].name);
-                        return;
-                      }
-
                       weightInputRef.current?.focus();
                     }
 
