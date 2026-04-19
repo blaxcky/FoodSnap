@@ -6,7 +6,7 @@ import {
   isEntryDeleted
 } from './utils';
 
-function appendDetails(base: string, entry: SessionEntry) {
+function getDetails(entry: SessionEntry) {
   const details: string[] = [];
 
   if (entry.note.trim()) {
@@ -29,6 +29,11 @@ function appendDetails(base: string, entry: SessionEntry) {
     details.push(`${formatNumber(entry.protein)}g Eiweiß`);
   }
 
+  return details;
+}
+
+function appendDetails(base: string, entry: SessionEntry) {
+  const details = getDetails(entry);
   return details.length > 0 ? `${base} (${details.join(', ')})` : base;
 }
 
@@ -55,9 +60,60 @@ function formatSimpleEntry(entry: SessionEntry) {
 }
 
 export function formatExport(entries: SessionEntry[]) {
-  return entries
-    .filter((entry) => !isEntryDeleted(entry))
-    .map((entry) => formatSimpleEntry(entry))
+  const aggregatedLines = new Map<
+    string,
+    {
+      amount: number;
+      foodName: string;
+      details: string[];
+    }
+  >();
+  const lines: string[] = [];
+
+  for (const entry of entries) {
+    if (isEntryDeleted(entry)) {
+      continue;
+    }
+
+    const canAggregate =
+      entry.unit === 'g' && !isBeforeWeightPending(entry) && !isAfterWeightPending(entry);
+
+    if (!canAggregate) {
+      lines.push(formatSimpleEntry(entry));
+      continue;
+    }
+
+    const details = getDetails(entry);
+    const aggregationKey = `${entry.foodName}\u0000${details.join('\u0001')}`;
+    const existingLine = aggregatedLines.get(aggregationKey);
+
+    if (existingLine) {
+      existingLine.amount += entry.amount;
+      continue;
+    }
+
+    const nextLine = {
+      amount: entry.amount,
+      foodName: entry.foodName,
+      details
+    };
+    aggregatedLines.set(aggregationKey, nextLine);
+    lines.push(aggregationKey);
+  }
+
+  return lines
+    .map((line) => {
+      const aggregatedLine = aggregatedLines.get(line);
+
+      if (!aggregatedLine) {
+        return line;
+      }
+
+      const base = `${formatNumber(aggregatedLine.amount)}g ${aggregatedLine.foodName}`;
+      return aggregatedLine.details.length > 0
+        ? `${base} (${aggregatedLine.details.join(', ')})`
+        : base;
+    })
     .join('\n');
 }
 
