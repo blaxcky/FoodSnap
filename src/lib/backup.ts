@@ -7,7 +7,7 @@ interface BackupSettings {
 
 export interface FoodMemoryBackup {
   app: 'FoodSnap';
-  version: 3;
+  version: 3 | 4;
   exportedAt: string;
   foods: FoodProfile[];
   settings: BackupSettings;
@@ -84,7 +84,7 @@ function dedupeFoodsByNormalizedName(foods: FoodProfile[]) {
 export function downloadFoodMemoryBackup(foods: FoodProfile[], settings: BackupSettings) {
   const payload: FoodMemoryBackup = {
     app: 'FoodSnap',
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     foods,
     settings
@@ -109,7 +109,11 @@ export function downloadFoodMemoryBackup(foods: FoodProfile[], settings: BackupS
 export function parseFoodMemoryBackup(raw: string): FoodMemoryBackup {
   const parsed = JSON.parse(raw) as unknown;
 
-  if (!isRecord(parsed) || parsed.app !== 'FoodSnap' || parsed.version !== 3) {
+  if (
+    !isRecord(parsed) ||
+    parsed.app !== 'FoodSnap' ||
+    (parsed.version !== 3 && parsed.version !== 4)
+  ) {
     throw new Error('Invalid FoodSnap backup file.');
   }
 
@@ -122,7 +126,7 @@ export function parseFoodMemoryBackup(raw: string): FoodMemoryBackup {
 
   return {
     app: 'FoodSnap',
-    version: 3,
+    version: parsed.version,
     exportedAt: parsed.exportedAt,
     foods: dedupeFoodsByNormalizedName(parsed.foods.map(parseFoodProfile)),
     settings: {

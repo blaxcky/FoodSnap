@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StarIcon, TrashIcon } from './Icons';
 import { copyTextToClipboard } from '../lib/clipboard';
-import type { FoodProfile } from '../lib/types';
-import { formatNumber } from '../lib/utils';
+import type { FoodProfile, NutritionScope } from '../lib/types';
+import { formatNumber, normalizeNutritionScope } from '../lib/utils';
 
 interface FoodLibraryProps {
   foods: FoodProfile[];
@@ -15,6 +15,7 @@ interface FoodLibraryProps {
       carbs?: number;
       fat?: number;
       protein?: number;
+      nutritionScope?: NutritionScope;
     }
   ) => boolean;
   onDeleteFood: (foodId: string) => void;
@@ -26,18 +27,34 @@ interface FoodDraftState {
   carbs: string;
   fat: string;
   protein: string;
+  nutritionScope: NutritionScope;
 }
 
 function formatNutritionInputValue(value: number | undefined) {
   return value != null ? String(value) : '';
 }
 
+function formatNutritionSummaryDetail(
+  value: number | undefined,
+  label: string,
+  unitSuffix: string,
+  nutritionScope: NutritionScope | undefined
+) {
+  if (value == null) {
+    return null;
+  }
+
+  const scopeLabel =
+    normalizeNutritionScope(nutritionScope) === 'total' ? 'total' : 'per 100g';
+  return `${formatNumber(value)}${unitSuffix} ${label} ${scopeLabel}`;
+}
+
 function formatNutritionSummary(food: FoodProfile) {
   const details = [
-    food.calories != null ? `${formatNumber(food.calories)} kcal` : null,
-    food.carbs != null ? `${formatNumber(food.carbs)}g KH` : null,
-    food.fat != null ? `${formatNumber(food.fat)}g Fett` : null,
-    food.protein != null ? `${formatNumber(food.protein)}g Eiweiß` : null
+    formatNutritionSummaryDetail(food.calories, 'kcal', '', food.nutritionScope),
+    formatNutritionSummaryDetail(food.carbs, 'KH', 'g', food.nutritionScope),
+    formatNutritionSummaryDetail(food.fat, 'Fett', 'g', food.nutritionScope),
+    formatNutritionSummaryDetail(food.protein, 'Eiweiß', 'g', food.nutritionScope)
   ].filter((value): value is string => value != null);
 
   return details.length > 0 ? details.join(' • ') : 'No nutrition defaults saved';
@@ -49,7 +66,8 @@ function createDraft(food: FoodProfile): FoodDraftState {
     calories: formatNutritionInputValue(food.calories),
     carbs: formatNutritionInputValue(food.carbs),
     fat: formatNutritionInputValue(food.fat),
-    protein: formatNutritionInputValue(food.protein)
+    protein: formatNutritionInputValue(food.protein),
+    nutritionScope: normalizeNutritionScope(food.nutritionScope)
   };
 }
 
@@ -162,7 +180,8 @@ export function FoodLibrary({
       calories: caloriesResult.value,
       carbs: carbsResult.value,
       fat: fatResult.value,
-      protein: proteinResult.value
+      protein: proteinResult.value,
+      nutritionScope: draft.nutritionScope
     });
 
     if (!didSave) {
@@ -323,6 +342,26 @@ export function FoodLibrary({
                           </div>
                         </label>
                       </div>
+
+                      <label className="pending-after-inline nutrition-scope-toggle">
+                        <input
+                          className="pending-after-checkbox pending-after-checkbox-inline"
+                          type="checkbox"
+                          checked={(draft?.nutritionScope ?? 'per100g') === 'total'}
+                          onChange={(event) => {
+                            setDraft((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    nutritionScope: event.target.checked ? 'total' : 'per100g'
+                                  }
+                                : current
+                            );
+                            setEditError('');
+                          }}
+                        />
+                        <span>Total amount</span>
+                      </label>
                     </div>
                   ) : (
                     <>

@@ -667,6 +667,11 @@ button {
   margin: 0;
 }
 
+.nutrition-scope-toggle {
+  width: fit-content;
+  margin-top: 10px;
+}
+
 /* ---- Status & Helper Text ---- */
 .status-copy,
 .helper-copy {

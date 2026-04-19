@@ -4,7 +4,7 @@ import { isNutritionValue, normalizeText, pickNutritionFields } from './utils';
 const STORAGE_KEY = 'foodsnap:v1';
 
 export const defaultAppState: PersistedAppState = {
-  version: 2,
+  version: 3,
   foods: [],
   currentSession: [],
   photoItems: [],
@@ -31,6 +31,9 @@ function isSessionEntry(value: unknown): value is SessionEntry {
     (entry.carbs == null || isNutritionValue(entry.carbs)) &&
     (entry.fat == null || isNutritionValue(entry.fat)) &&
     (entry.protein == null || isNutritionValue(entry.protein)) &&
+    (entry.nutritionScope == null ||
+      entry.nutritionScope === 'per100g' ||
+      entry.nutritionScope === 'total') &&
     typeof entry.createdAt === 'string' &&
     typeof entry.updatedAt === 'string'
   );
@@ -107,7 +110,7 @@ export function loadAppState(): PersistedAppState {
     };
 
     return {
-      version: 2,
+      version: 3,
       foods: Array.isArray(parsed.foods)
         ? parsed.foods
             .map((food) => parseFoodProfile(food))

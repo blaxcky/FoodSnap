@@ -1,4 +1,10 @@
-import type { EntryUnit, FoodProfile, NutritionFields, SessionEntry } from './types';
+import type {
+  EntryUnit,
+  FoodProfile,
+  NutritionFields,
+  NutritionScope,
+  SessionEntry
+} from './types';
 
 export function createId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -18,17 +24,34 @@ export function normalizeText(value: string) {
 
 const nutritionKeys = ['calories', 'carbs', 'fat', 'protein'] as const;
 
+export function normalizeNutritionScope(value: unknown): NutritionScope {
+  return value === 'total' ? 'total' : 'per100g';
+}
+
 export function isNutritionValue(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
+export function hasNutritionValues(source: Partial<NutritionFields> | null | undefined) {
+  return nutritionKeys.some((key) => isNutritionValue(source?.[key]));
+}
+
 export function pickNutritionFields(source: Partial<NutritionFields> | null | undefined) {
-  return {
+  const nextValue = {
     calories: isNutritionValue(source?.calories) ? source.calories : undefined,
     carbs: isNutritionValue(source?.carbs) ? source.carbs : undefined,
     fat: isNutritionValue(source?.fat) ? source.fat : undefined,
     protein: isNutritionValue(source?.protein) ? source.protein : undefined
   } satisfies NutritionFields;
+
+  if (hasNutritionValues(nextValue) || source?.nutritionScope === 'total') {
+    return {
+      ...nextValue,
+      nutritionScope: normalizeNutritionScope(source?.nutritionScope)
+    } satisfies NutritionFields;
+  }
+
+  return nextValue;
 }
 
 export function mergeDefinedNutrition<T extends NutritionFields>(
@@ -45,6 +68,12 @@ export function mergeDefinedNutrition<T extends NutritionFields>(
     }
   }
 
+  if (hasNutritionValues(source)) {
+    nextValue.nutritionScope = normalizeNutritionScope(source?.nutritionScope);
+  } else if (hasNutritionValues(nextValue) && nextValue.nutritionScope != null) {
+    nextValue.nutritionScope = normalizeNutritionScope(nextValue.nutritionScope);
+  }
+
   return nextValue as T;
 }
 
@@ -53,6 +82,8 @@ export function applyNutritionDefaults<T extends NutritionFields>(
   defaults: Partial<NutritionFields> | null | undefined
 ) {
   const nextValue = { ...target } as T & NutritionFields;
+  const targetHasNutrition = hasNutritionValues(target);
+  const defaultsHaveNutrition = hasNutritionValues(defaults);
 
   for (const key of nutritionKeys) {
     if (nextValue[key] != null) {
@@ -64,6 +95,12 @@ export function applyNutritionDefaults<T extends NutritionFields>(
     if (isNutritionValue(value)) {
       nextValue[key] = value;
     }
+  }
+
+  if (targetHasNutrition) {
+    nextValue.nutritionScope = normalizeNutritionScope(target.nutritionScope);
+  } else if (defaultsHaveNutrition) {
+    nextValue.nutritionScope = normalizeNutritionScope(defaults?.nutritionScope);
   }
 
   return nextValue as T;

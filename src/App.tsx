@@ -30,12 +30,19 @@ import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from '
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
 import type { ThemePreference } from './lib/theme';
-import type { EntryPayload, FoodProfile, PhotoItem, SessionEntry } from './lib/types';
+import type {
+  EntryPayload,
+  FoodProfile,
+  NutritionScope,
+  PhotoItem,
+  SessionEntry
+} from './lib/types';
 import {
   applyNutritionDefaults,
   createId,
   isEntryDeleted,
   mergeDefinedNutrition,
+  pickNutritionFields,
   normalizeText,
   nowIso
 } from './lib/utils';
@@ -49,12 +56,15 @@ interface CommitEntryOptions {
 
 function normalizeLoadedEntries(entries: SessionEntry[]) {
   return entries.map((entry) => {
-    if (!entry.undoExpiresAt) {
-      return entry;
+    const nextEntry = {
+      ...entry,
+      ...pickNutritionFields(entry)
+    };
+
+    if (nextEntry.undoExpiresAt) {
+      delete nextEntry.undoExpiresAt;
     }
 
-    const nextEntry = { ...entry };
-    delete nextEntry.undoExpiresAt;
     return nextEntry;
   });
 }
@@ -99,7 +109,8 @@ function learnFood(foods: FoodProfile[], payload: EntryPayload, countAsSave: boo
     calories: payload.calories,
     carbs: payload.carbs,
     fat: payload.fat,
-    protein: payload.protein
+    protein: payload.protein,
+    nutritionScope: payload.nutritionScope
   };
 
   return {
@@ -172,7 +183,7 @@ export default function App() {
     }
 
     saveAppState({
-      version: 2,
+      version: 3,
       foods,
       currentSession: entries,
       photoItems,
@@ -369,6 +380,7 @@ export default function App() {
                 carbs: resolvedPayload.carbs,
                 fat: resolvedPayload.fat,
                 protein: resolvedPayload.protein,
+                nutritionScope: resolvedPayload.nutritionScope,
                 updatedAt: timestamp
               }
             : entry
@@ -391,6 +403,7 @@ export default function App() {
         carbs: resolvedPayload.carbs,
         fat: resolvedPayload.fat,
         protein: resolvedPayload.protein,
+        nutritionScope: resolvedPayload.nutritionScope,
         createdAt: timestamp,
         updatedAt: timestamp
       };
@@ -496,6 +509,7 @@ export default function App() {
       carbs?: number;
       fat?: number;
       protein?: number;
+      nutritionScope?: NutritionScope;
     }
   ) {
     const trimmedName = payload.name.trim();
@@ -526,7 +540,8 @@ export default function App() {
               calories: payload.calories,
               carbs: payload.carbs,
               fat: payload.fat,
-              protein: payload.protein
+              protein: payload.protein,
+              nutritionScope: payload.nutritionScope
             }
           : food
       )
@@ -788,7 +803,8 @@ export default function App() {
             calories: linkedEntry?.calories,
             carbs: linkedEntry?.carbs,
             fat: linkedEntry?.fat,
-            protein: linkedEntry?.protein
+            protein: linkedEntry?.protein,
+            nutritionScope: linkedEntry?.nutritionScope
           },
           photo.linkedEntryId
         );

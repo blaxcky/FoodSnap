@@ -3,8 +3,24 @@ import {
   formatNumber,
   isAfterWeightPending,
   isBeforeWeightPending,
-  isEntryDeleted
+  isEntryDeleted,
+  normalizeNutritionScope
 } from './utils';
+
+function formatNutritionDetail(
+  value: number | undefined,
+  label: string,
+  unitSuffix: string,
+  nutritionScope: SessionEntry['nutritionScope']
+) {
+  if (value == null) {
+    return null;
+  }
+
+  const formattedScope =
+    normalizeNutritionScope(nutritionScope) === 'total' ? 'gesamt' : 'je 100g';
+  return `${formatNumber(value)}${unitSuffix} ${label} ${formattedScope}`;
+}
 
 function getDetails(entry: SessionEntry) {
   const details: string[] = [];
@@ -13,21 +29,15 @@ function getDetails(entry: SessionEntry) {
     details.push(entry.note.trim());
   }
 
-  if (entry.calories != null) {
-    details.push(`${formatNumber(entry.calories)} kcal`);
-  }
+  const nutritionScope = entry.nutritionScope;
+  const nutritionDetails = [
+    formatNutritionDetail(entry.calories, 'kcal', '', nutritionScope),
+    formatNutritionDetail(entry.carbs, 'Kohlenhydrate', 'g', nutritionScope),
+    formatNutritionDetail(entry.fat, 'Fett', 'g', nutritionScope),
+    formatNutritionDetail(entry.protein, 'Eiweiß', 'g', nutritionScope)
+  ].filter((detail): detail is string => detail != null);
 
-  if (entry.carbs != null) {
-    details.push(`${formatNumber(entry.carbs)}g Kohlenhydrate`);
-  }
-
-  if (entry.fat != null) {
-    details.push(`${formatNumber(entry.fat)}g Fett`);
-  }
-
-  if (entry.protein != null) {
-    details.push(`${formatNumber(entry.protein)}g Eiweiß`);
-  }
+  details.push(...nutritionDetails);
 
   return details;
 }

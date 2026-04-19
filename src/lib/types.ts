@@ -4,11 +4,14 @@ export type EntryUnit = 'g' | 'pcs';
 
 export type PhotoStatus = 'pending' | 'archived';
 
+export type NutritionScope = 'per100g' | 'total';
+
 export interface NutritionFields {
   calories?: number;
   carbs?: number;
   fat?: number;
   protein?: number;
+  nutritionScope?: NutritionScope;
 }
 
 export interface FoodProfile extends NutritionFields {
@@ -63,7 +66,7 @@ export interface PhotoItem {
 }
 
 export interface PersistedAppState {
-  version: 2;
+  version: 3;
   foods: FoodProfile[];
   currentSession: SessionEntry[];
   photoItems: PhotoItem[];

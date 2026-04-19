@@ -1,12 +1,13 @@
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { SearchIcon } from './Icons';
 import { getFoodSuggestions } from '../lib/search';
-import type { EntryPayload, FoodProfile, SessionEntry } from '../lib/types';
+import type { EntryPayload, FoodProfile, NutritionScope, SessionEntry } from '../lib/types';
 import {
   applyNutritionDefaults,
   findFoodProfile,
   isAfterWeightPending,
-  isBeforeWeightPending
+  isBeforeWeightPending,
+  normalizeNutritionScope
 } from '../lib/utils';
 
 interface EditEntryModalProps {
@@ -26,6 +27,7 @@ interface EditorState {
   carbs: string;
   fat: string;
   protein: string;
+  nutritionScope: NutritionScope;
 }
 
 function formatNutritionInputValue(value: number | undefined) {
@@ -40,7 +42,8 @@ function mapEntryToState(entry: SessionEntry, foods: FoodProfile[]): EditorState
       calories: entry.calories,
       carbs: entry.carbs,
       fat: entry.fat,
-      protein: entry.protein
+      protein: entry.protein,
+      nutritionScope: entry.nutritionScope
     },
     rememberedFood
   );
@@ -60,7 +63,8 @@ function mapEntryToState(entry: SessionEntry, foods: FoodProfile[]): EditorState
     calories: formatNutritionInputValue(nutrition.calories),
     carbs: formatNutritionInputValue(nutrition.carbs),
     fat: formatNutritionInputValue(nutrition.fat),
-    protein: formatNutritionInputValue(nutrition.protein)
+    protein: formatNutritionInputValue(nutrition.protein),
+    nutritionScope: normalizeNutritionScope(nutrition.nutritionScope)
   };
 }
 
@@ -98,6 +102,7 @@ export function EditEntryModal({
   const carbsInputId = useId();
   const fatInputId = useId();
   const proteinInputId = useId();
+  const nutritionScopeInputId = useId();
 
   const foodInputRef = useRef<HTMLInputElement>(null);
   const beforeInputRef = useRef<HTMLInputElement>(null);
@@ -212,7 +217,8 @@ export function EditEntryModal({
         calories: caloriesResult.value,
         carbs: carbsResult.value,
         fat: fatResult.value,
-        protein: proteinResult.value
+        protein: proteinResult.value,
+        nutritionScope: form.nutritionScope
       });
       return;
     }
@@ -236,7 +242,8 @@ export function EditEntryModal({
         calories: caloriesResult.value,
         carbs: carbsResult.value,
         fat: fatResult.value,
-        protein: proteinResult.value
+        protein: proteinResult.value,
+        nutritionScope: form.nutritionScope
       });
       return;
     }
@@ -271,7 +278,8 @@ export function EditEntryModal({
       calories: caloriesResult.value,
       carbs: carbsResult.value,
       fat: fatResult.value,
-      protein: proteinResult.value
+      protein: proteinResult.value,
+      nutritionScope: form.nutritionScope
     });
   }
 
@@ -286,7 +294,8 @@ export function EditEntryModal({
       calories: formatNutritionInputValue(food.calories),
       carbs: formatNutritionInputValue(food.carbs),
       fat: formatNutritionInputValue(food.fat),
-      protein: formatNutritionInputValue(food.protein)
+      protein: formatNutritionInputValue(food.protein),
+      nutritionScope: normalizeNutritionScope(food.nutritionScope)
     }));
     setError('');
     setSuggestionsOpen(false);
@@ -686,6 +695,26 @@ export function EditEntryModal({
           </label>
         </div>
 
+        <label
+          className="pending-after-inline nutrition-scope-toggle modal-nutrition-scope-toggle"
+          htmlFor={nutritionScopeInputId}
+        >
+          <input
+            id={nutritionScopeInputId}
+            className="pending-after-checkbox pending-after-checkbox-inline"
+            type="checkbox"
+            checked={form.nutritionScope === 'total'}
+            onChange={(event) => {
+              setForm((current) => ({
+                ...current,
+                nutritionScope: event.target.checked ? 'total' : 'per100g'
+              }));
+              setError('');
+            }}
+          />
+          <span>Total amount</span>
+        </label>
+
         <label className="field modal-note-field">
           <span className="field-label">
             Note <span className="field-label-optional">(opt)</span>
@@ -702,8 +731,8 @@ export function EditEntryModal({
         </label>
 
         <p className="helper-copy">
-          Note and nutrition details are appended in parentheses in the text export, for example
-          `Schnitzel (Hendl, 520 kcal, 12g Kohlenhydrate, 28g Fett, 41g Eiweiß)`.
+          Nutrition defaults to per 100g. Enable Total amount if the values apply to the entire
+          portion. Exported details include that scope in parentheses.
         </p>
 
         <div className="modal-actions">
