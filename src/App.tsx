@@ -247,6 +247,11 @@ export default function App() {
     [isLogAggregated, logEntries]
   );
 
+  const historyListItems = useMemo(
+    () => (isLogAggregated ? getAggregatedSessionListItems(entries) : undefined),
+    [entries, isLogAggregated]
+  );
+
   const pendingPhotos = useMemo(
     () =>
       [...photoItems]
@@ -901,9 +906,12 @@ export default function App() {
           <SessionList
             entries={entries}
             mode="history"
+            aggregatedItems={historyListItems}
+            isAggregated={isLogAggregated}
             editingEntryId={editingEntryId}
             onEdit={startEditing}
             onDelete={handleDelete}
+            onDeleteMany={handleDeleteMany}
             onRestore={handleRestore}
             onOpenPhoto={handleOpenLinkedPhoto}
           />
