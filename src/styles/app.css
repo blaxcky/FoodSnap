@@ -432,6 +432,35 @@ button {
   text-transform: uppercase;
 }
 
+.section-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.log-aggregate-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 8px 4px 10px;
+  border: 1px solid var(--border-vis);
+  border-radius: var(--r-pill);
+  background: var(--bg-raised);
+  color: var(--text-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.log-aggregate-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
 /* ---- Form Fields ---- */
 .field-stack,
 .field {

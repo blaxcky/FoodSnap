@@ -8,7 +8,8 @@ export const defaultAppState: PersistedAppState = {
   foods: [],
   currentSession: [],
   photoItems: [],
-  exportLeadIn: ''
+  exportLeadIn: '',
+  isLogAggregated: false
 };
 
 function isSessionEntry(value: unknown): value is SessionEntry {
@@ -120,7 +121,8 @@ export function loadAppState(): PersistedAppState {
         ? parsed.currentSession.filter(isSessionEntry)
         : [],
       photoItems: Array.isArray(parsed.photoItems) ? parsed.photoItems.filter(isPhotoItem) : [],
-      exportLeadIn: typeof parsed.exportLeadIn === 'string' ? parsed.exportLeadIn : ''
+      exportLeadIn: typeof parsed.exportLeadIn === 'string' ? parsed.exportLeadIn : '',
+      isLogAggregated: typeof parsed.isLogAggregated === 'boolean' ? parsed.isLogAggregated : false
     };
   } catch {
     return defaultAppState;

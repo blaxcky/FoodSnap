@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckIcon, PencilIcon, PhotoIcon } from './Icons';
 import { copyTextToClipboard } from '../lib/clipboard';
+import type { AggregatedSessionListItem } from '../lib/sessionAggregation';
 import type { SessionEntry } from '../lib/types';
 import {
   formatEntryMeta,
@@ -14,23 +15,32 @@ import {
 interface SessionListProps {
   mode: 'log' | 'history';
   entries: SessionEntry[];
+  aggregatedItems?: AggregatedSessionListItem[];
+  isAggregated?: boolean;
   editingEntryId: string | null;
   onEdit: (entryId: string) => void;
   onDelete: (entryId: string) => void;
+  onDeleteMany?: (entryIds: string[]) => void;
   onRestore: (entryId: string) => void;
   onOpenPhoto: (photoId: string) => void;
+  onToggleAggregated?: (isAggregated: boolean) => void;
 }
 
 export function SessionList({
   mode,
   entries,
+  aggregatedItems,
+  isAggregated = false,
   editingEntryId,
   onEdit,
   onDelete,
+  onDeleteMany,
   onRestore,
-  onOpenPhoto
+  onOpenPhoto,
+  onToggleAggregated
 }: SessionListProps) {
   const isHistory = mode === 'history';
+  const listItems = aggregatedItems ?? entries.map((entry) => ({ type: 'single', entry }) as const);
   const [clipboardFeedback, setClipboardFeedback] = useState<{
     entryId: string;
     tone: 'copied' | 'error';
@@ -66,10 +76,22 @@ export function SessionList({
         <div>
           <p className="section-kicker">{isHistory ? 'History' : 'Current session'}</p>
         </div>
-        <span className="status-badge">{isHistory ? 'Archive' : 'Active'}</span>
+        <div className="section-heading-actions">
+          {!isHistory && onToggleAggregated ? (
+            <label className="log-aggregate-toggle">
+              <span>Addieren</span>
+              <input
+                type="checkbox"
+                checked={isAggregated}
+                onChange={(event) => onToggleAggregated(event.target.checked)}
+              />
+            </label>
+          ) : null}
+          <span className="status-badge">{isHistory ? 'Archive' : 'Active'}</span>
+        </div>
       </div>
 
-      {entries.length === 0 ? (
+      {listItems.length === 0 ? (
         <div className="empty-state">
           <p>{isHistory ? 'No history yet.' : 'No entries yet.'}</p>
           <span>
@@ -80,7 +102,62 @@ export function SessionList({
         </div>
       ) : (
         <div className="entry-list">
-          {entries.map((entry) => {
+          {listItems.map((item) => {
+            if (item.type === 'aggregate') {
+              const { group } = item;
+              const amountSummary = `${formatNumber(group.amount)}g`;
+              const entryIds = group.entries.map((entry) => entry.id);
+              const clipboardFeedbackMessage =
+                clipboardFeedback?.entryId === group.id
+                  ? clipboardFeedback.tone === 'copied'
+                    ? 'Copied to clipboard'
+                    : 'Clipboard access failed'
+                  : null;
+
+              return (
+                <article key={group.id} className="entry-card aggregate">
+                  <div className="entry-row">
+                    <div className="entry-main">
+                      <h3>
+                        <button
+                          className="food-name-button"
+                          type="button"
+                          onClick={() => handleCopyFoodName(group.id, group.foodName)}
+                          aria-label={`Copy ${group.foodName} to clipboard`}
+                        >
+                          {group.foodName}
+                        </button>
+                      </h3>
+                      <p>{amountSummary}</p>
+                      {clipboardFeedbackMessage ? (
+                        <p
+                          className={`inline-feedback${clipboardFeedback?.tone === 'error' ? ' is-error' : ''}`}
+                        >
+                          {clipboardFeedbackMessage}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="entry-actions">
+                      <button
+                        className="icon-action"
+                        type="button"
+                        onClick={() => onDeleteMany?.(entryIds)}
+                        aria-label={`Hide all entries for ${amountSummary} ${group.foodName} from log and export`}
+                      >
+                        <CheckIcon className="ui-icon" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {group.details.length > 0 ? (
+                    <p className="entry-note">{group.details.join(', ')}</p>
+                  ) : null}
+                </article>
+              );
+            }
+
+            const { entry } = item;
             const pendingBeforeWeight = isBeforeWeightPending(entry);
             const pendingAfterWeight = isAfterWeightPending(entry);
             const deleted = isEntryDeleted(entry);

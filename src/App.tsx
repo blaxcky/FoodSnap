@@ -27,6 +27,7 @@ import {
 } from './lib/photoStorage';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from './lib/pwa';
+import { getAggregatedSessionListItems } from './lib/sessionAggregation';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
 import type { ThemePreference } from './lib/theme';
@@ -144,6 +145,7 @@ export default function App() {
   const [entries, setEntries] = useState<SessionEntry[]>(defaultAppState.currentSession);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>(defaultAppState.photoItems);
   const [exportLeadIn, setExportLeadIn] = useState(defaultAppState.exportLeadIn);
+  const [isLogAggregated, setIsLogAggregated] = useState(defaultAppState.isLogAggregated);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
@@ -174,6 +176,7 @@ export default function App() {
     setEntries(normalizeLoadedEntries(state.currentSession));
     setPhotoItems(state.photoItems);
     setExportLeadIn(state.exportLeadIn);
+    setIsLogAggregated(state.isLogAggregated);
     setIsHydrated(true);
   }, []);
 
@@ -187,9 +190,10 @@ export default function App() {
       foods,
       currentSession: entries,
       photoItems,
-      exportLeadIn
+      exportLeadIn,
+      isLogAggregated
     });
-  }, [foods, entries, photoItems, exportLeadIn, isHydrated]);
+  }, [foods, entries, photoItems, exportLeadIn, isLogAggregated, isHydrated]);
 
   useEffect(() => {
     applyTheme(themePreference);
@@ -236,6 +240,11 @@ export default function App() {
   const logEntries = useMemo(
     () => entries.filter((entry) => !isEntryDeleted(entry)),
     [entries]
+  );
+
+  const logListItems = useMemo(
+    () => (isLogAggregated ? getAggregatedSessionListItems(logEntries) : undefined),
+    [isLogAggregated, logEntries]
   );
 
   const pendingPhotos = useMemo(
@@ -470,6 +479,28 @@ export default function App() {
       )
     );
     if (editingEntryId === entryId) {
+      closeInputDialog();
+    }
+    setCopyState('idle');
+  }
+
+  function handleDeleteMany(entryIds: string[]) {
+    const timestamp = nowIso();
+    const targetEntryIds = new Set(entryIds);
+
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        targetEntryIds.has(entry.id)
+          ? {
+              ...entry,
+              deletedAt: timestamp,
+              undoExpiresAt: undefined,
+              updatedAt: timestamp
+            }
+          : entry
+      )
+    );
+    if (editingEntryId && targetEntryIds.has(editingEntryId)) {
       closeInputDialog();
     }
     setCopyState('idle');
@@ -852,11 +883,15 @@ export default function App() {
           <SessionList
             mode="log"
             entries={logEntries}
+            aggregatedItems={logListItems}
+            isAggregated={isLogAggregated}
             editingEntryId={editingEntryId}
             onEdit={startEditing}
             onDelete={handleDelete}
+            onDeleteMany={handleDeleteMany}
             onRestore={handleRestore}
             onOpenPhoto={handleOpenLinkedPhoto}
+            onToggleAggregated={setIsLogAggregated}
           />
         </section>
       ) : null}

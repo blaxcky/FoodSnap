@@ -71,4 +71,5 @@ export interface PersistedAppState {
   currentSession: SessionEntry[];
   photoItems: PhotoItem[];
   exportLeadIn: string;
+  isLogAggregated: boolean;
 }
