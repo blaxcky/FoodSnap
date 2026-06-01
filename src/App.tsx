@@ -248,7 +248,7 @@ export default function App() {
   );
 
   const historyListItems = useMemo(
-    () => (isLogAggregated ? getAggregatedSessionListItems(entries) : undefined),
+    () => (isLogAggregated ? getAggregatedSessionListItems(entries, { includeDeleted: true }) : undefined),
     [entries, isLogAggregated]
   );
 
@@ -517,6 +517,25 @@ export default function App() {
     setEntries((currentEntries) =>
       currentEntries.map((entry) =>
         entry.id === entryId
+          ? {
+              ...entry,
+              deletedAt: undefined,
+              undoExpiresAt: undefined,
+              updatedAt: timestamp
+            }
+          : entry
+      )
+    );
+    setCopyState('idle');
+  }
+
+  function handleRestoreMany(entryIds: string[]) {
+    const timestamp = nowIso();
+    const targetEntryIds = new Set(entryIds);
+
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        targetEntryIds.has(entry.id)
           ? {
               ...entry,
               deletedAt: undefined,
@@ -895,6 +914,7 @@ export default function App() {
             onDelete={handleDelete}
             onDeleteMany={handleDeleteMany}
             onRestore={handleRestore}
+            onRestoreMany={handleRestoreMany}
             onOpenPhoto={handleOpenLinkedPhoto}
             onToggleAggregated={setIsLogAggregated}
           />
@@ -913,6 +933,7 @@ export default function App() {
             onDelete={handleDelete}
             onDeleteMany={handleDeleteMany}
             onRestore={handleRestore}
+            onRestoreMany={handleRestoreMany}
             onOpenPhoto={handleOpenLinkedPhoto}
           />
         </section>

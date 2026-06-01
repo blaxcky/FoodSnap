@@ -22,6 +22,7 @@ interface SessionListProps {
   onDelete: (entryId: string) => void;
   onDeleteMany?: (entryIds: string[]) => void;
   onRestore: (entryId: string) => void;
+  onRestoreMany?: (entryIds: string[]) => void;
   onOpenPhoto: (photoId: string) => void;
   onToggleAggregated?: (isAggregated: boolean) => void;
 }
@@ -36,6 +37,7 @@ export function SessionList({
   onDelete,
   onDeleteMany,
   onRestore,
+  onRestoreMany,
   onOpenPhoto,
   onToggleAggregated
 }: SessionListProps) {
@@ -107,6 +109,7 @@ export function SessionList({
               const { group } = item;
               const amountSummary = `${formatNumber(group.amount)}g`;
               const entryIds = group.entries.map((entry) => entry.id);
+              const deleted = group.entries.every((entry) => isEntryDeleted(entry));
               const clipboardFeedbackMessage =
                 clipboardFeedback?.entryId === group.id
                   ? clipboardFeedback.tone === 'copied'
@@ -115,7 +118,7 @@ export function SessionList({
                   : null;
 
               return (
-                <article key={group.id} className="entry-card aggregate">
+                <article key={group.id} className={`entry-card aggregate${deleted ? ' deleted' : ''}`}>
                   <div className="entry-row">
                     <div className="entry-main">
                       <h3>
@@ -139,16 +142,32 @@ export function SessionList({
                     </div>
 
                     <div className="entry-actions">
-                      <button
-                        className="icon-action"
-                        type="button"
-                        onClick={() => onDeleteMany?.(entryIds)}
-                        aria-label={`Hide all entries for ${amountSummary} ${group.foodName} from log and export`}
-                      >
-                        <CheckIcon className="ui-icon" />
-                      </button>
+                      {deleted ? (
+                        <button
+                          className="ghost-button compact"
+                          type="button"
+                          onClick={() => onRestoreMany?.(entryIds)}
+                        >
+                          Restore
+                        </button>
+                      ) : (
+                        <button
+                          className="icon-action"
+                          type="button"
+                          onClick={() => onDeleteMany?.(entryIds)}
+                          aria-label={`Hide all entries for ${amountSummary} ${group.foodName} from log and export`}
+                        >
+                          <CheckIcon className="ui-icon" />
+                        </button>
+                      )}
                     </div>
                   </div>
+
+                  {deleted ? (
+                    <p className="entry-note entry-note-deleted">
+                      Hidden from Log and excluded from export. Restore to include it again.
+                    </p>
+                  ) : null}
 
                   {group.details.length > 0 ? (
                     <p className="entry-note">{group.details.join(', ')}</p>

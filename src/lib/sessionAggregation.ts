@@ -25,6 +25,10 @@ export type AggregatedSessionListItem =
       group: AggregatedSessionEntry;
     };
 
+interface SessionAggregationOptions {
+  includeDeleted?: boolean;
+}
+
 function formatNutritionDetail(
   value: number | undefined,
   label: string,
@@ -69,21 +73,29 @@ export function canAggregateSessionEntry(entry: SessionEntry) {
   return entry.unit === 'g' && !isBeforeWeightPending(entry) && !isAfterWeightPending(entry);
 }
 
-export function getSessionEntryAggregationKey(entry: SessionEntry, details = getSessionEntryDetails(entry)) {
-  return `${entry.foodName}\u0000${details.join('\u0001')}`;
+export function getSessionEntryAggregationKey(
+  entry: SessionEntry,
+  details = getSessionEntryDetails(entry),
+  options: SessionAggregationOptions = {}
+) {
+  const deletionState = options.includeDeleted ? `${isEntryDeleted(entry) ? 'deleted' : 'active'}\u0000` : '';
+  return `${deletionState}${entry.foodName}\u0000${details.join('\u0001')}`;
 }
 
-export function aggregateSessionEntries(entries: SessionEntry[]) {
+export function aggregateSessionEntries(
+  entries: SessionEntry[],
+  options: SessionAggregationOptions = {}
+) {
   const aggregatedEntries = new Map<string, AggregatedSessionEntry>();
   const orderedKeys: string[] = [];
 
   for (const entry of entries) {
-    if (isEntryDeleted(entry) || !canAggregateSessionEntry(entry)) {
+    if ((!options.includeDeleted && isEntryDeleted(entry)) || !canAggregateSessionEntry(entry)) {
       continue;
     }
 
     const details = getSessionEntryDetails(entry);
-    const aggregationKey = getSessionEntryAggregationKey(entry, details);
+    const aggregationKey = getSessionEntryAggregationKey(entry, details, options);
     const existingEntry = aggregatedEntries.get(aggregationKey);
 
     if (existingEntry) {
@@ -105,18 +117,21 @@ export function aggregateSessionEntries(entries: SessionEntry[]) {
   return { aggregatedEntries, orderedKeys };
 }
 
-export function getAggregatedSessionListItems(entries: SessionEntry[]): AggregatedSessionListItem[] {
-  const { aggregatedEntries } = aggregateSessionEntries(entries);
+export function getAggregatedSessionListItems(
+  entries: SessionEntry[],
+  options: SessionAggregationOptions = {}
+): AggregatedSessionListItem[] {
+  const { aggregatedEntries } = aggregateSessionEntries(entries, options);
   const usedAggregationKeys = new Set<string>();
   const items: AggregatedSessionListItem[] = [];
 
   for (const entry of entries) {
-    if (isEntryDeleted(entry) || !canAggregateSessionEntry(entry)) {
+    if ((!options.includeDeleted && isEntryDeleted(entry)) || !canAggregateSessionEntry(entry)) {
       items.push({ type: 'single', entry });
       continue;
     }
 
-    const aggregationKey = getSessionEntryAggregationKey(entry);
+    const aggregationKey = getSessionEntryAggregationKey(entry, undefined, options);
     const aggregatedEntry = aggregatedEntries.get(aggregationKey);
 
     if (!aggregatedEntry || aggregatedEntry.entries.length < 2) {
