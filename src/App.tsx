@@ -1150,6 +1150,7 @@ export default function App() {
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="visually-hidden"
         onChange={(event) => {
           void handlePhotoInputChange(event);
