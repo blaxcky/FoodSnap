@@ -885,22 +885,24 @@ export default function App() {
 
   return (
     <main className={`app-shell${isPhotoDetailActive ? ' app-shell-photo-detail' : ''}`}>
-      <header className="app-header">
-        <div className="brand-markup">
-          <span className="brand-icon">
-            <BoltIcon className="brand-bolt" />
-          </span>
-          <strong>FoodSnap</strong>
-        </div>
-        <button
-          className="top-icon-button"
-          type="button"
-          onClick={() => setActiveTab('settings')}
-          aria-label="Open settings"
-        >
-          <SettingsIcon className="ui-icon" />
-        </button>
-      </header>
+      {!isPhotoDetailActive ? (
+        <header className="app-header">
+          <div className="brand-markup">
+            <span className="brand-icon">
+              <BoltIcon className="brand-bolt" />
+            </span>
+            <strong>FoodSnap</strong>
+          </div>
+          <button
+            className="top-icon-button"
+            type="button"
+            onClick={() => setActiveTab('settings')}
+            aria-label="Open settings"
+          >
+            <SettingsIcon className="ui-icon" />
+          </button>
+        </header>
+      ) : null}
 
       {activeTab === 'log' ? (
         <section className="screen-section muted-section screen-section-log">

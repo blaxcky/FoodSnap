@@ -300,22 +300,6 @@ function PhotoDetail({
 
   return (
     <section ref={detailScreenRef} className="photo-detail-screen">
-      <div className="section-heading photo-detail-heading">
-        <div className="photo-detail-heading-copy">
-          <button className="ghost-button compact photo-back-button" type="button" onClick={onBack}>
-            <ArrowLeftIcon className="ui-icon" />
-            <span>Back</span>
-          </button>
-          <div>
-            <p className="section-kicker">Photos</p>
-            <h2>{photo.status === 'pending' ? 'Process photo' : 'Archived photo'}</h2>
-          </div>
-        </div>
-        <span className={`status-badge photo-status-badge photo-status-${photo.status}`}>
-          {photo.status === 'pending' ? 'Open' : 'Archived'}
-        </span>
-      </div>
-
       <div className="photo-detail-card">
         <div className="photo-detail-media">
           <StoredPhoto
@@ -459,6 +443,10 @@ function PhotoDetail({
                 : isBusy
                 ? 'Saving...'
                 : 'Update photo'}
+            </button>
+            <button className="ghost-button photo-back-button" type="button" onClick={onBack}>
+              <ArrowLeftIcon className="ui-icon" />
+              <span>Back</span>
             </button>
           </div>
         </form>
