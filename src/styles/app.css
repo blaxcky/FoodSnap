@@ -1984,51 +1984,20 @@ button {
   text-transform: uppercase;
 }
 
-.photo-detail-name-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-raised);
-}
-
-.photo-detail-name-summary div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.photo-detail-name-summary span {
-  color: var(--text-3);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.photo-detail-name-summary strong {
-  overflow: hidden;
-  color: var(--ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.photo-detail-name-summary button {
-  flex: 0 0 auto;
-}
-
 .photo-detail-error {
   margin: 0;
 }
 
-.screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-form {
+.photo-detail-change-name {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-active-field {
   position: sticky;
   bottom: 0;
   z-index: 20;
-  padding: 14px;
+  padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--dropdown-bg);
@@ -2044,7 +2013,7 @@ button {
   overflow-y: auto;
 }
 
-.photo-detail-form .field {
+.photo-detail-active-field {
   scroll-margin-block: 12px;
 }
 

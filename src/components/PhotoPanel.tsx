@@ -381,7 +381,9 @@ function PhotoDetail({
       input?.focus();
       if (input) {
         selectEditableText(input);
-        input.closest('.field')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        input
+          .closest('.photo-detail-active-field')
+          ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
     });
 
@@ -423,7 +425,7 @@ function PhotoDetail({
           activeElement === foodInputRef.current || activeElement === weightInputRef.current
             ? activeElement
             : null;
-        const activeField = activeInput?.closest('.field');
+        const activeField = activeInput?.closest('.photo-detail-active-field');
 
         if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
           activeField.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -488,11 +490,13 @@ function PhotoDetail({
         scrollContainer.classList.toggle('photo-detail-keyboard-open', keyboardOpen);
 
         fieldFrameId = window.requestAnimationFrame(() => {
-          const activeField = activeInput?.closest('.field');
+          const activeField = activeInput?.closest('.photo-detail-active-field');
 
           if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
-            (keyboardOpen ? detailScreenRef.current?.querySelector('.photo-detail-form') : activeField)
-              ?.scrollIntoView({ block: keyboardOpen ? 'end' : 'nearest', inline: 'nearest' });
+            activeField.scrollIntoView({
+              block: keyboardOpen ? 'end' : 'nearest',
+              inline: 'nearest'
+            });
           }
         });
       });
@@ -609,91 +613,95 @@ function PhotoDetail({
           </p>
 
           {step === 'food' ? (
-            <div className="field-stack autocomplete-shell">
-              <div className="field">
-                <span className="field-label" id="photo-food-label">
-                  Food
-                </span>
-                <div className="search-field">
-                  <SingleLineEditable
-                    elementRef={foodInputRef}
-                    className="field-input field-input-lg"
-                    labelledBy="photo-food-label"
-                    enterKeyHint="next"
-                    inputMode="text"
-                    placeholder="Enter food name..."
-                    value={foodName}
-                    ariaInvalid={Boolean(error)}
-                    describedBy={error ? 'photo-food-error' : undefined}
-                    disabled={isBusy}
-                    onValueChange={(value) => {
-                      setFoodName(value);
-                      setError('');
-                      setSuggestionsOpen(true);
-                      setHighlightedIndex(0);
-                    }}
-                    onFocus={() => setSuggestionsOpen(true)}
-                    onBlur={() => {
-                      window.setTimeout(() => setSuggestionsOpen(false), 120);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'ArrowDown' && suggestions.length > 0) {
-                        event.preventDefault();
-                        setHighlightedIndex((current) => (current + 1) % suggestions.length);
-                        return;
-                      }
-
-                      if (event.key === 'ArrowUp' && suggestions.length > 0) {
-                        event.preventDefault();
-                        setHighlightedIndex((current) =>
-                          current === 0 ? suggestions.length - 1 : current - 1
-                        );
-                        return;
-                      }
-
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        continueToWeight();
-                      }
-
-                      if (event.key === 'Escape') {
-                        setSuggestionsOpen(false);
-                      }
-                    }}
-                  />
-                  <span className="field-icon" aria-hidden="true">
-                    <SearchIcon className="ui-icon search-icon-strong" />
+            <div className="photo-detail-active-field">
+              <div className="field-stack autocomplete-shell">
+                <div className="field">
+                  <span className="field-label" id="photo-food-label">
+                    Food
                   </span>
-                </div>
-              </div>
+                  <div className="search-field">
+                    <SingleLineEditable
+                      elementRef={foodInputRef}
+                      className="field-input field-input-lg"
+                      labelledBy="photo-food-label"
+                      enterKeyHint="next"
+                      inputMode="text"
+                      placeholder="Enter food name..."
+                      value={foodName}
+                      ariaInvalid={Boolean(error)}
+                      describedBy={error ? 'photo-food-error' : undefined}
+                      disabled={isBusy}
+                      onValueChange={(value) => {
+                        setFoodName(value);
+                        setError('');
+                        setSuggestionsOpen(true);
+                        setHighlightedIndex(0);
+                      }}
+                      onFocus={() => setSuggestionsOpen(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => setSuggestionsOpen(false), 120);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'ArrowDown' && suggestions.length > 0) {
+                          event.preventDefault();
+                          setHighlightedIndex((current) => (current + 1) % suggestions.length);
+                          return;
+                        }
 
-              {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
-                <div className="suggestions-dropdown photo-detail-suggestions">
-                  <div className="suggestions" role="listbox" aria-label="Food suggestions">
-                    {suggestions.map((food, index) => (
-                      <button
-                        key={food.id}
-                        className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => applyFoodSuggestion(food.name)}
-                      >
-                        <span className="suggestion-copy">
-                          <strong>{food.name}</strong>
-                        </span>
-                      </button>
-                    ))}
+                        if (event.key === 'ArrowUp' && suggestions.length > 0) {
+                          event.preventDefault();
+                          setHighlightedIndex((current) =>
+                            current === 0 ? suggestions.length - 1 : current - 1
+                          );
+                          return;
+                        }
+
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          continueToWeight();
+                        }
+
+                        if (event.key === 'Escape') {
+                          setSuggestionsOpen(false);
+                        }
+                      }}
+                    />
+                    <span className="field-icon" aria-hidden="true">
+                      <SearchIcon className="ui-icon search-icon-strong" />
+                    </span>
                   </div>
+
+                  {error ? (
+                    <p className="error-copy photo-detail-error" id="photo-food-error" role="alert">
+                      {error}
+                    </p>
+                  ) : null}
                 </div>
-              ) : null}
+
+                {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
+                  <div className="suggestions-dropdown photo-detail-suggestions">
+                    <div className="suggestions" role="listbox" aria-label="Food suggestions">
+                      {suggestions.map((food, index) => (
+                        <button
+                          key={food.id}
+                          className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => applyFoodSuggestion(food.name)}
+                        >
+                          <span className="suggestion-copy">
+                            <strong>{food.name}</strong>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : (
             <>
-              <div className="photo-detail-name-summary">
-                <div>
-                  <span>Food</span>
-                  <strong>{foodName.trim()}</strong>
-                </div>
+              <div className="photo-detail-change-name">
                 <button
                   className="ghost-button compact"
                   type="button"
@@ -707,36 +715,48 @@ function PhotoDetail({
                 </button>
               </div>
 
-              <div className="field">
-                <span className="field-label" id="photo-weight-label">
-                  Weight
-                </span>
-                <div className="input-suffix-shell">
-                  <SingleLineEditable
-                    elementRef={weightInputRef}
-                    className="field-input number-field field-input-with-suffix"
-                    labelledBy="photo-weight-label"
-                    enterKeyHint="done"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={weightGrams}
-                    ariaInvalid={Boolean(error)}
-                    describedBy={error ? 'photo-weight-error' : undefined}
-                    disabled={isBusy}
-                    onValueChange={(value) => {
-                      setWeightGrams(value);
-                      setError('');
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        submitForm();
-                      }
-                    }}
-                  />
-                  <span className="input-suffix" aria-hidden="true">
-                    g
+              <div className="photo-detail-active-field">
+                <div className="field">
+                  <span className="field-label" id="photo-weight-label">
+                    Weight
                   </span>
+                  <div className="input-suffix-shell">
+                    <SingleLineEditable
+                      elementRef={weightInputRef}
+                      className="field-input number-field field-input-with-suffix"
+                      labelledBy="photo-weight-label"
+                      enterKeyHint="done"
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={weightGrams}
+                      ariaInvalid={Boolean(error)}
+                      describedBy={error ? 'photo-weight-error' : undefined}
+                      disabled={isBusy}
+                      onValueChange={(value) => {
+                        setWeightGrams(value);
+                        setError('');
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          submitForm();
+                        }
+                      }}
+                    />
+                    <span className="input-suffix" aria-hidden="true">
+                      g
+                    </span>
+                  </div>
+
+                  {error ? (
+                    <p
+                      className="error-copy photo-detail-error"
+                      id="photo-weight-error"
+                      role="alert"
+                    >
+                      {error}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </>
@@ -747,16 +767,6 @@ function PhotoDetail({
               {photo.status === 'pending'
                 ? 'Save to archive the photo and create a normal log entry.'
                 : 'Changes here stay synced with the linked log entry while it remains a direct gram entry.'}
-            </p>
-          ) : null}
-
-          {error ? (
-            <p
-              className="error-copy photo-detail-error"
-              id={step === 'food' ? 'photo-food-error' : 'photo-weight-error'}
-              role="alert"
-            >
-              {error}
             </p>
           ) : null}
 
