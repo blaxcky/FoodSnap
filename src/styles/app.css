@@ -1938,7 +1938,7 @@ button {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   background: transparent;
-  transform: translateY(var(--photo-detail-viewport-offset-top, 0px));
+  margin-top: var(--photo-detail-viewport-offset-top, 0px);
 }
 
 .photo-detail-screen {
@@ -1975,15 +1975,6 @@ button {
   gap: 14px;
 }
 
-.photo-detail-step {
-  margin: 0;
-  color: var(--text-3);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .photo-detail-error {
   margin: 0;
 }
@@ -1993,10 +1984,20 @@ button {
   justify-content: flex-start;
 }
 
+.photo-detail-field-slot {
+  min-width: 0;
+}
+
+.screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-field-slot {
+  height: var(--photo-detail-field-height, 96px);
+}
+
 .screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-active-field {
-  position: sticky;
-  bottom: 0;
+  position: fixed;
+  top: calc(var(--photo-detail-keyboard-edge, 100dvh) - var(--photo-detail-field-height, 96px));
+  left: var(--photo-detail-field-left, 20px);
   z-index: 20;
+  width: var(--photo-detail-field-width, calc(100% - 40px));
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -2004,6 +2005,10 @@ button {
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+.screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-form {
+  padding-bottom: calc(var(--photo-detail-field-height, 96px) + 24px);
 }
 
 .screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-suggestions {

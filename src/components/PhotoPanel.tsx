@@ -357,6 +357,8 @@ function PhotoDetail({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const detailScreenRef = useRef<HTMLElement>(null);
+  const activeFieldSlotRef = useRef<HTMLDivElement>(null);
+  const activeFieldLayerRef = useRef<HTMLDivElement>(null);
   const foodInputRef = useRef<HTMLDivElement>(null);
   const weightInputRef = useRef<HTMLDivElement>(null);
   const deferredQuery = useDeferredValue(foodName);
@@ -418,46 +420,62 @@ function PhotoDetail({
       return;
     }
 
-    const focusActiveField = () => {
-      window.requestAnimationFrame(() => {
-        const activeElement = document.activeElement;
-        const activeInput =
-          activeElement === foodInputRef.current || activeElement === weightInputRef.current
-            ? activeElement
-            : null;
-        const activeField = activeInput?.closest('.photo-detail-active-field');
-
-        if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
-          activeField.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }
-      });
-    };
-
-    if (!viewport) {
-      const handleFocusIn = () => focusActiveField();
-      scrollContainer.addEventListener('focusin', handleFocusIn);
-      return () => scrollContainer.removeEventListener('focusin', handleFocusIn);
-    }
-
     const previousViewportHeight = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-height'
     );
     const previousViewportOffsetTop = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-offset-top'
     );
+    const previousKeyboardEdge = scrollContainer.style.getPropertyValue(
+      '--photo-detail-keyboard-edge'
+    );
+    const previousFieldHeight = scrollContainer.style.getPropertyValue(
+      '--photo-detail-field-height'
+    );
+    const previousFieldLeft = scrollContainer.style.getPropertyValue('--photo-detail-field-left');
+    const previousFieldWidth = scrollContainer.style.getPropertyValue(
+      '--photo-detail-field-width'
+    );
     const hadKeyboardClass = scrollContainer.classList.contains('photo-detail-keyboard-open');
     let viewportFrameId = 0;
     let fieldFrameId = 0;
     let baselineHeight = Math.max(
-      viewport.height,
+      viewport?.height ?? 0,
       window.innerHeight,
       document.documentElement.clientHeight
     );
     let orientation = window.screen.orientation?.angle ?? window.orientation ?? 0;
 
+    const updateFieldMetrics = () => {
+      window.cancelAnimationFrame(fieldFrameId);
+      fieldFrameId = window.requestAnimationFrame(() => {
+        const fieldLayer = activeFieldLayerRef.current;
+        const fieldSlot = activeFieldSlotRef.current;
+
+        if (!fieldLayer || !fieldSlot) {
+          return;
+        }
+
+        const fieldRect = fieldLayer.getBoundingClientRect();
+        const slotRect = fieldSlot.getBoundingClientRect();
+
+        scrollContainer.style.setProperty(
+          '--photo-detail-field-height',
+          `${fieldRect.height}px`
+        );
+        scrollContainer.style.setProperty(
+          '--photo-detail-field-left',
+          `${slotRect.left}px`
+        );
+        scrollContainer.style.setProperty(
+          '--photo-detail-field-width',
+          `${slotRect.width}px`
+        );
+      });
+    };
+
     const updateViewport = () => {
       window.cancelAnimationFrame(viewportFrameId);
-      window.cancelAnimationFrame(fieldFrameId);
       viewportFrameId = window.requestAnimationFrame(() => {
         const nextOrientation = window.screen.orientation?.angle ?? window.orientation ?? 0;
         const activeElement = document.activeElement;
@@ -465,46 +483,50 @@ function PhotoDetail({
           activeElement === foodInputRef.current || activeElement === weightInputRef.current
             ? activeElement
             : null;
+        const viewportHeight = viewport?.height ?? window.innerHeight;
+        const viewportOffsetTop = viewport?.offsetTop ?? 0;
 
         if (nextOrientation !== orientation) {
           orientation = nextOrientation;
           baselineHeight = Math.max(
-            viewport.height,
+            viewportHeight,
             window.innerHeight,
             navigator.maxTouchPoints > 0 ? window.screen.availHeight : 0
           );
         } else if (!activeInput) {
-          baselineHeight = Math.max(baselineHeight, viewport.height, window.innerHeight);
+          baselineHeight = Math.max(baselineHeight, viewportHeight, window.innerHeight);
         }
 
-        const keyboardOpen = Boolean(activeInput && baselineHeight - viewport.height >= 120);
+        const keyboardOpen = Boolean(activeInput && baselineHeight - viewportHeight >= 120);
 
         scrollContainer.style.setProperty(
           '--photo-detail-viewport-height',
-          `${Math.round(viewport.height)}px`
+          `${viewportHeight}px`
         );
         scrollContainer.style.setProperty(
           '--photo-detail-viewport-offset-top',
-          `${Math.round(viewport.offsetTop)}px`
+          `${viewportOffsetTop}px`
         );
+        scrollContainer.style.setProperty(
+          '--photo-detail-keyboard-edge',
+          `${viewportOffsetTop + viewportHeight}px`
+        );
+        updateFieldMetrics();
         scrollContainer.classList.toggle('photo-detail-keyboard-open', keyboardOpen);
-
-        fieldFrameId = window.requestAnimationFrame(() => {
-          const activeField = activeInput?.closest('.photo-detail-active-field');
-
-          if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
-            activeField.scrollIntoView({
-              block: keyboardOpen ? 'end' : 'nearest',
-              inline: 'nearest'
-            });
-          }
-        });
       });
     };
 
+    const fieldObserver = new ResizeObserver(updateFieldMetrics);
+    if (activeFieldLayerRef.current) {
+      fieldObserver.observe(activeFieldLayerRef.current);
+    }
+    if (activeFieldSlotRef.current) {
+      fieldObserver.observe(activeFieldSlotRef.current);
+    }
+
     updateViewport();
-    viewport.addEventListener('resize', updateViewport);
-    viewport.addEventListener('scroll', updateViewport);
+    viewport?.addEventListener('resize', updateViewport);
+    viewport?.addEventListener('scroll', updateViewport);
     window.addEventListener('resize', updateViewport);
     window.addEventListener('orientationchange', updateViewport);
     scrollContainer.addEventListener('focusin', updateViewport);
@@ -513,8 +535,9 @@ function PhotoDetail({
     return () => {
       window.cancelAnimationFrame(viewportFrameId);
       window.cancelAnimationFrame(fieldFrameId);
-      viewport.removeEventListener('resize', updateViewport);
-      viewport.removeEventListener('scroll', updateViewport);
+      fieldObserver.disconnect();
+      viewport?.removeEventListener('resize', updateViewport);
+      viewport?.removeEventListener('scroll', updateViewport);
       window.removeEventListener('resize', updateViewport);
       window.removeEventListener('orientationchange', updateViewport);
       scrollContainer.removeEventListener('focusin', updateViewport);
@@ -531,6 +554,26 @@ function PhotoDetail({
         );
       } else {
         scrollContainer.style.removeProperty('--photo-detail-viewport-offset-top');
+      }
+      if (previousKeyboardEdge) {
+        scrollContainer.style.setProperty('--photo-detail-keyboard-edge', previousKeyboardEdge);
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-keyboard-edge');
+      }
+      if (previousFieldHeight) {
+        scrollContainer.style.setProperty('--photo-detail-field-height', previousFieldHeight);
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-field-height');
+      }
+      if (previousFieldLeft) {
+        scrollContainer.style.setProperty('--photo-detail-field-left', previousFieldLeft);
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-field-left');
+      }
+      if (previousFieldWidth) {
+        scrollContainer.style.setProperty('--photo-detail-field-width', previousFieldWidth);
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-field-width');
       }
       scrollContainer.classList.toggle('photo-detail-keyboard-open', hadKeyboardClass);
     };
@@ -608,114 +651,118 @@ function PhotoDetail({
         </div>
 
         <div className="photo-detail-form" role="form" aria-label="Photo details">
-          <p className="photo-detail-step" aria-live="polite">
-            {step === 'food' ? 'Step 1 of 2 · Food name' : 'Step 2 of 2 · Weight'}
+          <p className="visually-hidden" aria-live="polite">
+            {step === 'food' ? 'Food name' : 'Weight'}
           </p>
 
-          {step === 'food' ? (
-            <div className="photo-detail-active-field">
-              <div className="field-stack autocomplete-shell">
-                <div className="field">
-                  <span className="field-label" id="photo-food-label">
-                    Food
-                  </span>
-                  <div className="search-field">
-                    <SingleLineEditable
-                      elementRef={foodInputRef}
-                      className="field-input field-input-lg"
-                      labelledBy="photo-food-label"
-                      enterKeyHint="next"
-                      inputMode="text"
-                      placeholder="Enter food name..."
-                      value={foodName}
-                      ariaInvalid={Boolean(error)}
-                      describedBy={error ? 'photo-food-error' : undefined}
-                      disabled={isBusy}
-                      onValueChange={(value) => {
-                        setFoodName(value);
-                        setError('');
-                        setSuggestionsOpen(true);
-                        setHighlightedIndex(0);
-                      }}
-                      onFocus={() => setSuggestionsOpen(true)}
-                      onBlur={() => {
-                        window.setTimeout(() => setSuggestionsOpen(false), 120);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'ArrowDown' && suggestions.length > 0) {
-                          event.preventDefault();
-                          setHighlightedIndex((current) => (current + 1) % suggestions.length);
-                          return;
-                        }
+          {step === 'weight' ? (
+            <div className="photo-detail-change-name">
+              <button
+                className="ghost-button compact"
+                type="button"
+                disabled={isBusy}
+                onClick={() => {
+                  setError('');
+                  setStep('food');
+                }}
+              >
+                Change name
+              </button>
+            </div>
+          ) : null}
 
-                        if (event.key === 'ArrowUp' && suggestions.length > 0) {
-                          event.preventDefault();
-                          setHighlightedIndex((current) =>
-                            current === 0 ? suggestions.length - 1 : current - 1
-                          );
-                          return;
-                        }
-
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          continueToWeight();
-                        }
-
-                        if (event.key === 'Escape') {
-                          setSuggestionsOpen(false);
-                        }
-                      }}
-                    />
-                    <span className="field-icon" aria-hidden="true">
-                      <SearchIcon className="ui-icon search-icon-strong" />
+          <div className="photo-detail-field-slot" ref={activeFieldSlotRef}>
+            <div className="photo-detail-active-field" ref={activeFieldLayerRef}>
+              {step === 'food' ? (
+                <div className="field-stack autocomplete-shell">
+                  <div className="field">
+                    <span className="field-label" id="photo-food-label">
+                      Food
                     </span>
+                    <div className="search-field">
+                      <SingleLineEditable
+                        elementRef={foodInputRef}
+                        className="field-input field-input-lg"
+                        labelledBy="photo-food-label"
+                        enterKeyHint="next"
+                        inputMode="text"
+                        placeholder="Enter food name..."
+                        value={foodName}
+                        ariaInvalid={Boolean(error)}
+                        describedBy={error ? 'photo-food-error' : undefined}
+                        disabled={isBusy}
+                        onValueChange={(value) => {
+                          setFoodName(value);
+                          setError('');
+                          setSuggestionsOpen(true);
+                          setHighlightedIndex(0);
+                        }}
+                        onFocus={() => setSuggestionsOpen(true)}
+                        onBlur={() => {
+                          window.setTimeout(() => setSuggestionsOpen(false), 120);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'ArrowDown' && suggestions.length > 0) {
+                            event.preventDefault();
+                            setHighlightedIndex((current) => (current + 1) % suggestions.length);
+                            return;
+                          }
+
+                          if (event.key === 'ArrowUp' && suggestions.length > 0) {
+                            event.preventDefault();
+                            setHighlightedIndex((current) =>
+                              current === 0 ? suggestions.length - 1 : current - 1
+                            );
+                            return;
+                          }
+
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            continueToWeight();
+                          }
+
+                          if (event.key === 'Escape') {
+                            setSuggestionsOpen(false);
+                          }
+                        }}
+                      />
+                      <span className="field-icon" aria-hidden="true">
+                        <SearchIcon className="ui-icon search-icon-strong" />
+                      </span>
+                    </div>
+
+                    {error ? (
+                      <p
+                        className="error-copy photo-detail-error"
+                        id="photo-food-error"
+                        role="alert"
+                      >
+                        {error}
+                      </p>
+                    ) : null}
                   </div>
 
-                  {error ? (
-                    <p className="error-copy photo-detail-error" id="photo-food-error" role="alert">
-                      {error}
-                    </p>
+                  {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
+                    <div className="suggestions-dropdown photo-detail-suggestions">
+                      <div className="suggestions" role="listbox" aria-label="Food suggestions">
+                        {suggestions.map((food, index) => (
+                          <button
+                            key={food.id}
+                            className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => applyFoodSuggestion(food.name)}
+                          >
+                            <span className="suggestion-copy">
+                              <strong>{food.name}</strong>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ) : null}
                 </div>
-
-                {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
-                  <div className="suggestions-dropdown photo-detail-suggestions">
-                    <div className="suggestions" role="listbox" aria-label="Food suggestions">
-                      {suggestions.map((food, index) => (
-                        <button
-                          key={food.id}
-                          className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
-                          type="button"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => applyFoodSuggestion(food.name)}
-                        >
-                          <span className="suggestion-copy">
-                            <strong>{food.name}</strong>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="photo-detail-change-name">
-                <button
-                  className="ghost-button compact"
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => {
-                    setError('');
-                    setStep('food');
-                  }}
-                >
-                  Change name
-                </button>
-              </div>
-
-              <div className="photo-detail-active-field">
+              ) : (
                 <div className="field">
                   <span className="field-label" id="photo-weight-label">
                     Weight
@@ -758,9 +805,9 @@ function PhotoDetail({
                     </p>
                   ) : null}
                 </div>
-              </div>
-            </>
-          )}
+              )}
+            </div>
+          </div>
 
           {step === 'weight' ? (
             <p className="helper-copy photo-detail-helper">
