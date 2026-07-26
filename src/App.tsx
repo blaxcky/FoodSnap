@@ -853,7 +853,11 @@ export default function App() {
         );
 
         setActivePhotoFilter('pending');
-        setSelectedPhotoId(findNextPendingPhotoId(photoId));
+        const nextPhotoId = findNextPendingPhotoId(photoId);
+        setSelectedPhotoId(nextPhotoId);
+        if (!nextPhotoId) {
+          setPhotoFeedbackMessage('All open photos processed.');
+        }
         return;
       }
 
@@ -872,6 +876,9 @@ export default function App() {
           },
           photo.linkedEntryId
         );
+        setActivePhotoFilter('archived');
+        setSelectedPhotoId(null);
+        setPhotoFeedbackMessage('Photo updated.');
         return;
       }
 
@@ -887,6 +894,9 @@ export default function App() {
             : item
         )
       );
+      setActivePhotoFilter('archived');
+      setSelectedPhotoId(null);
+      setPhotoFeedbackMessage('Photo updated.');
     } finally {
       setPhotoActionState('idle');
     }

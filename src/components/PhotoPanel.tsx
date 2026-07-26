@@ -224,6 +224,9 @@ function SingleLineEditable({
   enterKeyHint,
   placeholder,
   value,
+  ariaInvalid,
+  describedBy,
+  disabled,
   onValueChange,
   onFocus,
   onBlur,
@@ -236,6 +239,9 @@ function SingleLineEditable({
   enterKeyHint: 'next' | 'done';
   placeholder: string;
   value: string;
+  ariaInvalid?: boolean;
+  describedBy?: string;
+  disabled?: boolean;
   onValueChange: (value: string) => void;
   onFocus?: (event: FocusEvent<HTMLDivElement>) => void;
   onBlur?: (event: FocusEvent<HTMLDivElement>) => void;
@@ -288,10 +294,14 @@ function SingleLineEditable({
       className={`${className} single-line-editable`}
       role="textbox"
       aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      aria-invalid={ariaInvalid || undefined}
+      aria-disabled={disabled || undefined}
       aria-multiline="false"
       aria-placeholder={placeholder}
       data-placeholder={placeholder}
-      contentEditable="plaintext-only"
+      contentEditable={disabled ? false : 'plaintext-only'}
+      tabIndex={disabled ? -1 : 0}
       suppressContentEditableWarning
       inputMode={inputMode}
       enterKeyHint={enterKeyHint}
@@ -337,6 +347,7 @@ function PhotoDetail({
   onBack: () => void;
   onSave: (payload: { foodName: string; weightGrams: number }) => void;
 }) {
+  const [step, setStep] = useState<'food' | 'weight'>('food');
   const [foodName, setFoodName] = useState(photo.foodName ?? '');
   const [weightGrams, setWeightGrams] = useState(
     photo.weightGrams != null ? String(photo.weightGrams) : ''
@@ -355,12 +366,27 @@ function PhotoDetail({
   );
 
   useEffect(() => {
+    setStep('food');
     setFoodName(photo.foodName ?? '');
     setWeightGrams(photo.weightGrams != null ? String(photo.weightGrams) : '');
     setError('');
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
   }, [photo]);
+
+  useLayoutEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const input = step === 'food' ? foodInputRef.current : weightInputRef.current;
+
+      input?.focus();
+      if (input) {
+        selectEditableText(input);
+        input.closest('.field')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [photo.id, step]);
 
   useEffect(() => {
     const { documentElement, body } = document;
@@ -386,35 +412,87 @@ function PhotoDetail({
     const scrollContainer = detailScreenRef.current?.closest('.screen-section-photo-detail');
     const viewport = window.visualViewport;
 
-    if (!(scrollContainer instanceof HTMLElement) || !viewport) {
+    if (!(scrollContainer instanceof HTMLElement)) {
       return;
+    }
+
+    const focusActiveField = () => {
+      window.requestAnimationFrame(() => {
+        const activeElement = document.activeElement;
+        const activeInput =
+          activeElement === foodInputRef.current || activeElement === weightInputRef.current
+            ? activeElement
+            : null;
+        const activeField = activeInput?.closest('.field');
+
+        if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
+          activeField.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      });
+    };
+
+    if (!viewport) {
+      const handleFocusIn = () => focusActiveField();
+      scrollContainer.addEventListener('focusin', handleFocusIn);
+      return () => scrollContainer.removeEventListener('focusin', handleFocusIn);
     }
 
     const previousViewportHeight = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-height'
     );
+    const previousViewportOffsetTop = scrollContainer.style.getPropertyValue(
+      '--photo-detail-viewport-offset-top'
+    );
+    const hadKeyboardClass = scrollContainer.classList.contains('photo-detail-keyboard-open');
     let viewportFrameId = 0;
     let fieldFrameId = 0;
+    let baselineHeight = Math.max(
+      viewport.height,
+      window.innerHeight,
+      document.documentElement.clientHeight
+    );
+    let orientation = window.screen.orientation?.angle ?? window.orientation ?? 0;
 
     const updateViewport = () => {
       window.cancelAnimationFrame(viewportFrameId);
       window.cancelAnimationFrame(fieldFrameId);
       viewportFrameId = window.requestAnimationFrame(() => {
+        const nextOrientation = window.screen.orientation?.angle ?? window.orientation ?? 0;
+        const activeElement = document.activeElement;
+        const activeInput =
+          activeElement === foodInputRef.current || activeElement === weightInputRef.current
+            ? activeElement
+            : null;
+
+        if (nextOrientation !== orientation) {
+          orientation = nextOrientation;
+          baselineHeight = Math.max(
+            viewport.height,
+            window.innerHeight,
+            navigator.maxTouchPoints > 0 ? window.screen.availHeight : 0
+          );
+        } else if (!activeInput) {
+          baselineHeight = Math.max(baselineHeight, viewport.height, window.innerHeight);
+        }
+
+        const keyboardOpen = Boolean(activeInput && baselineHeight - viewport.height >= 120);
+
         scrollContainer.style.setProperty(
           '--photo-detail-viewport-height',
           `${Math.round(viewport.height)}px`
         );
+        scrollContainer.style.setProperty(
+          '--photo-detail-viewport-offset-top',
+          `${Math.round(viewport.offsetTop)}px`
+        );
+        scrollContainer.classList.toggle('photo-detail-keyboard-open', keyboardOpen);
 
         fieldFrameId = window.requestAnimationFrame(() => {
-          const activeElement = document.activeElement;
-          const activeInput =
-            activeElement === foodInputRef.current || activeElement === weightInputRef.current
-              ? activeElement
-              : null;
           const activeField = activeInput?.closest('.field');
 
           if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
-            activeField.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            (keyboardOpen ? detailScreenRef.current?.querySelector('.photo-detail-form') : activeField)
+              ?.scrollIntoView({ block: keyboardOpen ? 'end' : 'nearest', inline: 'nearest' });
           }
         });
       });
@@ -423,39 +501,78 @@ function PhotoDetail({
     updateViewport();
     viewport.addEventListener('resize', updateViewport);
     viewport.addEventListener('scroll', updateViewport);
+    window.addEventListener('resize', updateViewport);
+    window.addEventListener('orientationchange', updateViewport);
+    scrollContainer.addEventListener('focusin', updateViewport);
+    scrollContainer.addEventListener('focusout', updateViewport);
 
     return () => {
       window.cancelAnimationFrame(viewportFrameId);
       window.cancelAnimationFrame(fieldFrameId);
       viewport.removeEventListener('resize', updateViewport);
       viewport.removeEventListener('scroll', updateViewport);
+      window.removeEventListener('resize', updateViewport);
+      window.removeEventListener('orientationchange', updateViewport);
+      scrollContainer.removeEventListener('focusin', updateViewport);
+      scrollContainer.removeEventListener('focusout', updateViewport);
       if (previousViewportHeight) {
         scrollContainer.style.setProperty('--photo-detail-viewport-height', previousViewportHeight);
       } else {
         scrollContainer.style.removeProperty('--photo-detail-viewport-height');
       }
+      if (previousViewportOffsetTop) {
+        scrollContainer.style.setProperty(
+          '--photo-detail-viewport-offset-top',
+          previousViewportOffsetTop
+        );
+      } else {
+        scrollContainer.style.removeProperty('--photo-detail-viewport-offset-top');
+      }
+      scrollContainer.classList.toggle('photo-detail-keyboard-open', hadKeyboardClass);
     };
   }, []);
 
+  function continueToWeight() {
+    if (isBusy) {
+      return;
+    }
+
+    const trimmedFoodName = foodName.trim();
+
+    if (!trimmedFoodName) {
+      setError('Enter a food name.');
+      return;
+    }
+
+    setFoodName(trimmedFoodName);
+    setError('');
+    setSuggestionsOpen(false);
+    setStep('weight');
+  }
+
   function applyFoodSuggestion(name: string) {
+    if (isBusy) {
+      return;
+    }
+
     setFoodName(name);
     setError('');
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
-    window.requestAnimationFrame(() => {
-      weightInputRef.current?.focus();
-      if (weightInputRef.current) {
-        selectEditableText(weightInputRef.current);
-      }
-    });
+    setStep('weight');
   }
 
   function submitForm() {
+    if (isBusy) {
+      return;
+    }
+
     const trimmedFoodName = foodName.trim();
     const trimmedWeight = weightGrams.trim();
 
     if (!trimmedFoodName) {
       setError('Enter a food name.');
+      setStep('food');
       return;
     }
 
@@ -486,133 +603,173 @@ function PhotoDetail({
           />
         </div>
 
-        <div
-          className="photo-detail-form"
-          role="form"
-          aria-label="Photo details"
-        >
-          <div className="field-stack autocomplete-shell">
-            <div className="field">
-              <span className="field-label" id="photo-food-label">
-                Food
-              </span>
-              <div className="search-field">
-                <SingleLineEditable
-                  elementRef={foodInputRef}
-                  className="field-input field-input-lg"
-                  labelledBy="photo-food-label"
-                  enterKeyHint="next"
-                  inputMode="text"
-                  placeholder="Enter food name..."
-                  value={foodName}
-                  onValueChange={(value) => {
-                    setFoodName(value);
-                    setError('');
-                    setSuggestionsOpen(true);
-                    setHighlightedIndex(0);
-                  }}
-                  onFocus={() => setSuggestionsOpen(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setSuggestionsOpen(false), 120);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'ArrowDown' && suggestions.length > 0) {
-                      event.preventDefault();
-                      setHighlightedIndex((current) => (current + 1) % suggestions.length);
-                      return;
-                    }
-
-                    if (event.key === 'ArrowUp' && suggestions.length > 0) {
-                      event.preventDefault();
-                      setHighlightedIndex((current) =>
-                        current === 0 ? suggestions.length - 1 : current - 1
-                      );
-                      return;
-                    }
-
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      weightInputRef.current?.focus();
-                    }
-
-                    if (event.key === 'Escape') {
-                      setSuggestionsOpen(false);
-                    }
-                  }}
-                />
-                <span className="field-icon" aria-hidden="true">
-                  <SearchIcon className="ui-icon search-icon-strong" />
-                </span>
-              </div>
-            </div>
-
-            {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
-              <div className="suggestions-dropdown photo-detail-suggestions">
-                <div className="suggestions" role="listbox" aria-label="Food suggestions">
-                  {suggestions.map((food, index) => (
-                    <button
-                      key={food.id}
-                      className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => applyFoodSuggestion(food.name)}
-                    >
-                      <span className="suggestion-copy">
-                        <strong>{food.name}</strong>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="field">
-            <span className="field-label" id="photo-weight-label">
-              Weight
-            </span>
-            <div className="input-suffix-shell">
-              <SingleLineEditable
-                elementRef={weightInputRef}
-                className="field-input number-field field-input-with-suffix"
-                labelledBy="photo-weight-label"
-                enterKeyHint="done"
-                inputMode="decimal"
-                placeholder="0"
-                value={weightGrams}
-                onValueChange={(value) => {
-                  setWeightGrams(value);
-                  setError('');
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    submitForm();
-                  }
-                }}
-              />
-              <span className="input-suffix" aria-hidden="true">
-                g
-              </span>
-            </div>
-          </div>
-
-          <p className="helper-copy photo-detail-helper">
-            {photo.status === 'pending'
-              ? 'Save to archive the photo and create a normal log entry.'
-              : 'Changes here stay synced with the linked log entry while it remains a direct gram entry.'}
+        <div className="photo-detail-form" role="form" aria-label="Photo details">
+          <p className="photo-detail-step" aria-live="polite">
+            {step === 'food' ? 'Step 1 of 2 · Food name' : 'Step 2 of 2 · Weight'}
           </p>
 
-          {error ? <p className="error-copy">{error}</p> : null}
+          {step === 'food' ? (
+            <div className="field-stack autocomplete-shell">
+              <div className="field">
+                <span className="field-label" id="photo-food-label">
+                  Food
+                </span>
+                <div className="search-field">
+                  <SingleLineEditable
+                    elementRef={foodInputRef}
+                    className="field-input field-input-lg"
+                    labelledBy="photo-food-label"
+                    enterKeyHint="next"
+                    inputMode="text"
+                    placeholder="Enter food name..."
+                    value={foodName}
+                    ariaInvalid={Boolean(error)}
+                    describedBy={error ? 'photo-food-error' : undefined}
+                    disabled={isBusy}
+                    onValueChange={(value) => {
+                      setFoodName(value);
+                      setError('');
+                      setSuggestionsOpen(true);
+                      setHighlightedIndex(0);
+                    }}
+                    onFocus={() => setSuggestionsOpen(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setSuggestionsOpen(false), 120);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ArrowDown' && suggestions.length > 0) {
+                        event.preventDefault();
+                        setHighlightedIndex((current) => (current + 1) % suggestions.length);
+                        return;
+                      }
+
+                      if (event.key === 'ArrowUp' && suggestions.length > 0) {
+                        event.preventDefault();
+                        setHighlightedIndex((current) =>
+                          current === 0 ? suggestions.length - 1 : current - 1
+                        );
+                        return;
+                      }
+
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        continueToWeight();
+                      }
+
+                      if (event.key === 'Escape') {
+                        setSuggestionsOpen(false);
+                      }
+                    }}
+                  />
+                  <span className="field-icon" aria-hidden="true">
+                    <SearchIcon className="ui-icon search-icon-strong" />
+                  </span>
+                </div>
+              </div>
+
+              {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
+                <div className="suggestions-dropdown photo-detail-suggestions">
+                  <div className="suggestions" role="listbox" aria-label="Food suggestions">
+                    {suggestions.map((food, index) => (
+                      <button
+                        key={food.id}
+                        className={`suggestion-item${highlightedIndex === index ? ' active' : ''}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => applyFoodSuggestion(food.name)}
+                      >
+                        <span className="suggestion-copy">
+                          <strong>{food.name}</strong>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              <div className="photo-detail-name-summary">
+                <div>
+                  <span>Food</span>
+                  <strong>{foodName.trim()}</strong>
+                </div>
+                <button
+                  className="ghost-button compact"
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => {
+                    setError('');
+                    setStep('food');
+                  }}
+                >
+                  Change name
+                </button>
+              </div>
+
+              <div className="field">
+                <span className="field-label" id="photo-weight-label">
+                  Weight
+                </span>
+                <div className="input-suffix-shell">
+                  <SingleLineEditable
+                    elementRef={weightInputRef}
+                    className="field-input number-field field-input-with-suffix"
+                    labelledBy="photo-weight-label"
+                    enterKeyHint="done"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={weightGrams}
+                    ariaInvalid={Boolean(error)}
+                    describedBy={error ? 'photo-weight-error' : undefined}
+                    disabled={isBusy}
+                    onValueChange={(value) => {
+                      setWeightGrams(value);
+                      setError('');
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        submitForm();
+                      }
+                    }}
+                  />
+                  <span className="input-suffix" aria-hidden="true">
+                    g
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {step === 'weight' ? (
+            <p className="helper-copy photo-detail-helper">
+              {photo.status === 'pending'
+                ? 'Save to archive the photo and create a normal log entry.'
+                : 'Changes here stay synced with the linked log entry while it remains a direct gram entry.'}
+            </p>
+          ) : null}
+
+          {error ? (
+            <p
+              className="error-copy photo-detail-error"
+              id={step === 'food' ? 'photo-food-error' : 'photo-weight-error'}
+              role="alert"
+            >
+              {error}
+            </p>
+          ) : null}
 
           <div className="photo-detail-footer">
             <button
               className="primary-button photo-save-button"
               type="button"
               disabled={isBusy}
-              onClick={submitForm}
+              onClick={step === 'food' ? continueToWeight : submitForm}
             >
-              {photo.status === 'pending'
+              {step === 'food'
+                ? 'Next'
+                : photo.status === 'pending'
                 ? isBusy
                   ? 'Saving...'
                   : 'Save and archive'
@@ -654,6 +811,7 @@ export function PhotoPanel({
   if (selectedPhoto) {
     return (
       <PhotoDetail
+        key={selectedPhoto.id}
         foods={foods}
         photo={selectedPhoto}
         isBusy={isBusy}
