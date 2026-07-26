@@ -1,6 +1,12 @@
 import {
+  type ClipboardEvent,
+  type FocusEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -168,6 +174,152 @@ function PhotoCard({
   );
 }
 
+function readSingleLineValue(element: HTMLElement) {
+  return (element.textContent ?? '').replace(/[\r\n]+/g, ' ');
+}
+
+function selectEditableText(element: HTMLElement) {
+  const selection = window.getSelection();
+
+  if (!selection) {
+    return;
+  }
+
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function insertPlainText(element: HTMLElement, text: string) {
+  const selection = window.getSelection();
+  const range =
+    selection && selection.rangeCount > 0 && element.contains(selection.anchorNode)
+      ? selection.getRangeAt(0)
+      : null;
+  const textNode = document.createTextNode(text);
+
+  if (!range || !selection) {
+    element.append(textNode);
+    selectEditableText(element);
+    window.getSelection()?.collapseToEnd();
+    return;
+  }
+
+  range.deleteContents();
+  range.insertNode(textNode);
+  range.setStartAfter(textNode);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function SingleLineEditable({
+  elementRef,
+  className,
+  labelledBy,
+  inputMode,
+  enterKeyHint,
+  placeholder,
+  value,
+  onValueChange,
+  onFocus,
+  onBlur,
+  onKeyDown
+}: {
+  elementRef: RefObject<HTMLDivElement>;
+  className: string;
+  labelledBy: string;
+  inputMode: 'text' | 'decimal';
+  enterKeyHint: 'next' | 'done';
+  placeholder: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  onFocus?: (event: FocusEvent<HTMLDivElement>) => void;
+  onBlur?: (event: FocusEvent<HTMLDivElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+}) {
+  const isComposingRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const element = elementRef.current;
+
+    if (
+      !element ||
+      isComposingRef.current ||
+      (readSingleLineValue(element) === value && !(value === '' && element.hasChildNodes()))
+    ) {
+      return;
+    }
+
+    element.textContent = value;
+  }, [elementRef, value]);
+
+  function updateValue(element: HTMLDivElement) {
+    const nextValue = readSingleLineValue(element);
+
+    if (element.textContent !== nextValue || (nextValue === '' && element.hasChildNodes())) {
+      element.textContent = nextValue;
+    }
+
+    onValueChange(nextValue);
+  }
+
+  function handleBeforeInput(event: FormEvent<HTMLDivElement>) {
+    const inputEvent = event.nativeEvent as InputEvent;
+
+    if (inputEvent.inputType === 'insertParagraph' || inputEvent.inputType === 'insertLineBreak') {
+      event.preventDefault();
+    }
+  }
+
+  function handlePaste(event: ClipboardEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const plainText = event.clipboardData.getData('text/plain').replace(/[\r\n]+/g, ' ');
+    insertPlainText(event.currentTarget, plainText);
+    updateValue(event.currentTarget);
+  }
+
+  return (
+    <div
+      ref={elementRef}
+      className={`${className} single-line-editable`}
+      role="textbox"
+      aria-labelledby={labelledBy}
+      aria-multiline="false"
+      aria-placeholder={placeholder}
+      data-placeholder={placeholder}
+      contentEditable="plaintext-only"
+      suppressContentEditableWarning
+      inputMode={inputMode}
+      enterKeyHint={enterKeyHint}
+      autoCorrect="off"
+      autoCapitalize="none"
+      spellCheck={false}
+      data-1p-ignore="true"
+      data-lpignore="true"
+      data-bwignore="true"
+      onBeforeInput={handleBeforeInput}
+      onInput={(event) => updateValue(event.currentTarget)}
+      onCompositionStart={() => {
+        isComposingRef.current = true;
+      }}
+      onCompositionEnd={(event) => {
+        isComposingRef.current = false;
+        updateValue(event.currentTarget);
+      }}
+      onPaste={handlePaste}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onKeyDown={(event) => {
+        if (!isComposingRef.current && !event.nativeEvent.isComposing) {
+          onKeyDown(event);
+        }
+      }}
+    />
+  );
+}
+
 function PhotoDetail({
   foods,
   photo,
@@ -190,8 +342,8 @@ function PhotoDetail({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const detailScreenRef = useRef<HTMLElement>(null);
-  const foodInputRef = useRef<HTMLInputElement>(null);
-  const weightInputRef = useRef<HTMLInputElement>(null);
+  const foodInputRef = useRef<HTMLDivElement>(null);
+  const weightInputRef = useRef<HTMLDivElement>(null);
   const deferredQuery = useDeferredValue(foodName);
   const suggestions = useMemo(
     () => getFoodSuggestions(foods, deferredQuery, 5),
@@ -288,7 +440,9 @@ function PhotoDetail({
     setHighlightedIndex(0);
     window.requestAnimationFrame(() => {
       weightInputRef.current?.focus();
-      weightInputRef.current?.select();
+      if (weightInputRef.current) {
+        selectEditableText(weightInputRef.current);
+      }
     });
   }
 
@@ -331,25 +485,21 @@ function PhotoDetail({
           aria-label="Photo details"
         >
           <div className="field-stack autocomplete-shell">
-            <label className="field">
-              <span className="field-label">Food</span>
+            <div className="field">
+              <span className="field-label" id="photo-food-label">
+                Food
+              </span>
               <div className="search-field">
-                <input
-                  ref={foodInputRef}
+                <SingleLineEditable
+                  elementRef={foodInputRef}
                   className="field-input field-input-lg"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
+                  labelledBy="photo-food-label"
                   enterKeyHint="next"
-                  data-1p-ignore="true"
-                  data-lpignore="true"
-                  data-bwignore="true"
                   inputMode="text"
                   placeholder="Enter food name..."
                   value={foodName}
-                  onChange={(event) => {
-                    setFoodName(event.target.value);
+                  onValueChange={(value) => {
+                    setFoodName(value);
                     setError('');
                     setSuggestionsOpen(true);
                     setHighlightedIndex(0);
@@ -387,7 +537,7 @@ function PhotoDetail({
                   <SearchIcon className="ui-icon search-icon-strong" />
                 </span>
               </div>
-            </label>
+            </div>
 
             {suggestionsOpen && foodName.trim() && suggestions.length > 0 ? (
               <div className="suggestions-dropdown photo-detail-suggestions">
@@ -410,25 +560,21 @@ function PhotoDetail({
             ) : null}
           </div>
 
-          <label className="field">
-            <span className="field-label">Weight</span>
+          <div className="field">
+            <span className="field-label" id="photo-weight-label">
+              Weight
+            </span>
             <div className="input-suffix-shell">
-              <input
-                ref={weightInputRef}
+              <SingleLineEditable
+                elementRef={weightInputRef}
                 className="field-input number-field field-input-with-suffix"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
+                labelledBy="photo-weight-label"
                 enterKeyHint="done"
-                data-1p-ignore="true"
-                data-lpignore="true"
-                data-bwignore="true"
                 inputMode="decimal"
                 placeholder="0"
                 value={weightGrams}
-                onChange={(event) => {
-                  setWeightGrams(event.target.value);
+                onValueChange={(value) => {
+                  setWeightGrams(value);
                   setError('');
                 }}
                 onKeyDown={(event) => {
@@ -442,7 +588,7 @@ function PhotoDetail({
                 g
               </span>
             </div>
-          </label>
+          </div>
 
           <p className="helper-copy photo-detail-helper">
             {photo.status === 'pending'
