@@ -325,13 +325,10 @@ function PhotoDetail({
           />
         </div>
 
-        <form
+        <div
           className="photo-detail-form"
-          autoComplete="off"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submitForm();
-          }}
+          role="form"
+          aria-label="Photo details"
         >
           <div className="field-stack autocomplete-shell">
             <label className="field">
@@ -456,7 +453,12 @@ function PhotoDetail({
           {error ? <p className="error-copy">{error}</p> : null}
 
           <div className="photo-detail-footer">
-            <button className="primary-button photo-save-button" type="submit" disabled={isBusy}>
+            <button
+              className="primary-button photo-save-button"
+              type="button"
+              disabled={isBusy}
+              onClick={submitForm}
+            >
               {photo.status === 'pending'
                 ? isBusy
                   ? 'Saving...'
@@ -470,7 +472,7 @@ function PhotoDetail({
               <span>Back</span>
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </section>
   );
