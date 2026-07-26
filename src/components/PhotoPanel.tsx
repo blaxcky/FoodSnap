@@ -237,15 +237,30 @@ function PhotoDetail({
     const previousViewportHeight = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-height'
     );
-    let frameId = 0;
+    let viewportFrameId = 0;
+    let fieldFrameId = 0;
 
     const updateViewport = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
+      window.cancelAnimationFrame(viewportFrameId);
+      window.cancelAnimationFrame(fieldFrameId);
+      viewportFrameId = window.requestAnimationFrame(() => {
         scrollContainer.style.setProperty(
           '--photo-detail-viewport-height',
           `${Math.round(viewport.height)}px`
         );
+
+        fieldFrameId = window.requestAnimationFrame(() => {
+          const activeElement = document.activeElement;
+          const activeInput =
+            activeElement === foodInputRef.current || activeElement === weightInputRef.current
+              ? activeElement
+              : null;
+          const activeField = activeInput?.closest('.field');
+
+          if (activeField instanceof HTMLElement && scrollContainer.contains(activeField)) {
+            activeField.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
+        });
       });
     };
 
@@ -254,7 +269,8 @@ function PhotoDetail({
     viewport.addEventListener('scroll', updateViewport);
 
     return () => {
-      window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(viewportFrameId);
+      window.cancelAnimationFrame(fieldFrameId);
       viewport.removeEventListener('resize', updateViewport);
       viewport.removeEventListener('scroll', updateViewport);
       if (previousViewportHeight) {
