@@ -327,6 +327,7 @@ function PhotoDetail({
 
         <form
           className="photo-detail-form"
+          autoComplete="off"
           onSubmit={(event) => {
             event.preventDefault();
             submitForm();
@@ -339,12 +340,14 @@ function PhotoDetail({
                 <input
                   ref={foodInputRef}
                   className="field-input field-input-lg"
-                  name="photo-food-name"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="none"
                   spellCheck={false}
                   enterKeyHint="next"
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-bwignore="true"
                   inputMode="text"
                   placeholder="Enter food name..."
                   value={foodName}
@@ -416,12 +419,14 @@ function PhotoDetail({
               <input
                 ref={weightInputRef}
                 className="field-input number-field field-input-with-suffix"
-                name="photo-weight"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="none"
                 spellCheck={false}
                 enterKeyHint="done"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-bwignore="true"
                 inputMode="decimal"
                 placeholder="0"
                 value={weightGrams}
