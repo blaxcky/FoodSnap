@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { getFoodSuggestions } from '../lib/search';
 import { getPhotoBlob } from '../lib/photoStorage';
+import { getPhotoDetailMediaHeight } from '../lib/photoSizePreference';
 import type { FoodProfile, PhotoItem } from '../lib/types';
 import { formatNumber } from '../lib/utils';
 import {
@@ -33,6 +34,7 @@ interface PhotoPanelProps {
   isBusy: boolean;
   feedbackMessage: string;
   feedbackTone: 'idle' | 'error';
+  photoSizeReduction: number;
   onChangeFilter: (filter: 'pending' | 'archived') => void;
   onOpenCamera: () => void;
   onOpenGallery: () => void;
@@ -324,12 +326,14 @@ function PhotoDetail({
   foods,
   photo,
   isBusy,
+  photoSizeReduction,
   onBack,
   onSave
 }: {
   foods: FoodProfile[];
   photo: PhotoItem;
   isBusy: boolean;
+  photoSizeReduction: number;
   onBack: () => void;
   onSave: (payload: { foodName: string; weightGrams: number }) => void;
 }) {
@@ -471,7 +475,10 @@ function PhotoDetail({
   return (
     <section ref={detailScreenRef} className="photo-detail-screen">
       <div className="photo-detail-card">
-        <div className="photo-detail-media">
+        <div
+          className="photo-detail-media"
+          style={{ height: getPhotoDetailMediaHeight(photoSizeReduction) }}
+        >
           <StoredPhoto
             photoId={photo.id}
             alt={photo.foodName ? `${photo.foodName} photo` : 'Food photo'}
@@ -633,6 +640,7 @@ export function PhotoPanel({
   isBusy,
   feedbackMessage,
   feedbackTone,
+  photoSizeReduction,
   onChangeFilter,
   onOpenCamera,
   onOpenGallery,
@@ -649,6 +657,7 @@ export function PhotoPanel({
         foods={foods}
         photo={selectedPhoto}
         isBusy={isBusy}
+        photoSizeReduction={photoSizeReduction}
         onBack={onCloseDetail}
         onSave={(payload) => onSavePhoto(selectedPhoto.id, payload)}
       />

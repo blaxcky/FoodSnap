@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FoodImportMode } from '../lib/backup';
 import type { CameraPreference } from '../lib/cameraPreference';
+import {
+  MAX_PHOTO_SIZE_REDUCTION,
+  MIN_PHOTO_SIZE_REDUCTION,
+  PHOTO_SIZE_REDUCTION_STEP
+} from '../lib/photoSizePreference';
 import type { ThemePreference } from '../lib/theme';
 import { BoltIcon, ExportIcon, ImportIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from './Icons';
 
@@ -14,12 +19,14 @@ interface SettingsPanelProps {
   refreshState: 'idle' | 'working' | 'error';
   themePreference: ThemePreference;
   cameraPreference: CameraPreference;
+  photoSizeReduction: number;
   onExportFoodMemory: () => void;
   onImportFoodMemory: (file: File, mode: FoodImportMode) => Promise<void>;
   onChangeExportLeadIn: (value: string) => void;
   onForceRefresh: () => Promise<void>;
   onChangeTheme: (preference: ThemePreference) => void;
   onChangeCameraPreference: (preference: CameraPreference) => void;
+  onChangePhotoSizeReduction: (value: number) => void;
 }
 
 const CAMERA_OPTIONS: { value: CameraPreference; label: string }[] = [
@@ -43,12 +50,14 @@ export function SettingsPanel({
   refreshState,
   themePreference,
   cameraPreference,
+  photoSizeReduction,
   onExportFoodMemory,
   onImportFoodMemory,
   onChangeExportLeadIn,
   onForceRefresh,
   onChangeTheme,
-  onChangeCameraPreference
+  onChangeCameraPreference,
+  onChangePhotoSizeReduction
 }: SettingsPanelProps) {
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<FoodImportMode>('merge');
@@ -221,6 +230,29 @@ export function SettingsPanel({
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+          <div className="settings-row settings-row-action settings-row-range">
+            <div className="settings-row-copy">
+              <h3 id="photo-size-label">Photo size</h3>
+              <p>Reduce the photo height in open and archived photo details.</p>
+            </div>
+            <div className="settings-row-control settings-range-control">
+              <output className="settings-range-value" htmlFor="photo-size-reduction">
+                {photoSizeReduction}% smaller
+              </output>
+              <input
+                id="photo-size-reduction"
+                className="settings-range-input"
+                type="range"
+                min={MIN_PHOTO_SIZE_REDUCTION}
+                max={MAX_PHOTO_SIZE_REDUCTION}
+                step={PHOTO_SIZE_REDUCTION_STEP}
+                value={photoSizeReduction}
+                aria-labelledby="photo-size-label"
+                aria-valuetext={`${photoSizeReduction}% smaller`}
+                onChange={(event) => onChangePhotoSizeReduction(event.currentTarget.valueAsNumber)}
+              />
             </div>
           </div>
         </div>

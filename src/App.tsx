@@ -25,6 +25,10 @@ import {
   preparePhotoBlob,
   savePhotoBlob
 } from './lib/photoStorage';
+import {
+  loadPhotoSizeReduction,
+  savePhotoSizeReduction
+} from './lib/photoSizePreference';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from './lib/pwa';
 import { getAggregatedSessionListItems } from './lib/sessionAggregation';
@@ -157,6 +161,7 @@ export default function App() {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(loadThemePreference);
   const [cameraPreference, setCameraPreference] = useState<CameraPreference>(loadCameraPreference);
+  const [photoSizeReduction, setPhotoSizeReduction] = useState(loadPhotoSizeReduction);
   const [activePhotoFilter, setActivePhotoFilter] = useState<'pending' | 'archived'>('pending');
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoFeedbackMessage, setPhotoFeedbackMessage] = useState('');
@@ -204,6 +209,10 @@ export default function App() {
   useEffect(() => {
     saveCameraPreference(cameraPreference);
   }, [cameraPreference]);
+
+  useEffect(() => {
+    savePhotoSizeReduction(photoSizeReduction);
+  }, [photoSizeReduction]);
 
   useEffect(() => {
     if (!isHydrated || launchAction !== 'photo') {
@@ -952,6 +961,7 @@ export default function App() {
             isBusy={photoActionState === 'working'}
             feedbackMessage={photoFeedbackMessage}
             feedbackTone={photoFeedbackTone}
+            photoSizeReduction={photoSizeReduction}
             onChangeFilter={setActivePhotoFilter}
             onOpenCamera={handleOpenCamera}
             onOpenGallery={() => galleryInputRef.current?.click()}
@@ -1017,6 +1027,7 @@ export default function App() {
             refreshState={refreshState}
             themePreference={themePreference}
             cameraPreference={cameraPreference}
+            photoSizeReduction={photoSizeReduction}
             onExportFoodMemory={handleExportFoodMemory}
             onImportFoodMemory={handleImportFoodMemory}
             onChangeExportLeadIn={(value) => {
@@ -1026,6 +1037,7 @@ export default function App() {
             onForceRefresh={handleForceRefresh}
             onChangeTheme={setThemePreference}
             onChangeCameraPreference={setCameraPreference}
+            onChangePhotoSizeReduction={setPhotoSizeReduction}
           />
         </section>
       ) : null}

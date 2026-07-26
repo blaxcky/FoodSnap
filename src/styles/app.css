@@ -1414,6 +1414,35 @@ button {
   height: 1rem;
 }
 
+.settings-range-control {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  width: min(42vw, 220px);
+}
+
+.settings-range-value {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-range-input {
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.settings-range-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--r-pill);
+}
+
 .settings-hidden-file-input {
   display: none;
 }
@@ -1933,7 +1962,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: clamp(260px, 48dvh, 520px);
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
