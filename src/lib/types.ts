@@ -6,6 +6,8 @@ export type PhotoStatus = 'pending' | 'archived';
 
 export type NutritionScope = 'per100g' | 'total';
 
+export type ArchiveSource = 'manual' | 'export';
+
 export interface NutritionFields {
   calories?: number;
   carbs?: number;
@@ -40,6 +42,8 @@ export interface SessionEntry extends NutritionFields {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  archiveSource?: ArchiveSource;
+  exportBatchId?: string;
   undoExpiresAt?: string;
 }
 
@@ -66,7 +70,7 @@ export interface PhotoItem {
 }
 
 export interface PersistedAppState {
-  version: 3;
+  version: 4;
   foods: FoodProfile[];
   currentSession: SessionEntry[];
   photoItems: PhotoItem[];

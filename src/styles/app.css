@@ -870,6 +870,33 @@ button {
   gap: 10px;
 }
 
+.history-section-heading {
+  margin: 18px 0 2px;
+  color: var(--text-2);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.history-section-heading:first-child {
+  margin-top: 0;
+}
+
+.history-batch-heading {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.history-batch-heading.has-divider {
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-vis);
+}
+
 .entry-card,
 .food-row {
   padding: 14px 16px;

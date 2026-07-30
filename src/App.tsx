@@ -33,6 +33,11 @@ import { loadAutoPhotoSize, saveAutoPhotoSize } from './lib/autoPhotoSizePrefere
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from './lib/pwa';
 import { getAggregatedSessionListItems } from './lib/sessionAggregation';
+import {
+  archiveEntriesAsExport,
+  archiveEntriesManually,
+  restoreEntries
+} from './lib/sessionArchive';
 import { defaultAppState, loadAppState, saveAppState } from './lib/storage';
 import { applyTheme, listenForSystemThemeChange, loadThemePreference, saveThemePreference } from './lib/theme';
 import type { ThemePreference } from './lib/theme';
@@ -193,7 +198,7 @@ export default function App() {
     }
 
     saveAppState({
-      version: 3,
+      version: 4,
       foods,
       currentSession: entries,
       photoItems,
@@ -260,11 +265,6 @@ export default function App() {
   const logListItems = useMemo(
     () => (isLogAggregated ? getAggregatedSessionListItems(logEntries) : undefined),
     [isLogAggregated, logEntries]
-  );
-
-  const historyListItems = useMemo(
-    () => (isLogAggregated ? getAggregatedSessionListItems(entries, { includeDeleted: true }) : undefined),
-    [entries, isLogAggregated]
   );
 
   const pendingPhotos = useMemo(
@@ -486,18 +486,7 @@ export default function App() {
   function handleDelete(entryId: string) {
     const timestamp = nowIso();
 
-    setEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        entry.id === entryId
-          ? {
-              ...entry,
-              deletedAt: timestamp,
-              undoExpiresAt: undefined,
-              updatedAt: timestamp
-            }
-          : entry
-      )
-    );
+    setEntries((currentEntries) => archiveEntriesManually(currentEntries, [entryId], timestamp));
     if (editingEntryId === entryId) {
       closeInputDialog();
     }
@@ -509,16 +498,7 @@ export default function App() {
     const targetEntryIds = new Set(entryIds);
 
     setEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        targetEntryIds.has(entry.id)
-          ? {
-              ...entry,
-              deletedAt: timestamp,
-              undoExpiresAt: undefined,
-              updatedAt: timestamp
-            }
-          : entry
-      )
+      archiveEntriesManually(currentEntries, targetEntryIds, timestamp)
     );
     if (editingEntryId && targetEntryIds.has(editingEntryId)) {
       closeInputDialog();
@@ -529,18 +509,7 @@ export default function App() {
   function handleRestore(entryId: string) {
     const timestamp = nowIso();
 
-    setEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        entry.id === entryId
-          ? {
-              ...entry,
-              deletedAt: undefined,
-              undoExpiresAt: undefined,
-              updatedAt: timestamp
-            }
-          : entry
-      )
-    );
+    setEntries((currentEntries) => restoreEntries(currentEntries, [entryId], timestamp));
     setCopyState('idle');
   }
 
@@ -548,18 +517,7 @@ export default function App() {
     const timestamp = nowIso();
     const targetEntryIds = new Set(entryIds);
 
-    setEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        targetEntryIds.has(entry.id)
-          ? {
-              ...entry,
-              deletedAt: undefined,
-              undoExpiresAt: undefined,
-              updatedAt: timestamp
-            }
-          : entry
-      )
-    );
+    setEntries((currentEntries) => restoreEntries(currentEntries, targetEntryIds, timestamp));
     setCopyState('idle');
   }
 
@@ -647,12 +605,29 @@ export default function App() {
   }
 
   async function handleCopy() {
-    if (!exportText) {
+    const exportTextSnapshot = exportText;
+    const exportedEntryIds = activeEntries.map((entry) => entry.id);
+
+    if (!exportTextSnapshot) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(exportText);
+      await navigator.clipboard.writeText(exportTextSnapshot);
+
+      if (exportedEntryIds.length > 0) {
+        const timestamp = nowIso();
+        const exportBatchId = createId();
+        setEntries((currentEntries) =>
+          archiveEntriesAsExport(
+            currentEntries,
+            exportedEntryIds,
+            timestamp,
+            exportBatchId
+          )
+        );
+      }
+
       setCopyState('copied');
       window.setTimeout(() => setCopyState('idle'), 1800);
     } catch {
@@ -953,7 +928,6 @@ export default function App() {
           <SessionList
             entries={entries}
             mode="history"
-            aggregatedItems={historyListItems}
             isAggregated={isLogAggregated}
             editingEntryId={editingEntryId}
             onEdit={startEditing}

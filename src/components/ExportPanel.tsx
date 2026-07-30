@@ -92,7 +92,9 @@ export function ExportPanel({
       <p className="helper-copy">
         {copyState === 'error'
           ? 'Clipboard access failed. Select the text manually.'
-          : 'Your custom intro text is included before the exported foods.'}
+          : copyState === 'copied'
+            ? 'Copied food entries were checked and moved to History.'
+            : 'Your custom intro text is included before the exported foods.'}
       </p>
 
       <section className="export-danger-zone" aria-labelledby="export-reset-title">

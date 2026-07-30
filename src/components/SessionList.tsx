@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckIcon, PencilIcon, PhotoIcon } from './Icons';
 import { copyTextToClipboard } from '../lib/clipboard';
-import type { AggregatedSessionListItem } from '../lib/sessionAggregation';
+import {
+  getAggregatedSessionListItems,
+  type AggregatedSessionListItem
+} from '../lib/sessionAggregation';
+import { groupHistoryEntries } from '../lib/sessionArchive';
 import type { SessionEntry } from '../lib/types';
 import {
   formatEntryMeta,
@@ -27,6 +31,33 @@ interface SessionListProps {
   onToggleAggregated?: (isAggregated: boolean) => void;
 }
 
+type HistoryDisplayItem =
+  | AggregatedSessionListItem
+  | {
+      type: 'section-heading';
+      id: string;
+      label: string;
+    }
+  | {
+      type: 'batch-heading';
+      id: string;
+      label: string;
+      hasDivider: boolean;
+    };
+
+function formatExportBatchTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(date);
+}
+
 export function SessionList({
   mode,
   entries,
@@ -42,7 +73,67 @@ export function SessionList({
   onToggleAggregated
 }: SessionListProps) {
   const isHistory = mode === 'history';
-  const listItems = aggregatedItems ?? entries.map((entry) => ({ type: 'single', entry }) as const);
+  const logListItems = aggregatedItems ?? entries.map((entry) => ({ type: 'single', entry }) as const);
+  const historyListItems = useMemo<HistoryDisplayItem[]>(() => {
+    if (!isHistory) {
+      return [];
+    }
+
+    const groups = groupHistoryEntries(entries);
+    const displayItems: HistoryDisplayItem[] = [];
+    const makeItems = (groupEntries: SessionEntry[], keyPrefix: string) => {
+      if (!isAggregated) {
+        return groupEntries.map((entry) => ({ type: 'single', entry }) as const);
+      }
+
+      return getAggregatedSessionListItems(groupEntries, { includeDeleted: true }).map((item) =>
+        item.type === 'aggregate'
+          ? {
+              ...item,
+              group: {
+                ...item.group,
+                id: `${keyPrefix}\u0000${item.group.id}`
+              }
+            }
+          : item
+      );
+    };
+
+    if (groups.active.length > 0) {
+      displayItems.push({ type: 'section-heading', id: 'active', label: 'Active' });
+      displayItems.push(...makeItems(groups.active, 'active'));
+    }
+
+    if (groups.exports.length > 0) {
+      displayItems.push({
+        type: 'section-heading',
+        id: 'copy-text-exports',
+        label: 'Copy text exports'
+      });
+
+      groups.exports.forEach((group, index) => {
+        displayItems.push({
+          type: 'batch-heading',
+          id: `batch-${group.batchId}`,
+          label: `Copy text • ${formatExportBatchTime(group.archivedAt)}`,
+          hasDivider: index > 0
+        });
+        displayItems.push(...makeItems(group.entries, group.batchId));
+      });
+    }
+
+    if (groups.manual.length > 0) {
+      displayItems.push({
+        type: 'section-heading',
+        id: 'checked-manually',
+        label: 'Checked manually'
+      });
+      displayItems.push(...makeItems(groups.manual, 'manual'));
+    }
+
+    return displayItems;
+  }, [entries, isAggregated, isHistory]);
+  const listItems = isHistory ? historyListItems : logListItems;
   const [clipboardFeedback, setClipboardFeedback] = useState<{
     entryId: string;
     tone: 'copied' | 'error';
@@ -106,6 +197,25 @@ export function SessionList({
       ) : (
         <div className="entry-list">
           {listItems.map((item) => {
+            if (item.type === 'section-heading') {
+              return (
+                <h2 key={item.id} className="history-section-heading">
+                  {item.label}
+                </h2>
+              );
+            }
+
+            if (item.type === 'batch-heading') {
+              return (
+                <h3
+                  key={item.id}
+                  className={`history-batch-heading${item.hasDivider ? ' has-divider' : ''}`}
+                >
+                  {item.label}
+                </h3>
+              );
+            }
+
             if (item.type === 'aggregate') {
               const { group } = item;
               const amountSummary = `${formatNumber(group.amount)}g`;

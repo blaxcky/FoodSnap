@@ -4,7 +4,7 @@ import { isNutritionValue, normalizeText, pickNutritionFields } from './utils';
 const STORAGE_KEY = 'foodsnap:v1';
 
 export const defaultAppState: PersistedAppState = {
-  version: 3,
+  version: 4,
   foods: [],
   currentSession: [],
   photoItems: [],
@@ -36,8 +36,45 @@ function isSessionEntry(value: unknown): value is SessionEntry {
       entry.nutritionScope === 'per100g' ||
       entry.nutritionScope === 'total') &&
     typeof entry.createdAt === 'string' &&
-    typeof entry.updatedAt === 'string'
+    typeof entry.updatedAt === 'string' &&
+    (entry.deletedAt == null || typeof entry.deletedAt === 'string') &&
+    (entry.archiveSource == null ||
+      entry.archiveSource === 'manual' ||
+      entry.archiveSource === 'export') &&
+    (entry.exportBatchId == null || typeof entry.exportBatchId === 'string')
   );
+}
+
+function parseSessionEntry(value: unknown): SessionEntry | null {
+  if (!isSessionEntry(value)) {
+    return null;
+  }
+
+  const entry = value as SessionEntry;
+  const archiveSource = entry.archiveSource === 'manual' || entry.archiveSource === 'export'
+    ? entry.archiveSource
+    : undefined;
+  const exportBatchId = typeof entry.exportBatchId === 'string' && entry.exportBatchId
+    ? entry.exportBatchId
+    : undefined;
+
+  if (!entry.deletedAt) {
+    return {
+      ...entry,
+      archiveSource: undefined,
+      exportBatchId: undefined
+    };
+  }
+
+  if (archiveSource === 'export' && exportBatchId) {
+    return { ...entry, archiveSource, exportBatchId };
+  }
+
+  return {
+    ...entry,
+    archiveSource: 'manual',
+    exportBatchId: undefined
+  };
 }
 
 function parseFoodProfile(value: unknown): FoodProfile | null {
@@ -111,14 +148,16 @@ export function loadAppState(): PersistedAppState {
     };
 
     return {
-      version: 3,
+      version: 4,
       foods: Array.isArray(parsed.foods)
         ? parsed.foods
             .map((food) => parseFoodProfile(food))
             .filter((food): food is FoodProfile => food != null)
         : [],
       currentSession: Array.isArray(parsed.currentSession)
-        ? parsed.currentSession.filter(isSessionEntry)
+        ? parsed.currentSession
+            .map((entry) => parseSessionEntry(entry))
+            .filter((entry): entry is SessionEntry => entry != null)
         : [],
       photoItems: Array.isArray(parsed.photoItems) ? parsed.photoItems.filter(isPhotoItem) : [],
       exportLeadIn: typeof parsed.exportLeadIn === 'string' ? parsed.exportLeadIn : '',
