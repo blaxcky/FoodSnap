@@ -389,9 +389,6 @@ function PhotoDetail({
       input?.focus();
       if (input) {
         selectEditableText(input);
-        input
-          .closest('.photo-detail-active-field')
-          ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
     });
 
@@ -425,6 +422,9 @@ function PhotoDetail({
     if (!(scrollContainer instanceof HTMLElement)) {
       return;
     }
+
+    scrollContainer.scrollTop = 0;
+    scrollContainer.scrollLeft = 0;
 
     const previousViewportHeight = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-height'
@@ -648,6 +648,8 @@ function PhotoDetail({
       return;
     }
 
+    event.currentTarget.setPointerCapture(event.pointerId);
+
     gestureStartRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
@@ -658,6 +660,10 @@ function PhotoDetail({
   function handleGestureEnd(event: ReactPointerEvent<HTMLDivElement>) {
     const start = gestureStartRef.current;
     gestureStartRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
 
     if (!start || start.pointerId !== event.pointerId) {
       return;
@@ -705,6 +711,14 @@ function PhotoDetail({
     };
   }
 
+  function handleGestureCancel(event: ReactPointerEvent<HTMLDivElement>) {
+    gestureStartRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
   return (
     <section ref={detailScreenRef} className="photo-detail-screen">
       <div className="photo-detail-card">
@@ -713,7 +727,8 @@ function PhotoDetail({
           style={{ height: getPhotoDetailMediaHeight(photoSizeReduction) }}
           onPointerDown={handleGestureStart}
           onPointerUp={handleGestureEnd}
-          onPointerCancel={() => {
+          onPointerCancel={handleGestureCancel}
+          onLostPointerCapture={() => {
             gestureStartRef.current = null;
           }}
           onDoubleClick={(event) => event.preventDefault()}
@@ -869,13 +884,6 @@ function PhotoDetail({
             </div>
           </div>
 
-          {step === 'weight' ? (
-            <p className="helper-copy photo-detail-helper">
-              {photo.status === 'pending'
-                ? 'Press Enter to archive the photo and create a normal log entry.'
-                : 'Press Enter to update the photo and its linked direct gram entry.'}
-            </p>
-          ) : null}
         </div>
       </div>
     </section>
