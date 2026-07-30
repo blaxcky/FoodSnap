@@ -1443,6 +1443,48 @@ button {
   border-radius: var(--r-pill);
 }
 
+.settings-range-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.settings-switch {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  padding: 3px;
+  border: 1px solid var(--border-vis);
+  border-radius: var(--r-pill);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.settings-switch.active {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.settings-switch-thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow);
+  transform: translateX(0);
+  transition: transform 150ms ease;
+}
+
+.settings-switch.active .settings-switch-thumb {
+  transform: translateX(20px);
+}
+
+.settings-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .settings-hidden-file-input {
   display: none;
 }
@@ -1944,6 +1986,21 @@ button {
   gap: 16px;
 }
 
+.photo-detail-screen.photo-detail-auto-fit,
+.photo-detail-auto-fit .photo-detail-card {
+  min-height: 0;
+  height: 100%;
+}
+
+.photo-detail-auto-fit .photo-detail-card {
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: stretch;
+}
+
+.photo-detail-auto-fit .photo-detail-media {
+  min-height: 0;
+}
+
 .photo-detail-image {
   display: block;
   width: 100%;
@@ -1995,7 +2052,7 @@ button {
 
 .screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-active-field {
   position: fixed;
-  top: calc(var(--photo-detail-keyboard-edge, 100dvh) - var(--photo-detail-field-height, 96px));
+  bottom: var(--photo-detail-keyboard-inset-bottom, 0px);
   left: var(--photo-detail-field-left, 20px);
   z-index: 20;
   width: var(--photo-detail-field-width, calc(100% - 40px));

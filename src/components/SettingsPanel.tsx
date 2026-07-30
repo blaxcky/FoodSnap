@@ -20,6 +20,7 @@ interface SettingsPanelProps {
   themePreference: ThemePreference;
   cameraPreference: CameraPreference;
   photoSizeReduction: number;
+  autoPhotoSize: boolean;
   onExportFoodMemory: () => void;
   onImportFoodMemory: (file: File, mode: FoodImportMode) => Promise<void>;
   onChangeExportLeadIn: (value: string) => void;
@@ -27,6 +28,7 @@ interface SettingsPanelProps {
   onChangeTheme: (preference: ThemePreference) => void;
   onChangeCameraPreference: (preference: CameraPreference) => void;
   onChangePhotoSizeReduction: (value: number) => void;
+  onChangeAutoPhotoSize: (value: boolean) => void;
 }
 
 const CAMERA_OPTIONS: { value: CameraPreference; label: string }[] = [
@@ -51,13 +53,15 @@ export function SettingsPanel({
   themePreference,
   cameraPreference,
   photoSizeReduction,
+  autoPhotoSize,
   onExportFoodMemory,
   onImportFoodMemory,
   onChangeExportLeadIn,
   onForceRefresh,
   onChangeTheme,
   onChangeCameraPreference,
-  onChangePhotoSizeReduction
+  onChangePhotoSizeReduction,
+  onChangeAutoPhotoSize
 }: SettingsPanelProps) {
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<FoodImportMode>('merge');
@@ -251,8 +255,27 @@ export function SettingsPanel({
                 value={photoSizeReduction}
                 aria-labelledby="photo-size-label"
                 aria-valuetext={`${photoSizeReduction}% smaller`}
+                disabled={autoPhotoSize}
                 onChange={(event) => onChangePhotoSizeReduction(event.currentTarget.valueAsNumber)}
               />
+            </div>
+          </div>
+          <div className="settings-row settings-row-action">
+            <div className="settings-row-copy">
+              <h3 id="auto-photo-size-label">Auto-fit photo</h3>
+              <p>Fill the available height above the active photo detail field.</p>
+            </div>
+            <div className="settings-row-control">
+              <button
+                className={`settings-switch${autoPhotoSize ? ' active' : ''}`}
+                type="button"
+                role="switch"
+                aria-checked={autoPhotoSize}
+                aria-labelledby="auto-photo-size-label"
+                onClick={() => onChangeAutoPhotoSize(!autoPhotoSize)}
+              >
+                <span className="settings-switch-thumb" aria-hidden="true" />
+              </button>
             </div>
           </div>
         </div>

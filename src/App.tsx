@@ -29,6 +29,7 @@ import {
   loadPhotoSizeReduction,
   savePhotoSizeReduction
 } from './lib/photoSizePreference';
+import { loadAutoPhotoSize, saveAutoPhotoSize } from './lib/autoPhotoSizePreference';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from './lib/pwa';
 import { getAggregatedSessionListItems } from './lib/sessionAggregation';
@@ -162,6 +163,7 @@ export default function App() {
   const [themePreference, setThemePreference] = useState<ThemePreference>(loadThemePreference);
   const [cameraPreference, setCameraPreference] = useState<CameraPreference>(loadCameraPreference);
   const [photoSizeReduction, setPhotoSizeReduction] = useState(loadPhotoSizeReduction);
+  const [autoPhotoSize, setAutoPhotoSize] = useState(loadAutoPhotoSize);
   const [activePhotoFilter, setActivePhotoFilter] = useState<'pending' | 'archived'>('pending');
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoFeedbackMessage, setPhotoFeedbackMessage] = useState('');
@@ -213,6 +215,10 @@ export default function App() {
   useEffect(() => {
     savePhotoSizeReduction(photoSizeReduction);
   }, [photoSizeReduction]);
+
+  useEffect(() => {
+    saveAutoPhotoSize(autoPhotoSize);
+  }, [autoPhotoSize]);
 
   useEffect(() => {
     if (!isHydrated || launchAction !== 'photo') {
@@ -972,6 +978,7 @@ export default function App() {
             feedbackMessage={photoFeedbackMessage}
             feedbackTone={photoFeedbackTone}
             photoSizeReduction={photoSizeReduction}
+            autoPhotoSize={autoPhotoSize}
             onChangeFilter={setActivePhotoFilter}
             onOpenCamera={handleOpenCamera}
             onOpenGallery={() => galleryInputRef.current?.click()}
@@ -1038,6 +1045,7 @@ export default function App() {
             themePreference={themePreference}
             cameraPreference={cameraPreference}
             photoSizeReduction={photoSizeReduction}
+            autoPhotoSize={autoPhotoSize}
             onExportFoodMemory={handleExportFoodMemory}
             onImportFoodMemory={handleImportFoodMemory}
             onChangeExportLeadIn={(value) => {
@@ -1048,6 +1056,7 @@ export default function App() {
             onChangeTheme={setThemePreference}
             onChangeCameraPreference={setCameraPreference}
             onChangePhotoSizeReduction={setPhotoSizeReduction}
+            onChangeAutoPhotoSize={setAutoPhotoSize}
           />
         </section>
       ) : null}

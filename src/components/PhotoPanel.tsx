@@ -35,6 +35,7 @@ interface PhotoPanelProps {
   feedbackMessage: string;
   feedbackTone: 'idle' | 'error';
   photoSizeReduction: number;
+  autoPhotoSize: boolean;
   onChangeFilter: (filter: 'pending' | 'archived') => void;
   onOpenCamera: () => void;
   onOpenGallery: () => void;
@@ -337,6 +338,7 @@ function PhotoDetail({
   photo,
   isBusy,
   photoSizeReduction,
+  autoPhotoSize,
   onBack,
   onSave
 }: {
@@ -344,6 +346,7 @@ function PhotoDetail({
   photo: PhotoItem;
   isBusy: boolean;
   photoSizeReduction: number;
+  autoPhotoSize: boolean;
   onBack: () => void;
   onSave: (payload: { foodName: string; weightGrams: number }) => void;
 }) {
@@ -365,8 +368,12 @@ function PhotoDetail({
     pointerId: number;
     x: number;
     y: number;
+    lastX: number;
+    lastY: number;
+    moved: boolean;
   } | null>(null);
   const previousTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
   const deferredQuery = useDeferredValue(foodName);
   const suggestions = useMemo(
     () => getFoodSuggestions(foods, deferredQuery, 5),
@@ -381,6 +388,15 @@ function PhotoDetail({
     setSuggestionsOpen(false);
     setHighlightedIndex(0);
   }, [photo]);
+
+  useEffect(
+    () => () => {
+      if (closeTimeoutRef.current != null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   useLayoutEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -432,8 +448,8 @@ function PhotoDetail({
     const previousViewportOffsetTop = scrollContainer.style.getPropertyValue(
       '--photo-detail-viewport-offset-top'
     );
-    const previousKeyboardEdge = scrollContainer.style.getPropertyValue(
-      '--photo-detail-keyboard-edge'
+    const previousKeyboardInsetBottom = scrollContainer.style.getPropertyValue(
+      '--photo-detail-keyboard-inset-bottom'
     );
     const previousFieldHeight = scrollContainer.style.getPropertyValue(
       '--photo-detail-field-height'
@@ -514,11 +530,11 @@ function PhotoDetail({
           `${viewportOffsetTop}px`
         );
         scrollContainer.style.setProperty(
-          '--photo-detail-keyboard-edge',
-          `${viewportOffsetTop + viewportHeight}px`
+          '--photo-detail-keyboard-inset-bottom',
+          `${Math.max(0, window.innerHeight - viewportOffsetTop - viewportHeight)}px`
         );
         updateFieldMetrics();
-        scrollContainer.classList.toggle('photo-detail-keyboard-open', keyboardOpen);
+        scrollContainer.classList.toggle('photo-detail-keyboard-open', keyboardOpen && !autoPhotoSize);
       });
     };
 
@@ -561,10 +577,13 @@ function PhotoDetail({
       } else {
         scrollContainer.style.removeProperty('--photo-detail-viewport-offset-top');
       }
-      if (previousKeyboardEdge) {
-        scrollContainer.style.setProperty('--photo-detail-keyboard-edge', previousKeyboardEdge);
+      if (previousKeyboardInsetBottom) {
+        scrollContainer.style.setProperty(
+          '--photo-detail-keyboard-inset-bottom',
+          previousKeyboardInsetBottom
+        );
       } else {
-        scrollContainer.style.removeProperty('--photo-detail-keyboard-edge');
+        scrollContainer.style.removeProperty('--photo-detail-keyboard-inset-bottom');
       }
       if (previousFieldHeight) {
         scrollContainer.style.setProperty('--photo-detail-field-height', previousFieldHeight);
@@ -583,7 +602,7 @@ function PhotoDetail({
       }
       scrollContainer.classList.toggle('photo-detail-keyboard-open', hadKeyboardClass);
     };
-  }, []);
+  }, [autoPhotoSize]);
 
   function continueToWeight() {
     if (isBusy) {
@@ -643,7 +662,11 @@ function PhotoDetail({
   }
 
   function handleGestureStart(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) {
+    if (
+      closeTimeoutRef.current != null ||
+      !event.isPrimary ||
+      (event.pointerType === 'mouse' && event.button !== 0)
+    ) {
       gestureStartRef.current = null;
       return;
     }
@@ -653,24 +676,43 @@ function PhotoDetail({
     gestureStartRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
-      y: event.clientY
+      y: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      moved: false
     };
+  }
+
+  function handleGestureMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const gesture = gestureStartRef.current;
+
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    gesture.lastX = event.clientX;
+    gesture.lastY = event.clientY;
+
+    if (!gesture.moved && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 10) {
+      gesture.moved = true;
+      previousTapRef.current = null;
+    }
   }
 
   function handleGestureEnd(event: ReactPointerEvent<HTMLDivElement>) {
     const start = gestureStartRef.current;
     gestureStartRef.current = null;
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
     if (!start || start.pointerId !== event.pointerId) {
       return;
     }
 
-    const horizontalDistance = event.clientX - start.x;
-    const verticalDistance = event.clientY - start.y;
+    start.lastX = event.clientX;
+    start.lastY = event.clientY;
+    const endX = start.lastX;
+    const endY = start.lastY;
+    const horizontalDistance = endX - start.x;
+    const verticalDistance = endY - start.y;
     const absoluteHorizontalDistance = Math.abs(horizontalDistance);
     const absoluteVerticalDistance = Math.abs(verticalDistance);
 
@@ -685,7 +727,7 @@ function PhotoDetail({
       return;
     }
 
-    if (Math.hypot(horizontalDistance, verticalDistance) > 10) {
+    if (start.moved || Math.hypot(horizontalDistance, verticalDistance) > 10) {
       previousTapRef.current = null;
       return;
     }
@@ -700,7 +742,10 @@ function PhotoDetail({
     ) {
       previousTapRef.current = null;
       event.preventDefault();
-      onBack();
+      closeTimeoutRef.current = window.setTimeout(() => {
+        closeTimeoutRef.current = null;
+        onBack();
+      }, 120);
       return;
     }
 
@@ -720,12 +765,16 @@ function PhotoDetail({
   }
 
   return (
-    <section ref={detailScreenRef} className="photo-detail-screen">
+    <section
+      ref={detailScreenRef}
+      className={`photo-detail-screen${autoPhotoSize ? ' photo-detail-auto-fit' : ''}`}
+    >
       <div className="photo-detail-card">
         <div
           className="photo-detail-media"
-          style={{ height: getPhotoDetailMediaHeight(photoSizeReduction) }}
+          style={autoPhotoSize ? undefined : { height: getPhotoDetailMediaHeight(photoSizeReduction) }}
           onPointerDown={handleGestureStart}
+          onPointerMove={handleGestureMove}
           onPointerUp={handleGestureEnd}
           onPointerCancel={handleGestureCancel}
           onLostPointerCapture={() => {
@@ -900,6 +949,7 @@ export function PhotoPanel({
   feedbackMessage,
   feedbackTone,
   photoSizeReduction,
+  autoPhotoSize,
   onChangeFilter,
   onOpenCamera,
   onOpenGallery,
@@ -918,6 +968,7 @@ export function PhotoPanel({
         photo={selectedPhoto}
         isBusy={isBusy}
         photoSizeReduction={photoSizeReduction}
+        autoPhotoSize={autoPhotoSize}
         onBack={onCloseDetail}
         onSave={(payload) => onSavePhoto(selectedPhoto.id, payload)}
       />
