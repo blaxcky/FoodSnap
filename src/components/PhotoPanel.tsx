@@ -3,6 +3,7 @@ import {
   type FocusEvent,
   type FormEvent,
   type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
   useDeferredValue,
   useEffect,
@@ -17,7 +18,6 @@ import { getPhotoDetailMediaHeight } from '../lib/photoSizePreference';
 import type { FoodProfile, PhotoItem } from '../lib/types';
 import { formatNumber } from '../lib/utils';
 import {
-  ArrowLeftIcon,
   CameraIcon,
   ImageIcon,
   PhotoIcon,
@@ -361,6 +361,12 @@ function PhotoDetail({
   const activeFieldLayerRef = useRef<HTMLDivElement>(null);
   const foodInputRef = useRef<HTMLDivElement>(null);
   const weightInputRef = useRef<HTMLDivElement>(null);
+  const gestureStartRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const previousTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const deferredQuery = useDeferredValue(foodName);
   const suggestions = useMemo(
     () => getFoodSuggestions(foods, deferredQuery, 5),
@@ -636,12 +642,82 @@ function PhotoDetail({
     });
   }
 
+  function handleGestureStart(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) {
+      gestureStartRef.current = null;
+      return;
+    }
+
+    gestureStartRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY
+    };
+  }
+
+  function handleGestureEnd(event: ReactPointerEvent<HTMLDivElement>) {
+    const start = gestureStartRef.current;
+    gestureStartRef.current = null;
+
+    if (!start || start.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const horizontalDistance = event.clientX - start.x;
+    const verticalDistance = event.clientY - start.y;
+    const absoluteHorizontalDistance = Math.abs(horizontalDistance);
+    const absoluteVerticalDistance = Math.abs(verticalDistance);
+
+    if (absoluteHorizontalDistance >= 50 && absoluteHorizontalDistance > absoluteVerticalDistance) {
+      previousTapRef.current = null;
+
+      if (horizontalDistance < 0 && step === 'weight' && !isBusy) {
+        setError('');
+        setStep('food');
+      }
+
+      return;
+    }
+
+    if (Math.hypot(horizontalDistance, verticalDistance) > 10) {
+      previousTapRef.current = null;
+      return;
+    }
+
+    const now = event.timeStamp;
+    const previousTap = previousTapRef.current;
+
+    if (
+      previousTap &&
+      now - previousTap.time <= 350 &&
+      Math.hypot(event.clientX - previousTap.x, event.clientY - previousTap.y) <= 40
+    ) {
+      previousTapRef.current = null;
+      event.preventDefault();
+      onBack();
+      return;
+    }
+
+    previousTapRef.current = {
+      time: now,
+      x: event.clientX,
+      y: event.clientY
+    };
+  }
+
   return (
     <section ref={detailScreenRef} className="photo-detail-screen">
       <div className="photo-detail-card">
         <div
           className="photo-detail-media"
           style={{ height: getPhotoDetailMediaHeight(photoSizeReduction) }}
+          onPointerDown={handleGestureStart}
+          onPointerUp={handleGestureEnd}
+          onPointerCancel={() => {
+            gestureStartRef.current = null;
+          }}
+          onDoubleClick={(event) => event.preventDefault()}
+          onDragStart={(event) => event.preventDefault()}
         >
           <StoredPhoto
             photoId={photo.id}
@@ -654,22 +730,6 @@ function PhotoDetail({
           <p className="visually-hidden" aria-live="polite">
             {step === 'food' ? 'Food name' : 'Weight'}
           </p>
-
-          {step === 'weight' ? (
-            <div className="photo-detail-change-name">
-              <button
-                className="ghost-button compact"
-                type="button"
-                disabled={isBusy}
-                onClick={() => {
-                  setError('');
-                  setStep('food');
-                }}
-              >
-                Change name
-              </button>
-            </div>
-          ) : null}
 
           <div className="photo-detail-field-slot" ref={activeFieldSlotRef}>
             <div className="photo-detail-active-field" ref={activeFieldLayerRef}>
@@ -812,33 +872,10 @@ function PhotoDetail({
           {step === 'weight' ? (
             <p className="helper-copy photo-detail-helper">
               {photo.status === 'pending'
-                ? 'Save to archive the photo and create a normal log entry.'
-                : 'Changes here stay synced with the linked log entry while it remains a direct gram entry.'}
+                ? 'Press Enter to archive the photo and create a normal log entry.'
+                : 'Press Enter to update the photo and its linked direct gram entry.'}
             </p>
           ) : null}
-
-          <div className="photo-detail-footer">
-            <button
-              className="primary-button photo-save-button"
-              type="button"
-              disabled={isBusy}
-              onClick={step === 'food' ? continueToWeight : submitForm}
-            >
-              {step === 'food'
-                ? 'Next'
-                : photo.status === 'pending'
-                ? isBusy
-                  ? 'Saving...'
-                  : 'Save and archive'
-                : isBusy
-                ? 'Saving...'
-                : 'Update photo'}
-            </button>
-            <button className="ghost-button photo-back-button" type="button" onClick={onBack}>
-              <ArrowLeftIcon className="ui-icon" />
-              <span>Back</span>
-            </button>
-          </div>
         </div>
       </div>
     </section>
