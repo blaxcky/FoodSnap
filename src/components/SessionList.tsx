@@ -58,8 +58,9 @@ export function SessionList({
     []
   );
 
-  async function handleCopyFoodName(entryId: string, foodName: string) {
-    const didCopy = await copyTextToClipboard(foodName);
+  async function handleCopyEntry(entryId: string, foodName: string, amount?: number) {
+    const copyText = amount == null ? foodName : `${foodName};${formatNumber(amount)}`;
+    const didCopy = await copyTextToClipboard(copyText);
 
     if (feedbackTimeoutRef.current != null) {
       window.clearTimeout(feedbackTimeoutRef.current);
@@ -108,6 +109,7 @@ export function SessionList({
             if (item.type === 'aggregate') {
               const { group } = item;
               const amountSummary = `${formatNumber(group.amount)}g`;
+              const copyText = `${group.foodName};${formatNumber(group.amount)}`;
               const entryIds = group.entries.map((entry) => entry.id);
               const deleted = group.entries.every((entry) => isEntryDeleted(entry));
               const clipboardFeedbackMessage =
@@ -125,8 +127,8 @@ export function SessionList({
                         <button
                           className="food-name-button"
                           type="button"
-                          onClick={() => handleCopyFoodName(group.id, group.foodName)}
-                          aria-label={`Copy ${group.foodName} to clipboard`}
+                          onClick={() => handleCopyEntry(group.id, group.foodName, group.amount)}
+                          aria-label={`Copy ${copyText} to clipboard`}
                         >
                           {group.foodName}
                         </button>
@@ -188,6 +190,11 @@ export function SessionList({
                   : 'Clipboard access failed'
                 : null;
             const incompleteWeight = pendingBeforeWeight || pendingAfterWeight;
+            const copyAmount = entry.unit === 'g' && !incompleteWeight ? entry.amount : undefined;
+            const copyText =
+              copyAmount == null
+                ? entry.foodName
+                : `${entry.foodName};${formatNumber(copyAmount)}`;
             const amountSummary = incompleteWeight
               ? formatEntryMeta(entry)
               : `${entry.unit === 'g'
@@ -205,8 +212,8 @@ export function SessionList({
                       <button
                         className="food-name-button"
                         type="button"
-                        onClick={() => handleCopyFoodName(entry.id, entry.foodName)}
-                        aria-label={`Copy ${entry.foodName} to clipboard`}
+                        onClick={() => handleCopyEntry(entry.id, entry.foodName, copyAmount)}
+                        aria-label={`Copy ${copyText} to clipboard`}
                       >
                         {entry.foodName}
                       </button>
