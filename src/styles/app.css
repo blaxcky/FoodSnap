@@ -1909,7 +1909,38 @@ button {
   gap: 12px;
 }
 
+.photo-card-swipe {
+  --swipe-delete-progress: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+}
+
+.photo-delete-reveal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 20px;
+  background: #b4232c;
+  color: #fff7f7;
+  font-size: 0.84rem;
+  font-weight: 700;
+  opacity: var(--swipe-delete-progress);
+}
+
+.photo-delete-reveal .ui-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.photo-card-swipe.is-delete-ready .photo-delete-reveal {
+  background: #c12832;
+}
+
 .photo-card {
+  position: relative;
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr) auto;
   gap: 14px;
@@ -1917,13 +1948,40 @@ button {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: linear-gradient(135deg, var(--accent-surface-tint) 0%, transparent 100%);
+  outline: none;
+  background: var(--surface);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.photo-card-preview-button {
-  padding: 0;
-  border: 0;
-  background: transparent;
+.photo-card:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.photo-card:focus-visible {
+  border-color: var(--accent-border);
+  box-shadow: var(--accent-focus-ring);
+}
+
+.photo-card-swipe-pending .photo-card {
+  grid-template-columns: 72px minmax(0, 1fr);
+  min-height: 100px;
+  touch-action: pan-y;
+}
+
+.photo-card-swipe.is-swiping .photo-card,
+.photo-card-swipe.is-settling .photo-card {
+  will-change: transform, opacity;
+}
+
+.photo-card-swipe.is-settling .photo-card {
+  transition: transform 220ms cubic-bezier(0.2, 0.75, 0.25, 1),
+    opacity 180ms ease-out;
+}
+
+.photo-card-swipe.is-deleting {
+  pointer-events: none;
 }
 
 .photo-thumb {
@@ -1970,30 +2028,22 @@ button {
 
 .photo-timestamp {
   color: var(--text-3);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
+}
+
+.photo-card-pending .photo-timestamp {
+  color: var(--text-2);
+  font-size: 0.86rem;
 }
 
 .photo-status-badge {
   padding: 5px 10px;
 }
 
-.photo-status-pending {
-  background: var(--warning-bg);
-  color: var(--warning-text);
-}
-
 .photo-status-archived {
   background: var(--success-bg);
   color: var(--success-text);
-}
-
-.photo-card-actions {
-  align-self: stretch;
-}
-
-.photo-link-action {
-  color: var(--accent);
 }
 
 .screen-section-photo-detail {
@@ -2436,14 +2486,8 @@ button {
     font-size: 1.8rem;
   }
 
-  .photo-card {
+  .photo-card-archived {
     grid-template-columns: 76px minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .photo-card-actions {
-    grid-column: 1 / -1;
-    justify-content: flex-end;
   }
 
   .screen-section-photo-detail {

@@ -41,7 +41,7 @@ interface PhotoPanelProps {
   onOpenGallery: () => void;
   onSelectPhoto: (photoId: string) => void;
   onCloseDetail: () => void;
-  onDeletePendingPhoto: (photoId: string) => void;
+  onDeletePendingPhoto: (photoId: string) => Promise<boolean>;
   onSavePhoto: (photoId: string, payload: { foodName: string; weightGrams: number }) => void;
 }
 
@@ -126,54 +126,235 @@ function PhotoCard({
 }: {
   photo: PhotoItem;
   onOpen: () => void;
-  onDelete?: () => void;
+  onDelete?: () => Promise<boolean>;
 }) {
+  const swipeContainerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const swipeLabelRef = useRef<HTMLSpanElement>(null);
+  const gestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    threshold: number;
+    direction: 'undecided' | 'horizontal' | 'vertical';
+  } | null>(null);
+  const deleteInProgressRef = useRef(false);
+  const suppressClickUntilRef = useRef(0);
+
+  function setCardPosition(offset: number, opacity = 1) {
+    const card = cardRef.current;
+
+    if (!card) {
+      return;
+    }
+
+    card.style.transform = `translate3d(${offset}px, 0, 0)`;
+    card.style.opacity = String(opacity);
+  }
+
+  function setSwipeProgress(offset: number, threshold: number) {
+    const container = swipeContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const progress = Math.min(offset / threshold, 1);
+    container.style.setProperty('--swipe-delete-progress', String(progress));
+    container.classList.toggle('is-delete-ready', offset >= threshold);
+
+    if (swipeLabelRef.current) {
+      swipeLabelRef.current.textContent =
+        offset >= threshold ? 'Release to delete' : 'Swipe to delete';
+    }
+  }
+
+  function resetCard() {
+    const container = swipeContainerRef.current;
+
+    container?.classList.add('is-settling');
+    container?.classList.remove('is-swiping', 'is-delete-ready', 'is-deleting');
+    setCardPosition(0);
+    setSwipeProgress(0, 1);
+  }
+
+  async function deleteCard() {
+    if (!onDelete || deleteInProgressRef.current) {
+      return;
+    }
+
+    deleteInProgressRef.current = true;
+    const container = swipeContainerRef.current;
+    const card = cardRef.current;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const exitDistance = (container?.getBoundingClientRect().width ?? 320) + 64;
+
+    container?.classList.add('is-settling', 'is-deleting');
+    setCardPosition(exitDistance, 0);
+
+    await new Promise<void>((resolve) => window.setTimeout(resolve, reducedMotion ? 0 : 240));
+    const deleted = await onDelete();
+
+    if (!deleted && card) {
+      container?.classList.remove('is-deleting');
+      setCardPosition(0, 1);
+      setSwipeProgress(0, 1);
+      deleteInProgressRef.current = false;
+    }
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLElement>) {
+    if (!onDelete || deleteInProgressRef.current || !event.isPrimary || event.button !== 0) {
+      return;
+    }
+
+    const width = swipeContainerRef.current?.getBoundingClientRect().width ?? 0;
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      threshold: Math.min(112, width * 0.32),
+      direction: 'undecided'
+    };
+    swipeContainerRef.current?.classList.remove('is-settling');
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLElement>) {
+    const gesture = gestureRef.current;
+
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+
+    if (gesture.direction === 'undecided') {
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) {
+        return;
+      }
+
+      gesture.direction = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+    }
+
+    if (gesture.direction !== 'horizontal') {
+      return;
+    }
+
+    swipeContainerRef.current?.classList.add('is-swiping');
+    suppressClickUntilRef.current = Date.now() + 500;
+    const positiveOffset = Math.max(0, deltaX);
+    const displayedOffset =
+      positiveOffset > gesture.threshold
+        ? gesture.threshold + (positiveOffset - gesture.threshold) * 0.35
+        : positiveOffset;
+
+    if (positiveOffset > 0) {
+      event.preventDefault();
+    }
+
+    setCardPosition(displayedOffset);
+    setSwipeProgress(displayedOffset, gesture.threshold);
+  }
+
+  function finishPointerGesture(event: ReactPointerEvent<HTMLElement>, cancelled = false) {
+    const gesture = gestureRef.current;
+
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    gestureRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    const deltaX = event.clientX - gesture.startX;
+    if (!cancelled && gesture.direction === 'horizontal' && deltaX >= gesture.threshold) {
+      void deleteCard();
+      return;
+    }
+
+    resetCard();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if ((event.key === 'Enter' || event.key === ' ') && !deleteInProgressRef.current) {
+      event.preventDefault();
+      onOpen();
+    } else if (event.key === 'Delete' && onDelete) {
+      event.preventDefault();
+      void deleteCard();
+    }
+  }
+
+  const timestamp = formatPhotoTimestamp(photo.completedAt ?? photo.createdAt);
+  const cardLabel =
+    photo.status === 'pending'
+      ? `Open food photo from ${timestamp}`
+      : `Open ${photo.foodName?.trim() || 'archived food'} photo from ${timestamp}`;
+
   return (
-    <article className={`photo-card photo-card-${photo.status}`}>
-      <button className="photo-card-preview-button" type="button" onClick={onOpen}>
+    <div
+      className={`photo-card-swipe photo-card-swipe-${photo.status}`}
+      ref={swipeContainerRef}
+    >
+      {onDelete ? (
+        <div className="photo-delete-reveal" aria-hidden="true">
+          <TrashIcon className="ui-icon" />
+          <span ref={swipeLabelRef}>Swipe to delete</span>
+        </div>
+      ) : null}
+      <article
+        className={`photo-card photo-card-${photo.status}`}
+        ref={cardRef}
+        role="button"
+        tabIndex={0}
+        aria-label={cardLabel}
+        onClick={(event) => {
+          if (Date.now() < suppressClickUntilRef.current || deleteInProgressRef.current) {
+            event.preventDefault();
+            return;
+          }
+          onOpen();
+        }}
+        onKeyDown={handleKeyDown}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={(event) => finishPointerGesture(event)}
+        onPointerCancel={(event) => finishPointerGesture(event, true)}
+        onDragStart={(event) => event.preventDefault()}
+      >
         <StoredPhoto
           photoId={photo.id}
           alt={photo.foodName ? `${photo.foodName} photo` : 'Food photo'}
           className="photo-thumb"
         />
-      </button>
-
-      <div className="photo-card-copy">
-        <div className="photo-card-meta-row">
-          <span className={`status-badge photo-status-badge photo-status-${photo.status}`}>
-            {photo.status === 'pending' ? 'Open' : 'Archived'}
-          </span>
-          <span className="photo-timestamp">
-            {formatPhotoTimestamp(photo.completedAt ?? photo.createdAt)}
-          </span>
-        </div>
-
-        <h3>{photo.foodName?.trim() || 'Unprocessed photo'}</h3>
-        <p>
-          {photo.status === 'pending'
-            ? 'Open the photo and add food name plus grams.'
-            : photo.weightGrams != null
-            ? `${formatNumber(photo.weightGrams)}g saved`
-            : 'Archived without linked log entry'}
-        </p>
-      </div>
-
-      <div className="entry-actions photo-card-actions">
-        <button className="ghost-button compact" type="button" onClick={onOpen}>
-          Open
-        </button>
-        {onDelete ? (
-          <button
-            className="icon-action destructive-action"
-            type="button"
-            onClick={onDelete}
-            aria-label="Delete open photo"
-          >
-            <TrashIcon className="ui-icon" />
-          </button>
-        ) : null}
-      </div>
-    </article>
+        {photo.status === 'pending' ? (
+          <time className="photo-timestamp" dateTime={photo.createdAt}>
+            {timestamp}
+          </time>
+        ) : (
+          <div className="photo-card-copy">
+            <div className="photo-card-meta-row">
+              <span className="status-badge photo-status-badge photo-status-archived">
+                Archived
+              </span>
+              <time className="photo-timestamp" dateTime={photo.completedAt ?? photo.createdAt}>
+                {timestamp}
+              </time>
+            </div>
+            <h3>{photo.foodName?.trim() || 'Archived photo'}</h3>
+            <p>
+              {photo.weightGrams != null
+                ? `${formatNumber(photo.weightGrams)}g saved`
+                : 'Archived without linked log entry'}
+            </p>
+          </div>
+        )}
+      </article>
+    </div>
   );
 }
 

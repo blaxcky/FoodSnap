@@ -776,15 +776,19 @@ export default function App() {
   }
 
   async function handleDeletePendingPhoto(photoId: string) {
+    resetPhotoFeedback();
+
     try {
       await deletePhotoBlob(photoId);
       setPhotoItems((currentPhotos) => currentPhotos.filter((photo) => photo.id !== photoId));
       if (selectedPhotoId === photoId) {
         setSelectedPhotoId(null);
       }
+      return true;
     } catch {
       setPhotoFeedbackTone('error');
       setPhotoFeedbackMessage('The open photo could not be deleted.');
+      return false;
     }
   }
 
@@ -958,9 +962,7 @@ export default function App() {
             onOpenGallery={() => galleryInputRef.current?.click()}
             onSelectPhoto={setSelectedPhotoId}
             onCloseDetail={() => setSelectedPhotoId(null)}
-            onDeletePendingPhoto={(photoId) => {
-              void handleDeletePendingPhoto(photoId);
-            }}
+            onDeletePendingPhoto={handleDeletePendingPhoto}
             onSavePhoto={(photoId, payload) => {
               void handleSavePhoto(photoId, payload);
             }}
