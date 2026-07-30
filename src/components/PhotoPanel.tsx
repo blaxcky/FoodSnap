@@ -459,6 +459,9 @@ function PhotoDetail({
       '--photo-detail-field-width'
     );
     const hadKeyboardClass = scrollContainer.classList.contains('photo-detail-keyboard-open');
+    const hadKeyboardVisibleClass = scrollContainer.classList.contains(
+      'photo-detail-keyboard-visible'
+    );
     let viewportFrameId = 0;
     let fieldFrameId = 0;
     let baselineHeight = Math.max(
@@ -534,6 +537,7 @@ function PhotoDetail({
           `${Math.max(0, window.innerHeight - viewportOffsetTop - viewportHeight)}px`
         );
         updateFieldMetrics();
+        scrollContainer.classList.toggle('photo-detail-keyboard-visible', keyboardOpen);
         scrollContainer.classList.toggle('photo-detail-keyboard-open', keyboardOpen && !autoPhotoSize);
       });
     };
@@ -601,6 +605,10 @@ function PhotoDetail({
         scrollContainer.style.removeProperty('--photo-detail-field-width');
       }
       scrollContainer.classList.toggle('photo-detail-keyboard-open', hadKeyboardClass);
+      scrollContainer.classList.toggle(
+        'photo-detail-keyboard-visible',
+        hadKeyboardVisibleClass
+      );
     };
   }, [autoPhotoSize]);
 
@@ -719,7 +727,7 @@ function PhotoDetail({
     if (absoluteHorizontalDistance >= 50 && absoluteHorizontalDistance > absoluteVerticalDistance) {
       previousTapRef.current = null;
 
-      if (horizontalDistance < 0 && step === 'weight' && !isBusy) {
+      if (horizontalDistance > 0 && step === 'weight' && !isBusy) {
         setError('');
         setStep('food');
       }

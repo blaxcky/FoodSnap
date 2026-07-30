@@ -2065,7 +2065,7 @@ button {
   -webkit-backdrop-filter: blur(20px);
 }
 
-.screen-section-photo-detail.photo-detail-keyboard-open .photo-detail-suggestions {
+.screen-section-photo-detail.photo-detail-keyboard-visible .photo-detail-suggestions {
   top: auto;
   bottom: calc(100% + 6px);
   max-height: min(38vh, 240px);
