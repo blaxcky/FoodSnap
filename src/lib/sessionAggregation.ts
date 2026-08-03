@@ -29,6 +29,22 @@ interface SessionAggregationOptions {
   includeDeleted?: boolean;
 }
 
+function getUniqueNotes(entries: SessionEntry[]) {
+  const notes: string[] = [];
+  const usedNotes = new Set<string>();
+
+  for (const entry of entries) {
+    const note = entry.note.trim();
+
+    if (note && !usedNotes.has(note)) {
+      usedNotes.add(note);
+      notes.push(note);
+    }
+  }
+
+  return notes;
+}
+
 function formatNutritionDetail(
   value: number | undefined,
   label: string,
@@ -45,23 +61,21 @@ function formatNutritionDetail(
 }
 
 export function getSessionEntryDetails(entry: SessionEntry) {
-  const details: string[] = [];
+  return [...getUniqueNotes([entry]), ...getSessionEntryNutritionDetails(entry)];
+}
 
-  if (entry.note.trim()) {
-    details.push(entry.note.trim());
-  }
-
+export function getSessionEntryNutritionDetails(entry: SessionEntry) {
   const nutritionScope = entry.nutritionScope;
-  const nutritionDetails = [
+  return [
     formatNutritionDetail(entry.calories, 'kcal', '', nutritionScope),
     formatNutritionDetail(entry.carbs, 'Kohlenhydrate', 'g', nutritionScope),
     formatNutritionDetail(entry.fat, 'Fett', 'g', nutritionScope),
     formatNutritionDetail(entry.protein, 'Eiweiß', 'g', nutritionScope)
   ].filter((detail): detail is string => detail != null);
+}
 
-  details.push(...nutritionDetails);
-
-  return details;
+export function getCombinedSessionEntryNote(entries: SessionEntry[]) {
+  return getUniqueNotes(entries).join(', ');
 }
 
 export function appendSessionEntryDetails(base: string, entry: SessionEntry) {
@@ -75,11 +89,17 @@ export function canAggregateSessionEntry(entry: SessionEntry) {
 
 export function getSessionEntryAggregationKey(
   entry: SessionEntry,
-  details = getSessionEntryDetails(entry),
   options: SessionAggregationOptions = {}
 ) {
   const deletionState = options.includeDeleted ? `${isEntryDeleted(entry) ? 'deleted' : 'active'}\u0000` : '';
-  return `${deletionState}${entry.foodName}\u0000${details.join('\u0001')}`;
+  const nutritionIdentity = JSON.stringify([
+    entry.calories,
+    entry.carbs,
+    entry.fat,
+    entry.protein,
+    normalizeNutritionScope(entry.nutritionScope)
+  ]);
+  return `${deletionState}${entry.foodName}\u0000${nutritionIdentity}`;
 }
 
 export function aggregateSessionEntries(
@@ -94,13 +114,17 @@ export function aggregateSessionEntries(
       continue;
     }
 
-    const details = getSessionEntryDetails(entry);
-    const aggregationKey = getSessionEntryAggregationKey(entry, details, options);
+    const nutritionDetails = getSessionEntryNutritionDetails(entry);
+    const aggregationKey = getSessionEntryAggregationKey(entry, options);
     const existingEntry = aggregatedEntries.get(aggregationKey);
 
     if (existingEntry) {
       existingEntry.amount += entry.amount;
       existingEntry.entries.push(entry);
+      existingEntry.details = [
+        ...getUniqueNotes(existingEntry.entries),
+        ...nutritionDetails
+      ];
       continue;
     }
 
@@ -108,13 +132,29 @@ export function aggregateSessionEntries(
       id: aggregationKey,
       amount: entry.amount,
       foodName: entry.foodName,
-      details,
+      details: [...getUniqueNotes([entry]), ...nutritionDetails],
       entries: [entry]
     });
     orderedKeys.push(aggregationKey);
   }
 
   return { aggregatedEntries, orderedKeys };
+}
+
+export function updateSessionEntryNotes(
+  entries: SessionEntry[],
+  entryIds: Iterable<string>,
+  note: string,
+  timestamp: string
+) {
+  const targetEntryIds = new Set(entryIds);
+  const trimmedNote = note.trim();
+
+  return entries.map((entry) =>
+    targetEntryIds.has(entry.id)
+      ? { ...entry, note: trimmedNote, updatedAt: timestamp }
+      : entry
+  );
 }
 
 export function getAggregatedSessionListItems(
@@ -131,7 +171,7 @@ export function getAggregatedSessionListItems(
       continue;
     }
 
-    const aggregationKey = getSessionEntryAggregationKey(entry, undefined, options);
+    const aggregationKey = getSessionEntryAggregationKey(entry, options);
     const aggregatedEntry = aggregatedEntries.get(aggregationKey);
 
     if (!aggregatedEntry || aggregatedEntry.entries.length < 2) {

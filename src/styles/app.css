@@ -1835,6 +1835,10 @@ button {
   resize: vertical;
 }
 
+.aggregate-note-modal {
+  max-width: 440px;
+}
+
 .destructive-action {
   color: var(--danger);
 }

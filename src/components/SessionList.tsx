@@ -23,6 +23,7 @@ interface SessionListProps {
   isAggregated?: boolean;
   editingEntryId: string | null;
   onEdit: (entryId: string) => void;
+  onEditMany: (entryIds: string[]) => void;
   onDelete: (entryId: string) => void;
   onDeleteMany?: (entryIds: string[]) => void;
   onRestore: (entryId: string) => void;
@@ -65,6 +66,7 @@ export function SessionList({
   isAggregated = false,
   editingEntryId,
   onEdit,
+  onEditMany,
   onDelete,
   onDeleteMany,
   onRestore,
@@ -263,14 +265,24 @@ export function SessionList({
                           Restore
                         </button>
                       ) : (
-                        <button
-                          className="icon-action"
-                          type="button"
-                          onClick={() => onDeleteMany?.(entryIds)}
-                          aria-label={`Hide all entries for ${amountSummary} ${group.foodName} from log and export`}
-                        >
-                          <CheckIcon className="ui-icon" />
-                        </button>
+                        <>
+                          <button
+                            className="icon-action"
+                            type="button"
+                            onClick={() => onEditMany(entryIds)}
+                            aria-label={`Edit note for added entry ${group.foodName}`}
+                          >
+                            <PencilIcon className="ui-icon" />
+                          </button>
+                          <button
+                            className="icon-action"
+                            type="button"
+                            onClick={() => onDeleteMany?.(entryIds)}
+                            aria-label={`Hide all entries for ${amountSummary} ${group.foodName} from log and export`}
+                          >
+                            <CheckIcon className="ui-icon" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

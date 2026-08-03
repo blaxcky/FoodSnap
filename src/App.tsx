@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { CreateEntryModal } from './components/CreateEntryModal';
 import { CameraCaptureModal } from './components/CameraCaptureModal';
 import { EditEntryModal } from './components/EditEntryModal';
+import { AggregateNoteModal } from './components/AggregateNoteModal';
 import { ExportPanel } from './components/ExportPanel';
 import { FoodLibrary } from './components/FoodLibrary';
 import { BookIcon, CameraIcon, ExportIcon, HistoryIcon, LogIcon, PhotoIcon, SettingsIcon, BoltIcon } from './components/Icons';
@@ -32,7 +33,11 @@ import {
 import { loadAutoPhotoSize, saveAutoPhotoSize } from './lib/autoPhotoSizePreference';
 import { formatExport, formatExportWithLeadIn } from './lib/export';
 import { clearRefreshQueryParam, consumeLaunchAction, forceFreshAppLoad } from './lib/pwa';
-import { getAggregatedSessionListItems } from './lib/sessionAggregation';
+import {
+  getAggregatedSessionListItems,
+  getCombinedSessionEntryNote,
+  updateSessionEntryNotes
+} from './lib/sessionAggregation';
 import {
   archiveEntriesAsExport,
   archiveEntriesManually,
@@ -157,6 +162,7 @@ export default function App() {
   const [exportLeadIn, setExportLeadIn] = useState(defaultAppState.exportLeadIn);
   const [isLogAggregated, setIsLogAggregated] = useState(defaultAppState.isLogAggregated);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editingAggregateEntryIds, setEditingAggregateEntryIds] = useState<string[] | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const [isHydrated, setIsHydrated] = useState(false);
   const [exportBackupState, setExportBackupState] = useState<'idle' | 'done' | 'error'>('idle');
@@ -251,6 +257,15 @@ export default function App() {
     [entries, editingEntryId]
   );
 
+  const editingAggregateEntries = useMemo(() => {
+    if (!editingAggregateEntryIds) {
+      return [];
+    }
+
+    const targetIds = new Set(editingAggregateEntryIds);
+    return entries.filter((entry) => targetIds.has(entry.id) && !isEntryDeleted(entry));
+  }, [editingAggregateEntryIds, entries]);
+
   const activeEntries = useMemo(
     () => entries.filter((entry) => !isEntryDeleted(entry)),
     [entries]
@@ -299,7 +314,8 @@ export default function App() {
     [activeEntries]
   );
 
-  const isInputDialogOpen = isComposerOpen || editingEntryId != null;
+  const isInputDialogOpen =
+    isComposerOpen || editingEntryId != null || editingAggregateEntryIds != null;
 
   useEffect(() => {
     if (!selectedPhotoId) {
@@ -331,6 +347,7 @@ export default function App() {
       dialogHistoryActiveRef.current = false;
       setIsComposerOpen(false);
       setEditingEntryId(null);
+      setEditingAggregateEntryIds(null);
     };
 
     dialogHistoryActiveRef.current = true;
@@ -367,6 +384,7 @@ export default function App() {
 
     setIsComposerOpen(false);
     setEditingEntryId(null);
+    setEditingAggregateEntryIds(null);
 
     if (shouldConsumeHistory) {
       dialogHistoryActiveRef.current = false;
@@ -699,7 +717,27 @@ export default function App() {
 
   function startEditing(entryId: string) {
     setIsComposerOpen(false);
+    setEditingAggregateEntryIds(null);
     setEditingEntryId(entryId);
+  }
+
+  function startEditingAggregate(entryIds: string[]) {
+    setIsComposerOpen(false);
+    setEditingEntryId(null);
+    setEditingAggregateEntryIds(entryIds);
+  }
+
+  function handleUpdateAggregateNote(note: string) {
+    if (!editingAggregateEntryIds) {
+      return;
+    }
+
+    const timestamp = nowIso();
+    setEntries((currentEntries) =>
+      updateSessionEntryNotes(currentEntries, editingAggregateEntryIds, note, timestamp)
+    );
+    setCopyState('idle');
+    closeInputDialog();
   }
 
   async function handleForceRefresh() {
@@ -917,6 +955,7 @@ export default function App() {
             isAggregated={isLogAggregated}
             editingEntryId={editingEntryId}
             onEdit={startEditing}
+            onEditMany={startEditingAggregate}
             onDelete={handleDelete}
             onDeleteMany={handleDeleteMany}
             onRestore={handleRestore}
@@ -935,6 +974,7 @@ export default function App() {
             isAggregated={isLogAggregated}
             editingEntryId={editingEntryId}
             onEdit={startEditing}
+            onEditMany={startEditingAggregate}
             onDelete={handleDelete}
             onDeleteMany={handleDeleteMany}
             onRestore={handleRestore}
@@ -1134,6 +1174,15 @@ export default function App() {
           entry={editingEntry}
           onCancel={closeInputDialog}
           onSave={handleUpdateEntry}
+        />
+      ) : null}
+
+      {editingAggregateEntryIds && editingAggregateEntries.length > 0 ? (
+        <AggregateNoteModal
+          foodName={editingAggregateEntries[0].foodName}
+          initialNote={getCombinedSessionEntryNote(editingAggregateEntries)}
+          onCancel={closeInputDialog}
+          onSave={handleUpdateAggregateNote}
         />
       ) : null}
 
