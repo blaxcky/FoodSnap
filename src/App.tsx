@@ -207,6 +207,10 @@ export default function App() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const photoFolderScanRef = useRef<Promise<void> | null>(null);
+  const photoFolderSessionRef = useRef<{
+    directory: FileSystemDirectoryHandle;
+    permissionGranted: boolean;
+  } | null>(null);
   const photoFolderRefreshRef = useRef<Promise<{
     directory: FileSystemDirectoryHandle | null;
     permission: PermissionState | null;
@@ -898,6 +902,38 @@ export default function App() {
         });
         setActivePhotoFilter('pending');
       } catch {
+        let permission: PermissionState | null = null;
+
+        try {
+          permission = await getPhotoDirectoryPermission(directory);
+        } catch {
+          // Keep the scan error when Chromium cannot report a permission state.
+        }
+
+        if (permission === 'prompt' || permission === 'denied') {
+          photoFolderSessionRef.current = {
+            directory,
+            permissionGranted: false
+          };
+          setPhotoFolderState({
+            name: directory.name,
+            permission,
+            status: 'permission',
+            importedCount: 0,
+            message:
+              permission === 'denied'
+                ? 'Folder access is blocked. Allow access to scan for new photos.'
+                : 'Allow folder access to scan for new photos.'
+          });
+          return;
+        }
+
+        if (permission === 'granted') {
+          photoFolderSessionRef.current = {
+            directory,
+            permissionGranted: true
+          };
+        }
         setPhotoFolderState({
           name: directory.name,
           permission: 'granted',
@@ -918,13 +954,32 @@ export default function App() {
   }
 
   function checkSavedPhotoFolder() {
+    const sessionFolder = photoFolderSessionRef.current;
+    if (sessionFolder?.permissionGranted) {
+      return Promise.resolve({
+        directory: sessionFolder.directory,
+        permission: 'granted' as PermissionState
+      });
+    }
+
     if (photoFolderRefreshRef.current) {
       return photoFolderRefreshRef.current;
     }
 
     const refresh = (async () => {
-      const directory = await getSavedPhotoDirectory();
+      const directory =
+        photoFolderSessionRef.current?.directory ?? (await getSavedPhotoDirectory());
       const permission = directory ? await getPhotoDirectoryPermission(directory) : null;
+
+      if (directory) {
+        photoFolderSessionRef.current = {
+          directory,
+          permissionGranted: permission === 'granted'
+        };
+      } else {
+        photoFolderSessionRef.current = null;
+      }
+
       return { directory, permission };
     })();
 
@@ -996,6 +1051,10 @@ export default function App() {
   async function handleChoosePhotoFolder() {
     try {
       const directory = await choosePhotoDirectory();
+      photoFolderSessionRef.current = {
+        directory,
+        permissionGranted: true
+      };
       await scanPhotoFolder(directory);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
@@ -1013,8 +1072,10 @@ export default function App() {
 
   async function handleAllowPhotoFolder() {
     try {
-      const directory = await getSavedPhotoDirectory();
+      const directory =
+        photoFolderSessionRef.current?.directory ?? (await getSavedPhotoDirectory());
       if (!directory) {
+        photoFolderSessionRef.current = null;
         setPhotoFolderState({
           name: null,
           permission: null,
@@ -1027,10 +1088,18 @@ export default function App() {
 
       const permission = await getPhotoDirectoryPermission(directory, true);
       if (permission === 'granted') {
+        photoFolderSessionRef.current = {
+          directory,
+          permissionGranted: true
+        };
         await scanPhotoFolder(directory);
         return;
       }
 
+      photoFolderSessionRef.current = {
+        directory,
+        permissionGranted: false
+      };
       setPhotoFolderState({
         name: directory.name,
         permission,

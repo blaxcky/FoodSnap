@@ -433,8 +433,8 @@ export function SettingsPanel({
         ) : null}
         {folderSupported && folderStatus === 'permission' ? (
           <p className="settings-folder-permission-note">
-            When Chromium asks, choose “Allow on every visit” for lasting access. Installed PWAs
-            normally keep this permission.
+            Chromium decides how long access lasts. If it offers “Allow on every visit”, you can
+            choose that option for lasting access.
           </p>
         ) : null}
         {folderSupported && folderStatus !== 'none' && folderMessage ? (

@@ -96,6 +96,7 @@ describe('SettingsPanel photo folder import', () => {
 
     expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.getByText(/Allow on every visit/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chromium decides how long access lasts/i)).toBeInTheDocument();
     expect(onAllowFolder).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
     expect(onAllowFolder).toHaveBeenCalledTimes(1);

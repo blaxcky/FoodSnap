@@ -161,6 +161,10 @@ function isImageFile(file: File) {
   return file.type.startsWith('image/') || (file.type === '' && IMAGE_FILE_EXTENSION.test(file.name));
 }
 
+function isFolderPermissionError(error: unknown) {
+  return error instanceof DOMException && error.name === 'NotAllowedError';
+}
+
 export async function findFolderImages(
   directory: FileSystemDirectoryHandle,
   parentPath = ''
@@ -173,7 +177,10 @@ export async function findFolderImages(
     if (entry.kind === 'directory') {
       try {
         images.push(...(await findFolderImages(entry as FileSystemDirectoryHandle, relativePath)));
-      } catch {
+      } catch (error) {
+        if (isFolderPermissionError(error)) {
+          throw error;
+        }
         // An unreadable subfolder must not prevent imports from the rest of the tree.
       }
       continue;
@@ -182,7 +189,10 @@ export async function findFolderImages(
     let file: File;
     try {
       file = await (entry as FileSystemFileHandle).getFile();
-    } catch {
+    } catch (error) {
+      if (isFolderPermissionError(error)) {
+        throw error;
+      }
       continue;
     }
     if (isImageFile(file)) {

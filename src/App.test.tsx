@@ -68,10 +68,12 @@ describe('App photo folder lifecycle', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
     await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1));
+    expect(folderMocks.getSavedPhotoDirectory).toHaveBeenCalledTimes(1);
+    expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(1);
     expect(folderMocks.getPhotoDirectoryPermission).not.toHaveBeenCalledWith(directory, true);
   });
 
-  it('never opens a permission prompt automatically and requests access only after a click', async () => {
+  it('keeps a click-granted handle for the session without immediately querying it again', async () => {
     folderMocks.getPhotoDirectoryPermission.mockImplementation(
       async (_directory: FileSystemDirectoryHandle, requestAccess?: boolean) =>
         requestAccess ? 'granted' : 'prompt'
@@ -93,5 +95,68 @@ describe('App photo folder lifecycle', () => {
       expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledWith(directory, true)
     );
     await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1));
+
+    const permissionCallsAfterGrant = folderMocks.getPhotoDirectoryPermission.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+    await screen.findByText('Granted');
+
+    expect(folderMocks.getSavedPhotoDirectory).toHaveBeenCalledTimes(1);
+    expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(
+      permissionCallsAfterGrant
+    );
+    expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Allow folder access' })).not.toBeInTheDocument();
+  });
+
+  it('checks Chromium again in a new app process instead of restoring a granted value', async () => {
+    folderMocks.getPhotoDirectoryPermission.mockResolvedValue('prompt');
+    const firstApp = render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    await screen.findByLabelText('Photo folder access needed');
+    firstApp.unmount();
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    await screen.findByLabelText('Photo folder access needed');
+
+    expect(folderMocks.getSavedPhotoDirectory).toHaveBeenCalledTimes(2);
+    expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(2);
+    expect(folderMocks.getPhotoDirectoryPermission).not.toHaveBeenCalledWith(directory, true);
+    expect(folderMocks.scanPhotoDirectory).not.toHaveBeenCalled();
+  });
+
+  it.each(['prompt', 'denied'] as const)(
+    'returns to the permission state when access becomes %s during a scan',
+    async (revokedPermission) => {
+      folderMocks.getPhotoDirectoryPermission
+        .mockResolvedValue(revokedPermission)
+        .mockResolvedValueOnce('granted')
+        .mockResolvedValueOnce(revokedPermission);
+      folderMocks.scanPhotoDirectory.mockRejectedValue(new DOMException('Access lost'));
+      render(<App />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+      await screen.findByLabelText('Photo folder access needed');
+      fireEvent.click(screen.getByText('Open settings'));
+
+      expect(await screen.findByText(revokedPermission === 'denied' ? 'Blocked' : 'Required'))
+        .toBeInTheDocument();
+      expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(3);
+    }
+  );
+
+  it('keeps an ordinary scan failure separate when Chromium still grants access', async () => {
+    folderMocks.getPhotoDirectoryPermission.mockResolvedValue('granted');
+    folderMocks.scanPhotoDirectory.mockRejectedValue(new Error('Unreadable folder contents'));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The folder could not be scanned');
+    expect(screen.getByText('Granted')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Allow folder access' })).not.toBeInTheDocument();
   });
 });

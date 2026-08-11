@@ -66,6 +66,17 @@ describe('photo folder import', () => {
     expect(images[0].key).toBe(makeFolderFileKey('nested/a.webp', sameTimeA));
   });
 
+  it('propagates a revoked folder permission instead of silently treating the scan as complete', async () => {
+    const revokedFile = {
+      kind: 'file',
+      name: 'revoked.jpg',
+      getFile: vi.fn().mockRejectedValue(new DOMException('Access revoked', 'NotAllowedError'))
+    } as unknown as FileSystemFileHandle;
+    const root = directoryHandle('photos', [['revoked.jpg', revokedFile]]);
+
+    await expect(findFolderImages(root)).rejects.toMatchObject({ name: 'NotAllowedError' });
+  });
+
   it('skips known file keys, imports new images once, and keeps failed images retryable', async () => {
     const known = new File(['known'], 'known.jpg', { type: 'image/jpeg', lastModified: 100 });
     const valid = new File(['valid'], 'valid.jpg', { type: 'image/jpeg', lastModified: 200 });
