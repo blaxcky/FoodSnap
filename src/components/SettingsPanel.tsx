@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FoodImportMode } from '../lib/backup';
 import type { CameraPreference } from '../lib/cameraPreference';
+import type { PhotoFolderStatus } from '../lib/photoFolderImport';
 import {
   MAX_PHOTO_SIZE_REDUCTION,
   MIN_PHOTO_SIZE_REDUCTION,
@@ -21,6 +22,12 @@ interface SettingsPanelProps {
   cameraPreference: CameraPreference;
   photoSizeReduction: number;
   autoPhotoSize: boolean;
+  folderSupported: boolean;
+  folderName: string | null;
+  folderPermission: PermissionState | null;
+  folderStatus: PhotoFolderStatus;
+  folderImportedCount: number;
+  folderMessage: string;
   onExportFoodMemory: () => void;
   onImportFoodMemory: (file: File, mode: FoodImportMode) => Promise<void>;
   onChangeExportLeadIn: (value: string) => void;
@@ -29,6 +36,8 @@ interface SettingsPanelProps {
   onChangeCameraPreference: (preference: CameraPreference) => void;
   onChangePhotoSizeReduction: (value: number) => void;
   onChangeAutoPhotoSize: (value: boolean) => void;
+  onChooseFolder: () => void;
+  onAllowFolder: () => void;
 }
 
 const CAMERA_OPTIONS: { value: CameraPreference; label: string }[] = [
@@ -54,6 +63,12 @@ export function SettingsPanel({
   cameraPreference,
   photoSizeReduction,
   autoPhotoSize,
+  folderSupported,
+  folderName,
+  folderPermission,
+  folderStatus,
+  folderImportedCount,
+  folderMessage,
   onExportFoodMemory,
   onImportFoodMemory,
   onChangeExportLeadIn,
@@ -61,7 +76,9 @@ export function SettingsPanel({
   onChangeTheme,
   onChangeCameraPreference,
   onChangePhotoSizeReduction,
-  onChangeAutoPhotoSize
+  onChangeAutoPhotoSize,
+  onChooseFolder,
+  onAllowFolder
 }: SettingsPanelProps) {
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<FoodImportMode>('merge');
@@ -328,6 +345,109 @@ export function SettingsPanel({
             ? 'Direct capture is active. If a device has trouble with it, switch back to Standard here.'
             : 'Standard capture is active. This is the safer fallback if direct camera access misbehaves.'}
         </p>
+      </section>
+
+      <section className="settings-section" aria-labelledby="settings-photo-folder-title">
+        <div className="settings-section-header">
+          <p id="settings-photo-folder-title" className="settings-section-title">
+            Photo folder import
+          </p>
+          <p className="settings-section-caption">Automatic imports when the Photos tab opens</p>
+        </div>
+
+        {!folderSupported ? (
+          <div className="settings-list">
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <h3>Not supported in this browser</h3>
+                <p>You can still add photos with the camera or gallery import.</p>
+              </div>
+              <div className="settings-row-value">Unavailable</div>
+            </div>
+          </div>
+        ) : (
+          <div className="settings-list">
+            <div className="settings-row settings-row-action">
+              <div className="settings-row-copy">
+                <h3>{folderName ?? 'Choose an import folder'}</h3>
+                <p>
+                  {folderName
+                    ? 'FoodSnap remembers this folder and checks it when you open Photos.'
+                    : 'Import existing images and check the same folder for new photos whenever Photos opens.'}
+                </p>
+              </div>
+              <div className="settings-row-control settings-folder-actions">
+                {folderStatus === 'permission' ? (
+                  <button
+                    className="primary-button settings-inline-button"
+                    type="button"
+                    onClick={onAllowFolder}
+                  >
+                    Allow folder access
+                  </button>
+                ) : null}
+                <button
+                  className="ghost-button settings-inline-button"
+                  type="button"
+                  onClick={onChooseFolder}
+                  disabled={folderStatus === 'loading' || folderStatus === 'scanning'}
+                >
+                  {folderName ? 'Change folder' : 'Choose folder'}
+                </button>
+              </div>
+            </div>
+
+            {folderName ? (
+              <div className="settings-row">
+                <div className="settings-row-copy">
+                  <h3>Folder access</h3>
+                  <p>
+                    {folderPermission === 'granted'
+                      ? 'Chromium currently allows FoodSnap to read this folder.'
+                      : folderPermission === 'denied'
+                        ? 'Chromium has blocked access to this folder.'
+                        : 'Chromium needs your permission before the next folder scan.'}
+                  </p>
+                </div>
+                <div
+                  className={`settings-row-value${
+                    folderPermission === 'granted' ? ' settings-row-value-strong' : ''
+                  }`}
+                >
+                  {folderPermission === 'granted'
+                    ? 'Granted'
+                    : folderPermission === 'denied'
+                      ? 'Blocked'
+                      : 'Required'}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {folderSupported && folderStatus === 'loading' ? (
+          <div className="settings-folder-progress" aria-label="Loading saved photo folder" />
+        ) : null}
+        {folderSupported && folderStatus === 'scanning' ? (
+          <div className="settings-folder-progress" aria-label="Scanning photo folder" />
+        ) : null}
+        {folderSupported && folderStatus === 'permission' ? (
+          <p className="settings-folder-permission-note">
+            When Chromium asks, choose “Allow on every visit” for lasting access. Installed PWAs
+            normally keep this permission.
+          </p>
+        ) : null}
+        {folderSupported && folderStatus !== 'none' && folderMessage ? (
+          <p
+            className={`settings-feedback${folderStatus === 'error' ? ' is-error' : ''}`}
+            role={folderStatus === 'error' ? 'alert' : 'status'}
+            aria-live="polite"
+          >
+            {folderStatus === 'complete' && folderImportedCount > 0
+              ? `${folderImportedCount} new photo${folderImportedCount === 1 ? '' : 's'} imported in the last scan.`
+              : folderMessage}
+          </p>
+        ) : null}
       </section>
 
       <section className="settings-section" aria-labelledby="settings-backup-title">

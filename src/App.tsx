@@ -190,11 +190,13 @@ export default function App() {
   const [photoActionState, setPhotoActionState] = useState<'idle' | 'working'>('idle');
   const [photoFolderState, setPhotoFolderState] = useState<{
     name: string | null;
+    permission: PermissionState | null;
     status: PhotoFolderStatus;
     importedCount: number;
     message: string;
   }>(() => ({
     name: null,
+    permission: null,
     status: isPhotoFolderImportSupported() ? 'loading' : 'unsupported',
     importedCount: 0,
     message: ''
@@ -205,7 +207,10 @@ export default function App() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const photoFolderScanRef = useRef<Promise<void> | null>(null);
-  const photoFolderRefreshRef = useRef<Promise<void> | null>(null);
+  const photoFolderRefreshRef = useRef<Promise<{
+    directory: FileSystemDirectoryHandle | null;
+    permission: PermissionState | null;
+  }> | null>(null);
 
   useEffect(() => {
     setLaunchAction(consumeLaunchAction());
@@ -356,11 +361,15 @@ export default function App() {
   }, [activeTab, isComposerOpen]);
 
   useEffect(() => {
-    if (!isHydrated || activeTab !== 'photos' || !isPhotoFolderImportSupported()) {
+    if (!isHydrated || !isPhotoFolderImportSupported()) {
       return;
     }
 
-    void refreshSavedPhotoFolder();
+    if (activeTab === 'photos') {
+      void refreshSavedPhotoFolder(true);
+    } else if (activeTab === 'settings') {
+      void refreshSavedPhotoFolder(false);
+    }
   }, [activeTab, isHydrated]);
 
   useEffect(() => {
@@ -836,6 +845,7 @@ export default function App() {
     const scan = (async () => {
       setPhotoFolderState({
         name: directory.name,
+        permission: 'granted',
         status: 'scanning',
         importedCount: 0,
         message: 'Checking this folder and its subfolders...'
@@ -881,6 +891,7 @@ export default function App() {
 
         setPhotoFolderState({
           name: directory.name,
+          permission: 'granted',
           status: result.failedCount > 0 ? 'error' : 'complete',
           importedCount: result.importedCount,
           message: `${message}${failureMessage}`
@@ -889,6 +900,7 @@ export default function App() {
       } catch {
         setPhotoFolderState({
           name: directory.name,
+          permission: 'granted',
           status: 'error',
           importedCount: 0,
           message: 'The folder could not be scanned. Try granting access again.'
@@ -905,51 +917,80 @@ export default function App() {
     return scan;
   }
 
-  function refreshSavedPhotoFolder() {
+  function checkSavedPhotoFolder() {
     if (photoFolderRefreshRef.current) {
       return photoFolderRefreshRef.current;
     }
 
     const refresh = (async () => {
-      try {
-        const directory = await getSavedPhotoDirectory();
-        if (!directory) {
-          setPhotoFolderState({ name: null, status: 'none', importedCount: 0, message: '' });
-          return;
-        }
-
-        const permission = await getPhotoDirectoryPermission(directory);
-        if (permission === 'granted') {
-          await scanPhotoFolder(directory);
-          return;
-        }
-
-        setPhotoFolderState({
-          name: directory.name,
-          status: 'permission',
-          importedCount: 0,
-          message:
-            permission === 'denied'
-              ? 'Folder access is blocked. Allow access to scan for new photos.'
-              : 'Allow folder access to scan for new photos.'
-        });
-      } catch {
-        setPhotoFolderState({
-          name: null,
-          status: 'error',
-          importedCount: 0,
-          message: 'The saved photo folder could not be opened.'
-        });
-      }
+      const directory = await getSavedPhotoDirectory();
+      const permission = directory ? await getPhotoDirectoryPermission(directory) : null;
+      return { directory, permission };
     })();
 
     photoFolderRefreshRef.current = refresh;
-    void refresh.finally(() => {
+    const clearRefresh = () => {
       if (photoFolderRefreshRef.current === refresh) {
         photoFolderRefreshRef.current = null;
       }
-    });
+    };
+    void refresh.then(clearRefresh, clearRefresh);
     return refresh;
+  }
+
+  async function refreshSavedPhotoFolder(scanWhenGranted: boolean) {
+    try {
+      const { directory, permission } = await checkSavedPhotoFolder();
+      if (!directory) {
+        setPhotoFolderState({
+          name: null,
+          permission: null,
+          status: 'none',
+          importedCount: 0,
+          message: ''
+        });
+        return;
+      }
+
+      if (permission === 'granted') {
+        if (scanWhenGranted) {
+          await scanPhotoFolder(directory);
+        } else {
+          setPhotoFolderState((current) =>
+            current.name === directory.name &&
+            ['scanning', 'complete', 'error'].includes(current.status)
+              ? { ...current, name: directory.name, permission }
+              : {
+                  name: directory.name,
+                  permission,
+                  status: 'complete',
+                  importedCount: 0,
+                  message: 'Folder access is ready. Open Photos to check for new photos.'
+                }
+          );
+        }
+        return;
+      }
+
+      setPhotoFolderState({
+        name: directory.name,
+        permission,
+        status: 'permission',
+        importedCount: 0,
+        message:
+          permission === 'denied'
+            ? 'Folder access is blocked. Allow access to scan for new photos.'
+            : 'Allow folder access to scan for new photos.'
+      });
+    } catch {
+      setPhotoFolderState({
+        name: null,
+        permission: null,
+        status: 'error',
+        importedCount: 0,
+        message: 'The saved photo folder could not be opened.'
+      });
+    }
   }
 
   async function handleChoosePhotoFolder() {
@@ -974,7 +1015,13 @@ export default function App() {
     try {
       const directory = await getSavedPhotoDirectory();
       if (!directory) {
-        setPhotoFolderState({ name: null, status: 'none', importedCount: 0, message: '' });
+        setPhotoFolderState({
+          name: null,
+          permission: null,
+          status: 'none',
+          importedCount: 0,
+          message: ''
+        });
         return;
       }
 
@@ -986,6 +1033,7 @@ export default function App() {
 
       setPhotoFolderState({
         name: directory.name,
+        permission,
         status: 'permission',
         importedCount: 0,
         message: 'Folder access was not granted. You can choose the folder again.'
@@ -1198,19 +1246,11 @@ export default function App() {
             feedbackTone={photoFeedbackTone}
             photoSizeReduction={photoSizeReduction}
             autoPhotoSize={autoPhotoSize}
-            folderName={photoFolderState.name}
-            folderStatus={photoFolderState.status}
-            folderImportedCount={photoFolderState.importedCount}
-            folderMessage={photoFolderState.message}
+            folderNeedsPermission={photoFolderState.status === 'permission'}
             onChangeFilter={setActivePhotoFilter}
             onOpenCamera={handleOpenCamera}
             onOpenGallery={() => galleryInputRef.current?.click()}
-            onChooseFolder={() => {
-              void handleChoosePhotoFolder();
-            }}
-            onAllowFolder={() => {
-              void handleAllowPhotoFolder();
-            }}
+            onOpenFolderSettings={() => setActiveTab('settings')}
             onSelectPhoto={setSelectedPhotoId}
             onCloseDetail={() => setSelectedPhotoId(null)}
             onDeletePendingPhoto={handleDeletePendingPhoto}
@@ -1273,6 +1313,12 @@ export default function App() {
             cameraPreference={cameraPreference}
             photoSizeReduction={photoSizeReduction}
             autoPhotoSize={autoPhotoSize}
+            folderSupported={isPhotoFolderImportSupported()}
+            folderName={photoFolderState.name}
+            folderPermission={photoFolderState.permission}
+            folderStatus={photoFolderState.status}
+            folderImportedCount={photoFolderState.importedCount}
+            folderMessage={photoFolderState.message}
             onExportFoodMemory={handleExportFoodMemory}
             onImportFoodMemory={handleImportFoodMemory}
             onChangeExportLeadIn={(value) => {
@@ -1284,6 +1330,12 @@ export default function App() {
             onChangeCameraPreference={setCameraPreference}
             onChangePhotoSizeReduction={setPhotoSizeReduction}
             onChangeAutoPhotoSize={setAutoPhotoSize}
+            onChooseFolder={() => {
+              void handleChoosePhotoFolder();
+            }}
+            onAllowFolder={() => {
+              void handleAllowPhotoFolder();
+            }}
           />
         </section>
       ) : null}

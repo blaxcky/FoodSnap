@@ -4,7 +4,6 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PhotoItem } from '../lib/types';
-import type { PhotoFolderStatus } from '../lib/photoFolderImport';
 import { PhotoPanel } from './PhotoPanel';
 
 vi.mock('../lib/photoStorage', () => ({
@@ -32,20 +31,14 @@ function renderPanel({
   filter = 'pending',
   onSelectPhoto = vi.fn(),
   onDeletePendingPhoto = vi.fn().mockResolvedValue(true),
-  folderName = null,
-  folderStatus = 'none',
-  folderMessage = '',
-  onChooseFolder = vi.fn(),
-  onAllowFolder = vi.fn()
+  folderNeedsPermission = false,
+  onOpenFolderSettings = vi.fn()
 }: {
   filter?: 'pending' | 'archived';
   onSelectPhoto?: (photoId: string) => void;
   onDeletePendingPhoto?: (photoId: string) => Promise<boolean>;
-  folderName?: string | null;
-  folderStatus?: PhotoFolderStatus;
-  folderMessage?: string;
-  onChooseFolder?: () => void;
-  onAllowFolder?: () => void;
+  folderNeedsPermission?: boolean;
+  onOpenFolderSettings?: () => void;
 } = {}) {
   return render(
     <PhotoPanel
@@ -59,15 +52,11 @@ function renderPanel({
       feedbackTone="idle"
       photoSizeReduction={0}
       autoPhotoSize={false}
-      folderName={folderName}
-      folderStatus={folderStatus}
-      folderImportedCount={0}
-      folderMessage={folderMessage}
+      folderNeedsPermission={folderNeedsPermission}
       onChangeFilter={vi.fn()}
       onOpenCamera={vi.fn()}
       onOpenGallery={vi.fn()}
-      onChooseFolder={onChooseFolder}
-      onAllowFolder={onAllowFolder}
+      onOpenFolderSettings={onOpenFolderSettings}
       onSelectPhoto={onSelectPhoto}
       onCloseDetail={vi.fn()}
       onDeletePendingPhoto={onDeletePendingPhoto}
@@ -240,40 +229,24 @@ describe('PhotoPanel cards', () => {
 });
 
 describe('PhotoPanel folder import', () => {
-  it('keeps gallery import available when folder import is unsupported', () => {
-    renderPanel({ folderStatus: 'unsupported' });
+  it('shows no folder UI during normal automatic import states', () => {
+    renderPanel();
 
-    expect(screen.getByText(/Folder import is not supported/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose from gallery' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Choose folder' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Photo folder access needed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open settings' })).not.toBeInTheDocument();
   });
 
-  it('shows saved folder permission state and requests access from a user action', () => {
-    const onAllowFolder = vi.fn();
-    const onChooseFolder = vi.fn();
+  it('shows only a compact permission notice and opens settings from it', () => {
+    const onOpenFolderSettings = vi.fn();
     renderPanel({
-      folderName: 'Camera uploads',
-      folderStatus: 'permission',
-      folderMessage: 'Allow folder access to scan for new photos.',
-      onAllowFolder,
-      onChooseFolder
+      folderNeedsPermission: true,
+      onOpenFolderSettings
     });
 
-    expect(screen.getByText('Camera uploads')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Change folder' }));
-    expect(onAllowFolder).toHaveBeenCalledTimes(1);
-    expect(onChooseFolder).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows a scan status and prevents folder changes while scanning', () => {
-    renderPanel({
-      folderName: 'Meals',
-      folderStatus: 'scanning',
-      folderMessage: 'Checking this folder and its subfolders...'
-    });
-
-    expect(screen.getByRole('status')).toHaveTextContent('Checking this folder');
-    expect(screen.queryByRole('button', { name: 'Change folder' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Photo folder access needed')).toHaveTextContent('needs access');
+    expect(screen.queryByRole('button', { name: 'Allow folder access' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+    expect(onOpenFolderSettings).toHaveBeenCalledTimes(1);
   });
 });
