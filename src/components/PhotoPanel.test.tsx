@@ -31,12 +31,14 @@ function renderPanel({
   filter = 'pending',
   onSelectPhoto = vi.fn(),
   onDeletePendingPhoto = vi.fn().mockResolvedValue(true),
+  folderActivity = null,
   folderNeedsPermission = false,
   onAllowPhotoFolder = vi.fn()
 }: {
   filter?: 'pending' | 'archived';
   onSelectPhoto?: (photoId: string) => void;
   onDeletePendingPhoto?: (photoId: string) => Promise<boolean>;
+  folderActivity?: 'loading' | 'scanning' | null;
   folderNeedsPermission?: boolean;
   onAllowPhotoFolder?: () => void;
 } = {}) {
@@ -52,6 +54,7 @@ function renderPanel({
       feedbackTone="idle"
       photoSizeReduction={0}
       autoPhotoSize={false}
+      folderActivity={folderActivity}
       folderNeedsPermission={folderNeedsPermission}
       onChangeFilter={vi.fn()}
       onOpenCamera={vi.fn()}
@@ -235,6 +238,18 @@ describe('PhotoPanel folder import', () => {
     expect(screen.getByRole('button', { name: 'Choose from gallery' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Photo folder access needed')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open settings' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['loading', 'Checking saved photo folder', 'Preparing the folder scan'],
+    ['scanning', 'Importing photo folder', 'New photos will appear here']
+  ] as const)('shows the %s folder activity in Photos', (folderActivity, label, detail) => {
+    renderPanel({ folderActivity });
+
+    const activity = screen.getByLabelText(label);
+    expect(activity).toHaveAttribute('role', 'status');
+    expect(activity).toHaveTextContent(detail);
+    expect(screen.queryByLabelText('Photo folder access needed')).not.toBeInTheDocument();
   });
 
   it('shows only a compact permission notice and requests access from it', () => {

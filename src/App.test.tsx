@@ -73,6 +73,55 @@ describe('App photo folder lifecycle', () => {
     expect(folderMocks.getPhotoDirectoryPermission).not.toHaveBeenCalledWith(directory, true);
   });
 
+  it('shows folder import progress in Photos until the scan finishes', async () => {
+    let finishScan: () => void = () => undefined;
+    folderMocks.scanPhotoDirectory.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishScan = () =>
+            resolve({
+              importedCount: 0,
+              failedCount: 0,
+              skippedCount: 0
+            });
+        })
+    );
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+
+    expect(await screen.findByLabelText('Importing photo folder')).toHaveTextContent(
+      'New photos will appear here as they are imported.'
+    );
+    await act(async () => finishScan());
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Importing photo folder')).not.toBeInTheDocument()
+    );
+    expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows folder lookup progress immediately while the saved handle loads', async () => {
+    let finishLoading: () => void = () => undefined;
+    folderMocks.getSavedPhotoDirectory.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishLoading = () => resolve(directory);
+        })
+    );
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+
+    expect(screen.getByLabelText('Checking saved photo folder')).toHaveTextContent(
+      'Preparing the folder scan…'
+    );
+    await act(async () => finishLoading());
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Checking saved photo folder')).not.toBeInTheDocument()
+    );
+    expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a click-granted handle for the session without immediately querying it again', async () => {
     folderMocks.getPhotoDirectoryPermission.mockImplementation(
       async (_directory: FileSystemDirectoryHandle, requestAccess?: boolean) =>

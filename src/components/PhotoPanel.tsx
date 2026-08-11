@@ -36,6 +36,7 @@ interface PhotoPanelProps {
   feedbackTone: 'idle' | 'error';
   photoSizeReduction: number;
   autoPhotoSize: boolean;
+  folderActivity: 'loading' | 'scanning' | null;
   folderNeedsPermission: boolean;
   onChangeFilter: (filter: 'pending' | 'archived') => void;
   onOpenCamera: () => void;
@@ -1141,6 +1142,7 @@ export function PhotoPanel({
   feedbackTone,
   photoSizeReduction,
   autoPhotoSize,
+  folderActivity,
   folderNeedsPermission,
   onChangeFilter,
   onOpenCamera,
@@ -1188,6 +1190,36 @@ export function PhotoPanel({
           <span>Choose from gallery</span>
         </button>
       </div>
+
+      {folderActivity ? (
+        <aside
+          className="photo-folder-activity"
+          role="status"
+          aria-live="polite"
+          aria-label={
+            folderActivity === 'loading' ? 'Checking saved photo folder' : 'Importing photo folder'
+          }
+        >
+          <div className="photo-folder-activity-preview" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="photo-folder-activity-copy">
+            <strong>
+              {folderActivity === 'loading'
+                ? 'Checking saved photo folder'
+                : 'Checking for new photos'}
+            </strong>
+            <span>
+              {folderActivity === 'loading'
+                ? 'Preparing the folder scan…'
+                : 'New photos will appear here as they are imported.'}
+            </span>
+          </div>
+          <div className="photo-folder-activity-track" aria-hidden="true" />
+        </aside>
+      ) : null}
 
       {folderNeedsPermission ? (
         <aside className="photo-folder-notice" aria-label="Photo folder access needed">

@@ -1329,6 +1329,11 @@ export default function App() {
             feedbackTone={photoFeedbackTone}
             photoSizeReduction={photoSizeReduction}
             autoPhotoSize={autoPhotoSize}
+            folderActivity={
+              photoFolderState.status === 'loading' || photoFolderState.status === 'scanning'
+                ? photoFolderState.status
+                : null
+            }
             folderNeedsPermission={photoFolderState.status === 'permission'}
             onChangeFilter={setActivePhotoFilter}
             onOpenCamera={handleOpenCamera}
