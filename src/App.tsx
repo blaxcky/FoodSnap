@@ -27,6 +27,14 @@ import {
   savePhotoBlob
 } from './lib/photoStorage';
 import {
+  choosePhotoDirectory,
+  getPhotoDirectoryPermission,
+  getSavedPhotoDirectory,
+  isPhotoFolderImportSupported,
+  scanPhotoDirectory,
+  type PhotoFolderStatus
+} from './lib/photoFolderImport';
+import {
   loadPhotoSizeReduction,
   savePhotoSizeReduction
 } from './lib/photoSizePreference';
@@ -180,11 +188,24 @@ export default function App() {
   const [photoFeedbackMessage, setPhotoFeedbackMessage] = useState('');
   const [photoFeedbackTone, setPhotoFeedbackTone] = useState<'idle' | 'error'>('idle');
   const [photoActionState, setPhotoActionState] = useState<'idle' | 'working'>('idle');
+  const [photoFolderState, setPhotoFolderState] = useState<{
+    name: string | null;
+    status: PhotoFolderStatus;
+    importedCount: number;
+    message: string;
+  }>(() => ({
+    name: null,
+    status: isPhotoFolderImportSupported() ? 'loading' : 'unsupported',
+    importedCount: 0,
+    message: ''
+  }));
   const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
   const [launchAction, setLaunchAction] = useState<'photo' | null>(null);
   const dialogHistoryActiveRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const photoFolderScanRef = useRef<Promise<void> | null>(null);
+  const photoFolderRefreshRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     setLaunchAction(consumeLaunchAction());
@@ -333,6 +354,14 @@ export default function App() {
       setIsComposerOpen(false);
     }
   }, [activeTab, isComposerOpen]);
+
+  useEffect(() => {
+    if (!isHydrated || activeTab !== 'photos' || !isPhotoFolderImportSupported()) {
+      return;
+    }
+
+    void refreshSavedPhotoFolder();
+  }, [activeTab, isHydrated]);
 
   useEffect(() => {
     if (!isInputDialogOpen) {
@@ -799,6 +828,178 @@ export default function App() {
     return true;
   }
 
+  function scanPhotoFolder(directory: FileSystemDirectoryHandle) {
+    if (photoFolderScanRef.current) {
+      return photoFolderScanRef.current;
+    }
+
+    const scan = (async () => {
+      setPhotoFolderState({
+        name: directory.name,
+        status: 'scanning',
+        importedCount: 0,
+        message: 'Checking this folder and its subfolders...'
+      });
+
+      try {
+        const result = await scanPhotoDirectory(directory, async ({ file }) => {
+          const processedBlob = await preparePhotoBlob(file);
+          const photoId = createId();
+          const modifiedAt = new Date(file.lastModified);
+          const timestamp = Number.isNaN(modifiedAt.getTime())
+            ? nowIso()
+            : modifiedAt.toISOString();
+
+          await savePhotoBlob(photoId, processedBlob);
+          setPhotoItems((currentPhotos) => [
+            ...currentPhotos,
+            {
+              id: photoId,
+              status: 'pending',
+              createdAt: timestamp,
+              updatedAt: timestamp
+            }
+          ]);
+
+          return async () => {
+            await deletePhotoBlob(photoId);
+            setPhotoItems((currentPhotos) =>
+              currentPhotos.filter((photo) => photo.id !== photoId)
+            );
+          };
+        });
+
+        const importedLabel = `${result.importedCount} new photo${
+          result.importedCount === 1 ? '' : 's'
+        } imported.`;
+        const message =
+          result.importedCount > 0 ? importedLabel : 'Folder is up to date.';
+        const failureMessage =
+          result.failedCount > 0
+            ? ` ${result.failedCount} image${result.failedCount === 1 ? '' : 's'} could not be imported.`
+            : '';
+
+        setPhotoFolderState({
+          name: directory.name,
+          status: result.failedCount > 0 ? 'error' : 'complete',
+          importedCount: result.importedCount,
+          message: `${message}${failureMessage}`
+        });
+        setActivePhotoFilter('pending');
+      } catch {
+        setPhotoFolderState({
+          name: directory.name,
+          status: 'error',
+          importedCount: 0,
+          message: 'The folder could not be scanned. Try granting access again.'
+        });
+      }
+    })();
+
+    photoFolderScanRef.current = scan;
+    void scan.finally(() => {
+      if (photoFolderScanRef.current === scan) {
+        photoFolderScanRef.current = null;
+      }
+    });
+    return scan;
+  }
+
+  function refreshSavedPhotoFolder() {
+    if (photoFolderRefreshRef.current) {
+      return photoFolderRefreshRef.current;
+    }
+
+    const refresh = (async () => {
+      try {
+        const directory = await getSavedPhotoDirectory();
+        if (!directory) {
+          setPhotoFolderState({ name: null, status: 'none', importedCount: 0, message: '' });
+          return;
+        }
+
+        const permission = await getPhotoDirectoryPermission(directory);
+        if (permission === 'granted') {
+          await scanPhotoFolder(directory);
+          return;
+        }
+
+        setPhotoFolderState({
+          name: directory.name,
+          status: 'permission',
+          importedCount: 0,
+          message:
+            permission === 'denied'
+              ? 'Folder access is blocked. Allow access to scan for new photos.'
+              : 'Allow folder access to scan for new photos.'
+        });
+      } catch {
+        setPhotoFolderState({
+          name: null,
+          status: 'error',
+          importedCount: 0,
+          message: 'The saved photo folder could not be opened.'
+        });
+      }
+    })();
+
+    photoFolderRefreshRef.current = refresh;
+    void refresh.finally(() => {
+      if (photoFolderRefreshRef.current === refresh) {
+        photoFolderRefreshRef.current = null;
+      }
+    });
+    return refresh;
+  }
+
+  async function handleChoosePhotoFolder() {
+    try {
+      const directory = await choosePhotoDirectory();
+      await scanPhotoFolder(directory);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+
+      setPhotoFolderState((current) => ({
+        ...current,
+        status: 'error',
+        importedCount: 0,
+        message: 'The folder could not be selected or saved.'
+      }));
+    }
+  }
+
+  async function handleAllowPhotoFolder() {
+    try {
+      const directory = await getSavedPhotoDirectory();
+      if (!directory) {
+        setPhotoFolderState({ name: null, status: 'none', importedCount: 0, message: '' });
+        return;
+      }
+
+      const permission = await getPhotoDirectoryPermission(directory, true);
+      if (permission === 'granted') {
+        await scanPhotoFolder(directory);
+        return;
+      }
+
+      setPhotoFolderState({
+        name: directory.name,
+        status: 'permission',
+        importedCount: 0,
+        message: 'Folder access was not granted. You can choose the folder again.'
+      });
+    } catch {
+      setPhotoFolderState((current) => ({
+        ...current,
+        status: 'error',
+        importedCount: 0,
+        message: 'Folder access could not be requested.'
+      }));
+    }
+  }
+
   async function handlePhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
     const files = event.target.files ? Array.from(event.target.files) : [];
     event.target.value = '';
@@ -997,9 +1198,19 @@ export default function App() {
             feedbackTone={photoFeedbackTone}
             photoSizeReduction={photoSizeReduction}
             autoPhotoSize={autoPhotoSize}
+            folderName={photoFolderState.name}
+            folderStatus={photoFolderState.status}
+            folderImportedCount={photoFolderState.importedCount}
+            folderMessage={photoFolderState.message}
             onChangeFilter={setActivePhotoFilter}
             onOpenCamera={handleOpenCamera}
             onOpenGallery={() => galleryInputRef.current?.click()}
+            onChooseFolder={() => {
+              void handleChoosePhotoFolder();
+            }}
+            onAllowFolder={() => {
+              void handleAllowPhotoFolder();
+            }}
             onSelectPhoto={setSelectedPhotoId}
             onCloseDetail={() => setSelectedPhotoId(null)}
             onDeletePendingPhoto={handleDeletePendingPhoto}

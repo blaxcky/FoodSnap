@@ -1,6 +1,8 @@
 const DATABASE_NAME = 'foodsnap-photos';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = 'photos';
+const FOLDER_CONFIG_STORE_NAME = 'photo-folder-config';
+const IMPORT_HISTORY_STORE_NAME = 'photo-folder-imports';
 
 function openPhotoDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -20,6 +22,12 @@ function openPhotoDatabase() {
 
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME);
+      }
+      if (!database.objectStoreNames.contains(FOLDER_CONFIG_STORE_NAME)) {
+        database.createObjectStore(FOLDER_CONFIG_STORE_NAME);
+      }
+      if (!database.objectStoreNames.contains(IMPORT_HISTORY_STORE_NAME)) {
+        database.createObjectStore(IMPORT_HISTORY_STORE_NAME);
       }
     });
 

@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PhotoItem } from '../lib/types';
+import type { PhotoFolderStatus } from '../lib/photoFolderImport';
 import { PhotoPanel } from './PhotoPanel';
 
 vi.mock('../lib/photoStorage', () => ({
@@ -30,11 +31,21 @@ const archivedPhoto: PhotoItem = {
 function renderPanel({
   filter = 'pending',
   onSelectPhoto = vi.fn(),
-  onDeletePendingPhoto = vi.fn().mockResolvedValue(true)
+  onDeletePendingPhoto = vi.fn().mockResolvedValue(true),
+  folderName = null,
+  folderStatus = 'none',
+  folderMessage = '',
+  onChooseFolder = vi.fn(),
+  onAllowFolder = vi.fn()
 }: {
   filter?: 'pending' | 'archived';
   onSelectPhoto?: (photoId: string) => void;
   onDeletePendingPhoto?: (photoId: string) => Promise<boolean>;
+  folderName?: string | null;
+  folderStatus?: PhotoFolderStatus;
+  folderMessage?: string;
+  onChooseFolder?: () => void;
+  onAllowFolder?: () => void;
 } = {}) {
   return render(
     <PhotoPanel
@@ -48,9 +59,15 @@ function renderPanel({
       feedbackTone="idle"
       photoSizeReduction={0}
       autoPhotoSize={false}
+      folderName={folderName}
+      folderStatus={folderStatus}
+      folderImportedCount={0}
+      folderMessage={folderMessage}
       onChangeFilter={vi.fn()}
       onOpenCamera={vi.fn()}
       onOpenGallery={vi.fn()}
+      onChooseFolder={onChooseFolder}
+      onAllowFolder={onAllowFolder}
       onSelectPhoto={onSelectPhoto}
       onCloseDetail={vi.fn()}
       onDeletePendingPhoto={onDeletePendingPhoto}
@@ -219,5 +236,44 @@ describe('PhotoPanel cards', () => {
     await vi.waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1));
     expect(card.style.transform).toBe('translate3d(0px, 0, 0)');
     expect(card.style.opacity).toBe('1');
+  });
+});
+
+describe('PhotoPanel folder import', () => {
+  it('keeps gallery import available when folder import is unsupported', () => {
+    renderPanel({ folderStatus: 'unsupported' });
+
+    expect(screen.getByText(/Folder import is not supported/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose from gallery' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Choose folder' })).not.toBeInTheDocument();
+  });
+
+  it('shows saved folder permission state and requests access from a user action', () => {
+    const onAllowFolder = vi.fn();
+    const onChooseFolder = vi.fn();
+    renderPanel({
+      folderName: 'Camera uploads',
+      folderStatus: 'permission',
+      folderMessage: 'Allow folder access to scan for new photos.',
+      onAllowFolder,
+      onChooseFolder
+    });
+
+    expect(screen.getByText('Camera uploads')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change folder' }));
+    expect(onAllowFolder).toHaveBeenCalledTimes(1);
+    expect(onChooseFolder).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a scan status and prevents folder changes while scanning', () => {
+    renderPanel({
+      folderName: 'Meals',
+      folderStatus: 'scanning',
+      folderMessage: 'Checking this folder and its subfolders...'
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Checking this folder');
+    expect(screen.queryByRole('button', { name: 'Change folder' })).not.toBeInTheDocument();
   });
 });

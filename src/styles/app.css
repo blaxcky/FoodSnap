@@ -1884,6 +1884,91 @@ button {
   gap: 10px;
 }
 
+.photo-folder-import {
+  display: grid;
+  gap: 10px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.photo-folder-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.photo-folder-heading h3,
+.photo-folder-heading p,
+.photo-folder-import .helper-copy,
+.photo-folder-import .error-copy {
+  margin: 0;
+}
+
+.photo-folder-heading h3 {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.photo-folder-heading p {
+  max-width: min(68vw, 360px);
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-folder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.photo-folder-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.photo-folder-loading,
+.photo-folder-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--surface-soft);
+}
+
+.photo-folder-loading::after,
+.photo-folder-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  animation: photo-folder-scan 1.1s cubic-bezier(0.16, 1, 0.3, 1) infinite alternate;
+  content: '';
+  will-change: transform;
+}
+
+@keyframes photo-folder-scan {
+  from {
+    transform: translate3d(-35%, 0, 0);
+  }
+  to {
+    transform: translate3d(170%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-folder-loading::after,
+  .photo-folder-progress span {
+    animation: none;
+    transform: none;
+  }
+}
+
 .photo-filter {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

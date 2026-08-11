@@ -14,6 +14,7 @@ import {
 } from 'react';
 import { getFoodSuggestions } from '../lib/search';
 import { getPhotoBlob } from '../lib/photoStorage';
+import type { PhotoFolderStatus } from '../lib/photoFolderImport';
 import { getPhotoDetailMediaHeight } from '../lib/photoSizePreference';
 import type { FoodProfile, PhotoItem } from '../lib/types';
 import { formatNumber } from '../lib/utils';
@@ -36,9 +37,15 @@ interface PhotoPanelProps {
   feedbackTone: 'idle' | 'error';
   photoSizeReduction: number;
   autoPhotoSize: boolean;
+  folderName: string | null;
+  folderStatus: PhotoFolderStatus;
+  folderImportedCount: number;
+  folderMessage: string;
   onChangeFilter: (filter: 'pending' | 'archived') => void;
   onOpenCamera: () => void;
   onOpenGallery: () => void;
+  onChooseFolder: () => void;
+  onAllowFolder: () => void;
   onSelectPhoto: (photoId: string) => void;
   onCloseDetail: () => void;
   onDeletePendingPhoto: (photoId: string) => Promise<boolean>;
@@ -1139,9 +1146,15 @@ export function PhotoPanel({
   feedbackTone,
   photoSizeReduction,
   autoPhotoSize,
+  folderName,
+  folderStatus,
+  folderImportedCount,
+  folderMessage,
   onChangeFilter,
   onOpenCamera,
   onOpenGallery,
+  onChooseFolder,
+  onAllowFolder,
   onSelectPhoto,
   onCloseDetail,
   onDeletePendingPhoto,
@@ -1183,6 +1196,69 @@ export function PhotoPanel({
           <ImageIcon className="ui-icon" />
           <span>Choose from gallery</span>
         </button>
+      </div>
+
+      <div className={`photo-folder-import photo-folder-import-${folderStatus}`}>
+        <div className="photo-folder-heading">
+          <div>
+            <h3>Automatic folder import</h3>
+            {folderName ? <p title={folderName}>{folderName}</p> : null}
+          </div>
+          {folderStatus === 'complete' && folderImportedCount > 0 ? (
+            <span className="status-badge">+{folderImportedCount}</span>
+          ) : null}
+        </div>
+
+        {folderStatus === 'unsupported' ? (
+          <p className="helper-copy">
+            Folder import is not supported in this browser. Gallery import remains available.
+          </p>
+        ) : (
+          <>
+            {folderStatus === 'loading' ? (
+              <div className="photo-folder-loading" aria-label="Loading saved photo folder" />
+            ) : null}
+            {folderStatus === 'scanning' ? (
+              <div className="photo-folder-progress" aria-hidden="true">
+                <span />
+              </div>
+            ) : null}
+            {folderMessage ? (
+              <p
+                className={folderStatus === 'error' ? 'error-copy' : 'helper-copy'}
+                role={folderStatus === 'error' ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {folderMessage}
+              </p>
+            ) : folderStatus === 'none' ? (
+              <p className="helper-copy">
+                Choose a folder to import existing images and check for new ones whenever Photos opens.
+              </p>
+            ) : null}
+
+            <div className="photo-folder-actions">
+              {folderStatus === 'permission' ? (
+                <button
+                  className="primary-button photo-folder-button"
+                  type="button"
+                  onClick={onAllowFolder}
+                >
+                  Allow folder access
+                </button>
+              ) : null}
+              {folderStatus !== 'loading' && folderStatus !== 'scanning' ? (
+                <button
+                  className={folderName ? 'ghost-button photo-folder-button' : 'primary-button photo-folder-button'}
+                  type="button"
+                  onClick={onChooseFolder}
+                >
+                  {folderName ? 'Change folder' : 'Choose folder'}
+                </button>
+              ) : null}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="photo-filter" role="tablist" aria-label="Photo sections">
