@@ -40,7 +40,7 @@ interface PhotoPanelProps {
   onChangeFilter: (filter: 'pending' | 'archived') => void;
   onOpenCamera: () => void;
   onOpenGallery: () => void;
-  onOpenFolderSettings: () => void;
+  onAllowPhotoFolder: () => void;
   onSelectPhoto: (photoId: string) => void;
   onCloseDetail: () => void;
   onDeletePendingPhoto: (photoId: string) => Promise<boolean>;
@@ -1145,7 +1145,7 @@ export function PhotoPanel({
   onChangeFilter,
   onOpenCamera,
   onOpenGallery,
-  onOpenFolderSettings,
+  onAllowPhotoFolder,
   onSelectPhoto,
   onCloseDetail,
   onDeletePendingPhoto,
@@ -1195,9 +1195,9 @@ export function PhotoPanel({
           <button
             className="ghost-button photo-folder-notice-button"
             type="button"
-            onClick={onOpenFolderSettings}
+            onClick={onAllowPhotoFolder}
           >
-            Open settings
+            Allow folder access
           </button>
         </aside>
       ) : null}

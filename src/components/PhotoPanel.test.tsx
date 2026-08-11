@@ -32,13 +32,13 @@ function renderPanel({
   onSelectPhoto = vi.fn(),
   onDeletePendingPhoto = vi.fn().mockResolvedValue(true),
   folderNeedsPermission = false,
-  onOpenFolderSettings = vi.fn()
+  onAllowPhotoFolder = vi.fn()
 }: {
   filter?: 'pending' | 'archived';
   onSelectPhoto?: (photoId: string) => void;
   onDeletePendingPhoto?: (photoId: string) => Promise<boolean>;
   folderNeedsPermission?: boolean;
-  onOpenFolderSettings?: () => void;
+  onAllowPhotoFolder?: () => void;
 } = {}) {
   return render(
     <PhotoPanel
@@ -56,7 +56,7 @@ function renderPanel({
       onChangeFilter={vi.fn()}
       onOpenCamera={vi.fn()}
       onOpenGallery={vi.fn()}
-      onOpenFolderSettings={onOpenFolderSettings}
+      onAllowPhotoFolder={onAllowPhotoFolder}
       onSelectPhoto={onSelectPhoto}
       onCloseDetail={vi.fn()}
       onDeletePendingPhoto={onDeletePendingPhoto}
@@ -237,16 +237,16 @@ describe('PhotoPanel folder import', () => {
     expect(screen.queryByRole('button', { name: 'Open settings' })).not.toBeInTheDocument();
   });
 
-  it('shows only a compact permission notice and opens settings from it', () => {
-    const onOpenFolderSettings = vi.fn();
+  it('shows only a compact permission notice and requests access from it', () => {
+    const onAllowPhotoFolder = vi.fn();
     renderPanel({
       folderNeedsPermission: true,
-      onOpenFolderSettings
+      onAllowPhotoFolder
     });
 
     expect(screen.getByLabelText('Photo folder access needed')).toHaveTextContent('needs access');
-    expect(screen.queryByRole('button', { name: 'Allow folder access' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
-    expect(onOpenFolderSettings).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Open settings' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
+    expect(onAllowPhotoFolder).toHaveBeenCalledTimes(1);
   });
 });

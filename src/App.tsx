@@ -207,6 +207,7 @@ export default function App() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const photoFolderScanRef = useRef<Promise<void> | null>(null);
+  const photoFolderPermissionRequestRef = useRef<Promise<void> | null>(null);
   const photoFolderSessionRef = useRef<{
     directory: FileSystemDirectoryHandle;
     permissionGranted: boolean;
@@ -1070,51 +1071,64 @@ export default function App() {
     }
   }
 
-  async function handleAllowPhotoFolder() {
-    try {
-      const directory =
-        photoFolderSessionRef.current?.directory ?? (await getSavedPhotoDirectory());
-      if (!directory) {
-        photoFolderSessionRef.current = null;
-        setPhotoFolderState({
-          name: null,
-          permission: null,
-          status: 'none',
-          importedCount: 0,
-          message: ''
-        });
-        return;
-      }
+  function handleAllowPhotoFolder() {
+    if (photoFolderPermissionRequestRef.current) {
+      return photoFolderPermissionRequestRef.current;
+    }
 
-      const permission = await getPhotoDirectoryPermission(directory, true);
-      if (permission === 'granted') {
+    const request = (async () => {
+      try {
+        const directory = photoFolderSessionRef.current?.directory;
+        if (!directory) {
+          photoFolderSessionRef.current = null;
+          setPhotoFolderState({
+            name: null,
+            permission: null,
+            status: 'none',
+            importedCount: 0,
+            message: ''
+          });
+          return;
+        }
+
+        const permission = await getPhotoDirectoryPermission(directory, true);
+        if (permission === 'granted') {
+          photoFolderSessionRef.current = {
+            directory,
+            permissionGranted: true
+          };
+          await scanPhotoFolder(directory);
+          return;
+        }
+
         photoFolderSessionRef.current = {
           directory,
-          permissionGranted: true
+          permissionGranted: false
         };
-        await scanPhotoFolder(directory);
-        return;
+        setPhotoFolderState({
+          name: directory.name,
+          permission,
+          status: 'permission',
+          importedCount: 0,
+          message: 'Folder access was not granted. Try allowing access again.'
+        });
+      } catch {
+        setPhotoFolderState((current) => ({
+          ...current,
+          status: 'permission',
+          importedCount: 0,
+          message: 'Folder access could not be requested. Try again.'
+        }));
       }
+    })();
 
-      photoFolderSessionRef.current = {
-        directory,
-        permissionGranted: false
-      };
-      setPhotoFolderState({
-        name: directory.name,
-        permission,
-        status: 'permission',
-        importedCount: 0,
-        message: 'Folder access was not granted. You can choose the folder again.'
-      });
-    } catch {
-      setPhotoFolderState((current) => ({
-        ...current,
-        status: 'error',
-        importedCount: 0,
-        message: 'Folder access could not be requested.'
-      }));
-    }
+    photoFolderPermissionRequestRef.current = request;
+    void request.finally(() => {
+      if (photoFolderPermissionRequestRef.current === request) {
+        photoFolderPermissionRequestRef.current = null;
+      }
+    });
+    return request;
   }
 
   async function handlePhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
@@ -1319,7 +1333,9 @@ export default function App() {
             onChangeFilter={setActivePhotoFilter}
             onOpenCamera={handleOpenCamera}
             onOpenGallery={() => galleryInputRef.current?.click()}
-            onOpenFolderSettings={() => setActiveTab('settings')}
+            onAllowPhotoFolder={() => {
+              void handleAllowPhotoFolder();
+            }}
             onSelectPhoto={setSelectedPhotoId}
             onCloseDetail={() => setSelectedPhotoId(null)}
             onDeletePendingPhoto={handleDeletePendingPhoto}

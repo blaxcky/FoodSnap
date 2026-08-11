@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -86,15 +86,15 @@ describe('App photo folder lifecycle', () => {
     expect(folderMocks.scanPhotoDirectory).not.toHaveBeenCalled();
     expect(folderMocks.getPhotoDirectoryPermission).not.toHaveBeenCalledWith(directory, true);
 
-    fireEvent.click(screen.getByText('Open settings'));
-    const allowButton = await screen.findByRole('button', { name: 'Allow folder access' });
-    expect(folderMocks.getPhotoDirectoryPermission).not.toHaveBeenCalledWith(directory, true);
-
-    fireEvent.click(allowButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
     await waitFor(() =>
       expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledWith(directory, true)
     );
     await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: 'Photos' })).toHaveClass('active');
+    expect(screen.queryByLabelText('Photo folder access needed')).not.toBeInTheDocument();
+    expect(folderMocks.getSavedPhotoDirectory).toHaveBeenCalledTimes(1);
+    expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(2);
 
     const permissionCallsAfterGrant = folderMocks.getPhotoDirectoryPermission.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Log' }));
@@ -107,6 +107,61 @@ describe('App photo folder lifecycle', () => {
     );
     expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'Allow folder access' })).not.toBeInTheDocument();
+  });
+
+  it.each(['prompt', 'denied'] as const)(
+    'keeps the Photos permission notice retryable when direct access returns %s',
+    async (permission) => {
+      folderMocks.getPhotoDirectoryPermission.mockImplementation(
+        async (_directory: FileSystemDirectoryHandle, requestAccess?: boolean) =>
+          requestAccess ? permission : 'prompt'
+      );
+      render(<App />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+      const allowButton = await screen.findByRole('button', { name: 'Allow folder access' });
+      fireEvent.click(allowButton);
+
+      await waitFor(() =>
+        expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(2)
+      );
+      expect(screen.getByLabelText('Photo folder access needed')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Photos' })).toHaveClass('active');
+      expect(folderMocks.scanPhotoDirectory).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
+      await waitFor(() =>
+        expect(folderMocks.getPhotoDirectoryPermission).toHaveBeenCalledTimes(3)
+      );
+      expect(folderMocks.scanPhotoDirectory).not.toHaveBeenCalled();
+    }
+  );
+
+  it('coalesces quick repeated permission clicks into one request', async () => {
+    let resolvePermission: (permission: PermissionState) => void = () => undefined;
+    const pendingPermission = new Promise<PermissionState>((resolve) => {
+      resolvePermission = resolve;
+    });
+    folderMocks.getPhotoDirectoryPermission.mockImplementation(
+      async (_directory: FileSystemDirectoryHandle, requestAccess?: boolean) =>
+        requestAccess ? pendingPermission : 'prompt'
+    );
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    const allowButton = await screen.findByRole('button', { name: 'Allow folder access' });
+    fireEvent.click(allowButton);
+    fireEvent.click(allowButton);
+
+    expect(
+      folderMocks.getPhotoDirectoryPermission.mock.calls.filter(([, request]) => request).length
+    ).toBe(1);
+    await act(async () => {
+      resolvePermission('denied');
+      await pendingPermission;
+    });
+    expect(screen.getByRole('button', { name: 'Allow folder access' })).toBeInTheDocument();
+    expect(folderMocks.scanPhotoDirectory).not.toHaveBeenCalled();
   });
 
   it('checks Chromium again in a new app process instead of restoring a granted value', async () => {
@@ -139,7 +194,7 @@ describe('App photo folder lifecycle', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
       await screen.findByLabelText('Photo folder access needed');
-      fireEvent.click(screen.getByText('Open settings'));
+      fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
 
       expect(await screen.findByText(revokedPermission === 'denied' ? 'Blocked' : 'Required'))
         .toBeInTheDocument();

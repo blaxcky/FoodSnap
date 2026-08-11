@@ -95,8 +95,8 @@ describe('SettingsPanel photo folder import', () => {
     });
 
     expect(screen.getByText(label)).toBeInTheDocument();
-    expect(screen.getByText(/Allow on every visit/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chromium decides how long access lasts/i)).toBeInTheDocument();
+    expect(screen.getByText(/may ask again after FoodSnap is fully closed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reopen Photos/i)).toHaveTextContent('Allow folder access');
     expect(onAllowFolder).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Allow folder access' }));
     expect(onAllowFolder).toHaveBeenCalledTimes(1);

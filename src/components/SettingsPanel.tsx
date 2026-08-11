@@ -433,8 +433,8 @@ export function SettingsPanel({
         ) : null}
         {folderSupported && folderStatus === 'permission' ? (
           <p className="settings-folder-permission-note">
-            Chromium decides how long access lasts. If it offers “Allow on every visit”, you can
-            choose that option for lasting access.
+            Android Chromium may ask again after FoodSnap is fully closed. Reopen Photos and use
+            “Allow folder access” there to continue scanning this folder.
           </p>
         ) : null}
         {folderSupported && folderStatus !== 'none' && folderMessage ? (
