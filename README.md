@@ -1,124 +1,105 @@
 # FoodSnap
 
-FoodSnap is a mobile-first PWA for ultra-fast manual food logging. It captures only what matters for later AI analysis:
+FoodSnap is a mobile-first, local-only food logger available as a PWA and a native Android app. It captures only what matters for later AI analysis:
 
 - food name
 - direct grams or pieces
 - before/after weight difference
 - optional note
 
-There is no calorie database, no account system, and no backend. Everything is local and static-hosting friendly.
+There is no calorie database, account system, or backend. Everything is local and static-hosting friendly.
+
+## Features
+
+- autocomplete suggestions from your own saved foods
+- direct mode and before/after difference mode
+- session editing, duplication, deletion, and plain-text export
+- camera, gallery, and recursive photo-folder imports
+- duplicate-safe Android folder scans at each cold app start
+- offline-capable PWA
 
 ## Stack
 
-- React
-- TypeScript
-- Vite
-- localStorage for persistence
-- `vite-plugin-pwa` for installability and offline asset caching
-
-## Key behavior
-
-- autocomplete suggestions from your own saved foods
-- unknown foods accepted immediately and remembered automatically
-- direct mode and before/after difference mode
-- current session editing, duplication, and deletion
-- one-tap plain-text export
-- favorite foods and inline food renaming
-- offline-capable PWA
-
-## Project structure
-
-```text
-.
-|-- .github/workflows/deploy.yml
-|-- PLAN.md
-|-- public/
-|   |-- favicon.svg
-|   |-- pwa-icon.svg
-|   `-- pwa-maskable.svg
-|-- src/
-|   |-- components/
-|   |   |-- EntryComposer.tsx
-|   |   |-- ExportPanel.tsx
-|   |   |-- FoodLibrary.tsx
-|   |   `-- SessionList.tsx
-|   |-- lib/
-|   |   |-- export.ts
-|   |   |-- search.ts
-|   |   |-- storage.ts
-|   |   |-- types.ts
-|   |   `-- utils.ts
-|   |-- styles/
-|   |   `-- app.css
-|   |-- App.tsx
-|   |-- main.tsx
-|   `-- vite-env.d.ts
-|-- index.html
-|-- package.json
-|-- tsconfig.app.json
-|-- tsconfig.json
-|-- tsconfig.node.json
-`-- vite.config.ts
-```
+- React, TypeScript, and Vite
+- `localStorage` for log data
+- IndexedDB for photo blobs and folder-import history
+- `vite-plugin-pwa` for browser installation and offline caching
+- Capacitor 8 for the native Android package
 
 ## Local setup
 
-1. Install dependencies:
+```bash
+npm install
+npm test
+npm run dev
+npm run build
+```
 
-   ```bash
-   npm install
-   ```
+## Android app
 
-2. Start the dev server:
+The Android package ID is permanently set to `io.github.blaxcky.foodsnap`. Android 7.0 (API 24) or newer is required.
 
-   ```bash
-   npm run dev
-   ```
+To build locally, install Android Studio/SDK and use JDK 21, then run:
 
-3. Build the production app:
+```bash
+npm run android:sync
+cd android
+./gradlew test lint assembleDebug
+```
 
-   ```bash
-   npm run build
-   ```
+The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. `npm run android:open` opens the project in Android Studio.
 
-## Architecture decisions
+Direct camera mode requests only Android's `CAMERA` permission. Folder import uses Android's system document-tree picker and does not request broad storage or media access. Android retains read access to the selected folder and its subfolders across app and device restarts. If the folder is moved or access is revoked, select it again in Settings; already imported photos are not removed.
 
-- Single-screen workflow: the app keeps capture, review, and export on one page to reduce taps.
-- `localStorage` instead of IndexedDB: the data volume is small and fast startup matters more than database complexity for the MVP.
-- No client-side router: GitHub Pages deployment is simpler and more reliable when the app is a single static entry point.
-- PWA via `vite-plugin-pwa`: keeps manifest and service worker generation aligned with the Vite base path.
-- Learned food list: every save updates frequency and recency, which drives autocomplete and quick chips.
+The PWA and APK have separate app storage. Installing the APK does not migrate browser data, and uninstalling either version does not affect the other's data. Food-memory backups can be exported and imported manually.
+
+## Install releases and Obtainium
+
+Each push to `main` publishes a signed universal APK in [GitHub Releases](https://github.com/blaxcky/FoodSnap/releases). Download `FoodSnap-vX.Y.Z.apk`, allow installation from your browser or file manager, and open it.
+
+For automatic update tracking with [Obtainium](https://obtainium.imranr.dev/), add:
+
+```text
+https://github.com/blaxcky/FoodSnap
+```
+
+The release tag and APK version use `v<package major>.<package minor>.<GitHub run number>`. The release signing certificate SHA-256 fingerprint is:
+
+```text
+3C:B1:65:2F:96:BC:D5:81:E0:59:09:0E:62:A9:1E:70:25:32:94:76:EB:EA:24:04:68:00:16:BB:A7:44:40:7F
+```
+
+Verify a downloaded APK with Android SDK tools:
+
+```bash
+apksigner verify --print-certs FoodSnap-vX.Y.Z.apk
+aapt dump badging FoodSnap-vX.Y.Z.apk
+sha256sum --check FoodSnap-vX.Y.Z.apk.sha256
+```
+
+## Release signing
+
+The release keystore and recovery password are local-only files under the ignored `.signing/` directory. Keep an encrypted backup: losing the key makes it impossible to update existing APK installations.
+
+The Android release workflow requires these repository secrets:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS` (`foodsnap`)
+- `ANDROID_KEY_PASSWORD`
+
+The workflow runs the web tests and build, synchronizes Capacitor, runs Gradle tests and lint, builds a signed universal APK, and publishes the APK plus its SHA-256 checksum. Re-running the same workflow run updates its existing release.
 
 ## GitHub Pages deployment
 
-This repo includes [deploy.yml](/Users/markusschwarz/Programmierung/FoodSnap/.github/workflows/deploy.yml), which builds and publishes the app to GitHub Pages.
+`.github/workflows/deploy.yml` builds and publishes the PWA. Configure `Settings -> Pages -> Build and deployment` to use GitHub Actions. The workflow derives the project-page base path automatically; native builds always use `/`.
 
-### What the workflow handles
+The PWA service worker is registered only in a browser. The Capacitor app loads its bundled assets directly, and its app data is isolated from the website by Android.
 
-- installs dependencies with `npm ci`
-- computes the correct base path automatically
-- uses `/` for `username.github.io`
-- uses `/<repo>/` for project pages
-- builds the static app and deploys `dist/`
+## Architecture decisions
 
-### Enable deployment in GitHub
-
-1. Push the repository to GitHub.
-2. Open the repository settings.
-3. Go to `Settings -> Pages`.
-4. Under `Build and deployment`, choose `GitHub Actions` as the source.
-5. Push to `main`, or run the workflow manually from the Actions tab.
-
-## PWA notes
-
-- The app is installable after the first successful load.
-- Static assets are cached for offline reuse.
-- Because the app has no backend, all saved data remains in the browser on that device.
-
-## Future extension points
-
-- aliases and synonym groups for foods
-- multiple saved sessions or date-based history
-- export/import backup files
-- optional barcode or voice helpers kept separate from the core flow
+- No client-side router keeps static hosting straightforward.
+- A platform-neutral folder adapter preserves the browser File System Access flow and delegates Android access to a small native Storage Access Framework plugin.
+- Imported photos are resized to at most 1600 pixels on the longest edge and encoded as JPEG at quality 0.82 before IndexedDB storage.
+- Folder import history uses relative path, byte size, and modification time for duplicate detection. Selecting a different folder clears that history.
+- The Android folder is scanned once per new app process; the PWA scans whenever the Photos tab opens.

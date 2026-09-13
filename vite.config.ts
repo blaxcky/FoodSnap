@@ -14,13 +14,15 @@ function normalizeBasePath(input?: string) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const base = normalizeBasePath(env.VITE_BASE_PATH);
+  const isNative = env.VITE_NATIVE === 'true';
+  const base = isNative ? '/' : normalizeBasePath(env.VITE_BASE_PATH);
 
   return {
     base,
     plugins: [
       react(),
       VitePWA({
+        disable: isNative,
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'pwa-icon.svg', 'pwa-maskable.svg'],
         manifest: {

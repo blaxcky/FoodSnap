@@ -20,6 +20,7 @@ const baseProps: ComponentProps<typeof SettingsPanel> = {
   photoSizeReduction: 0,
   autoPhotoSize: false,
   folderSupported: true,
+  folderPlatform: 'web' as const,
   folderName: null,
   folderPermission: null,
   folderStatus: 'none' as PhotoFolderStatus,

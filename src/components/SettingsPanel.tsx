@@ -23,6 +23,7 @@ interface SettingsPanelProps {
   photoSizeReduction: number;
   autoPhotoSize: boolean;
   folderSupported: boolean;
+  folderPlatform: 'web' | 'android';
   folderName: string | null;
   folderPermission: PermissionState | null;
   folderStatus: PhotoFolderStatus;
@@ -64,6 +65,7 @@ export function SettingsPanel({
   photoSizeReduction,
   autoPhotoSize,
   folderSupported,
+  folderPlatform,
   folderName,
   folderPermission,
   folderStatus,
@@ -207,7 +209,10 @@ export function SettingsPanel({
           <div className="settings-row">
             <div className="settings-row-copy">
               <h3>Data storage</h3>
-              <p>Foods, save counts, and the current session are stored locally in the browser.</p>
+              <p>
+                Foods, save counts, and the current session are stored locally in this
+                {folderPlatform === 'android' ? ' app.' : ' browser.'}
+              </p>
             </div>
             <div className="settings-row-value settings-row-value-strong">Local only</div>
           </div>
@@ -352,7 +357,11 @@ export function SettingsPanel({
           <p id="settings-photo-folder-title" className="settings-section-title">
             Photo folder import
           </p>
-          <p className="settings-section-caption">Automatic imports when the Photos tab opens</p>
+          <p className="settings-section-caption">
+            {folderPlatform === 'android'
+              ? 'Automatic imports when the app starts'
+              : 'Automatic imports when the Photos tab opens'}
+          </p>
         </div>
 
         {!folderSupported ? (
@@ -372,12 +381,16 @@ export function SettingsPanel({
                 <h3>{folderName ?? 'Choose an import folder'}</h3>
                 <p>
                   {folderName
-                    ? 'FoodSnap remembers this folder and checks it when you open Photos.'
-                    : 'Import existing images and check the same folder for new photos whenever Photos opens.'}
+                    ? folderPlatform === 'android'
+                      ? 'FoodSnap keeps read access and checks this folder and its subfolders whenever the app starts.'
+                      : 'FoodSnap remembers this folder and checks it when you open Photos.'
+                    : folderPlatform === 'android'
+                      ? 'Grant lasting access to a folder and automatically import new images at app start.'
+                      : 'Import existing images and check the same folder for new photos whenever Photos opens.'}
                 </p>
               </div>
               <div className="settings-row-control settings-folder-actions">
-                {folderStatus === 'permission' ? (
+                {folderStatus === 'permission' && folderPlatform === 'web' ? (
                   <button
                     className="primary-button settings-inline-button"
                     type="button"
@@ -392,7 +405,9 @@ export function SettingsPanel({
                   onClick={onChooseFolder}
                   disabled={folderStatus === 'loading' || folderStatus === 'scanning'}
                 >
-                  {folderName ? 'Change folder' : 'Choose folder'}
+                  {folderStatus === 'permission' && folderPlatform === 'android'
+                    ? 'Select folder again'
+                    : folderName ? 'Change folder' : 'Choose folder'}
                 </button>
               </div>
             </div>
@@ -403,9 +418,13 @@ export function SettingsPanel({
                   <h3>Folder access</h3>
                   <p>
                     {folderPermission === 'granted'
-                      ? 'Chromium currently allows FoodSnap to read this folder.'
+                      ? folderPlatform === 'android'
+                        ? 'Android grants FoodSnap lasting read access to this folder and its subfolders.'
+                        : 'Chromium currently allows FoodSnap to read this folder.'
                       : folderPermission === 'denied'
-                        ? 'Chromium has blocked access to this folder.'
+                        ? folderPlatform === 'android'
+                          ? 'Android no longer grants access to this folder.'
+                          : 'Chromium has blocked access to this folder.'
                         : 'Chromium needs your permission before the next folder scan.'}
                   </p>
                 </div>
@@ -431,7 +450,7 @@ export function SettingsPanel({
         {folderSupported && folderStatus === 'scanning' ? (
           <div className="settings-folder-progress" aria-label="Scanning photo folder" />
         ) : null}
-        {folderSupported && folderStatus === 'permission' ? (
+        {folderSupported && folderStatus === 'permission' && folderPlatform === 'web' ? (
           <p className="settings-folder-permission-note">
             Android Chromium may ask again after FoodSnap is fully closed. Reopen Photos and use
             “Allow folder access” there to continue scanning this folder.

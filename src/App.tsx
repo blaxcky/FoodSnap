@@ -29,9 +29,12 @@ import {
 import {
   choosePhotoDirectory,
   getPhotoDirectoryPermission,
+  getPhotoFolderAdapter,
   getSavedPhotoDirectory,
   isPhotoFolderImportSupported,
   scanPhotoDirectory,
+  shouldScanPhotoFolderOnOpen,
+  type PhotoDirectory,
   type PhotoFolderStatus
 } from './lib/photoFolderImport';
 import {
@@ -72,6 +75,8 @@ import {
 } from './lib/utils';
 
 type AppTab = 'log' | 'history' | 'photos' | 'library' | 'export' | 'settings';
+
+const PHOTO_FOLDER_ADAPTER = getPhotoFolderAdapter();
 
 interface CommitEntryOptions {
   forceEntryId?: string;
@@ -208,12 +213,13 @@ export default function App() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const photoFolderScanRef = useRef<Promise<void> | null>(null);
   const photoFolderPermissionRequestRef = useRef<Promise<void> | null>(null);
+  const nativeStartupScanStartedRef = useRef(false);
   const photoFolderSessionRef = useRef<{
-    directory: FileSystemDirectoryHandle;
+    directory: PhotoDirectory;
     permissionGranted: boolean;
   } | null>(null);
   const photoFolderRefreshRef = useRef<Promise<{
-    directory: FileSystemDirectoryHandle | null;
+    directory: PhotoDirectory | null;
     permission: PermissionState | null;
   }> | null>(null);
 
@@ -370,7 +376,15 @@ export default function App() {
       return;
     }
 
-    if (activeTab === 'photos') {
+    if (PHOTO_FOLDER_ADAPTER.scanOnStartup) {
+      if (shouldScanPhotoFolderOnOpen(PHOTO_FOLDER_ADAPTER, activeTab, nativeStartupScanStartedRef.current)) {
+        nativeStartupScanStartedRef.current = true;
+        void refreshSavedPhotoFolder(true);
+      }
+      return;
+    }
+
+    if (shouldScanPhotoFolderOnOpen(PHOTO_FOLDER_ADAPTER, activeTab, false)) {
       void refreshSavedPhotoFolder(true);
     } else if (activeTab === 'settings') {
       void refreshSavedPhotoFolder(false);
@@ -842,7 +856,7 @@ export default function App() {
     return true;
   }
 
-  function scanPhotoFolder(directory: FileSystemDirectoryHandle) {
+  function scanPhotoFolder(directory: PhotoDirectory) {
     if (photoFolderScanRef.current) {
       return photoFolderScanRef.current;
     }
@@ -857,10 +871,10 @@ export default function App() {
       });
 
       try {
-        const result = await scanPhotoDirectory(directory, async ({ file }) => {
-          const processedBlob = await preparePhotoBlob(file);
+        const result = await scanPhotoDirectory(directory, async ({ loadBlob, lastModified }) => {
+          const processedBlob = await preparePhotoBlob(await loadBlob());
           const photoId = createId();
-          const modifiedAt = new Date(file.lastModified);
+          const modifiedAt = new Date(lastModified);
           const timestamp = Number.isNaN(modifiedAt.getTime())
             ? nowIso()
             : modifiedAt.toISOString();
@@ -921,8 +935,9 @@ export default function App() {
             permission,
             status: 'permission',
             importedCount: 0,
-            message:
-              permission === 'denied'
+            message: PHOTO_FOLDER_ADAPTER.platform === 'android'
+              ? 'Folder access was lost. Select the folder again to resume automatic imports.'
+              : permission === 'denied'
                 ? 'Folder access is blocked. Allow access to scan for new photos.'
                 : 'Allow folder access to scan for new photos.'
           });
@@ -940,7 +955,9 @@ export default function App() {
           permission: 'granted',
           status: 'error',
           importedCount: 0,
-          message: 'The folder could not be scanned. Try granting access again.'
+          message: PHOTO_FOLDER_ADAPTER.platform === 'android'
+            ? 'The folder could not be scanned. Select the folder again if it was moved or access was revoked.'
+            : 'The folder could not be scanned. Try granting access again.'
         });
       }
     })();
@@ -1021,7 +1038,9 @@ export default function App() {
                   permission,
                   status: 'complete',
                   importedCount: 0,
-                  message: 'Folder access is ready. Open Photos to check for new photos.'
+                  message: PHOTO_FOLDER_ADAPTER.platform === 'android'
+                    ? 'Folder access is ready. New photos are checked at every app start.'
+                    : 'Folder access is ready. Open Photos to check for new photos.'
                 }
           );
         }
@@ -1033,8 +1052,9 @@ export default function App() {
         permission,
         status: 'permission',
         importedCount: 0,
-        message:
-          permission === 'denied'
+        message: PHOTO_FOLDER_ADAPTER.platform === 'android'
+          ? 'Folder access was lost. Select the folder again to resume automatic imports.'
+          : permission === 'denied'
             ? 'Folder access is blocked. Allow access to scan for new photos.'
             : 'Allow folder access to scan for new photos.'
       });
@@ -1044,7 +1064,9 @@ export default function App() {
         permission: null,
         status: 'error',
         importedCount: 0,
-        message: 'The saved photo folder could not be opened.'
+        message: PHOTO_FOLDER_ADAPTER.platform === 'android'
+          ? 'The saved photo folder could not be opened. Select the folder again.'
+          : 'The saved photo folder could not be opened.'
       });
     }
   }
@@ -1404,6 +1426,7 @@ export default function App() {
             photoSizeReduction={photoSizeReduction}
             autoPhotoSize={autoPhotoSize}
             folderSupported={isPhotoFolderImportSupported()}
+            folderPlatform={PHOTO_FOLDER_ADAPTER.platform}
             folderName={photoFolderState.name}
             folderPermission={photoFolderState.permission}
             folderStatus={photoFolderState.status}

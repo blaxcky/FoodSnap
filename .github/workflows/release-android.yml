@@ -1,0 +1,120 @@
+name: Release Android APK
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test web app
+        run: npm test
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          MAJOR_MINOR="${PACKAGE_VERSION%.*}"
+          VERSION="${MAJOR_MINOR}.${GITHUB_RUN_NUMBER}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build and sync Capacitor
+        run: npm run android:sync
+
+      - name: Restore release keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/foodsnap-release.p12"
+
+      - name: Test, lint, and build signed APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/foodsnap-release.p12
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+          ANDROID_VERSION_NAME: ${{ steps.version.outputs.version }}
+        run: ./gradlew test lint assembleRelease --console=plain
+
+      - name: Verify APK identity and signature
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | grep -F "package: name='io.github.blaxcky.foodsnap' versionCode='${GITHUB_RUN_NUMBER}' versionName='${VERSION}'"
+          test "$(find android/app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | wc -l)" -eq 1
+
+      - name: Prepare release files
+        id: files
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          APK="FoodSnap-v${VERSION}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          sha256sum "$APK" > "${APK}.sha256"
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          echo "checksum=${APK}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          APK: ${{ steps.files.outputs.apk }}
+          CHECKSUM: ${{ steps.files.outputs.checksum }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" "$CHECKSUM" --clobber
+            gh release edit "$TAG" --latest
+          else
+            gh release create "$TAG" "$APK" "$CHECKSUM" --target "$GITHUB_SHA" --generate-notes --latest
+          fi
