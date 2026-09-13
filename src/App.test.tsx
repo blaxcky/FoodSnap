@@ -73,6 +73,44 @@ describe('App photo folder lifecycle', () => {
     expect(folderMocks.getPhotoDirectoryPermission).not.toHaveBeenCalledWith(directory, true);
   });
 
+  it('starts a new folder scan whenever Photos is opened again', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+
+    await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(2));
+  });
+
+  it('coalesces Photos entries while a folder scan is still running', async () => {
+    let finishScan: () => void = () => undefined;
+    folderMocks.scanPhotoDirectory.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishScan = () =>
+            resolve({
+              importedCount: 0,
+              failedCount: 0,
+              skippedCount: 0
+            });
+        })
+    );
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1);
+
+    await act(async () => finishScan());
+    expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1);
+  });
+
   it('shows folder import progress in Photos until the scan finishes', async () => {
     let finishScan: () => void = () => undefined;
     folderMocks.scanPhotoDirectory.mockImplementation(

@@ -1039,7 +1039,7 @@ export default function App() {
                   status: 'complete',
                   importedCount: 0,
                   message: PHOTO_FOLDER_ADAPTER.platform === 'android'
-                    ? 'Folder access is ready. New photos are checked at every app start.'
+                    ? 'Folder access is ready. New photos are checked at app start and whenever Photos opens.'
                     : 'Folder access is ready. Open Photos to check for new photos.'
                 }
           );

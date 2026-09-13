@@ -15,7 +15,7 @@ There is no calorie database, account system, or backend. Everything is local an
 - direct mode and before/after difference mode
 - session editing, duplication, deletion, and plain-text export
 - camera, gallery, and recursive photo-folder imports
-- duplicate-safe Android folder scans at each cold app start
+- duplicate-safe Android folder scans at each cold app start and whenever Photos opens
 - offline-capable PWA
 
 ## Stack
@@ -102,4 +102,4 @@ The PWA service worker is registered only in a browser. The Capacitor app loads 
 - A platform-neutral folder adapter preserves the browser File System Access flow and delegates Android access to a small native Storage Access Framework plugin.
 - Imported photos are resized to at most 1600 pixels on the longest edge and encoded as JPEG at quality 0.82 before IndexedDB storage.
 - Folder import history uses relative path, byte size, and modification time for duplicate detection. Selecting a different folder clears that history.
-- The Android folder is scanned once per new app process; the PWA scans whenever the Photos tab opens.
+- The Android folder is scanned once per new app process and whenever the Photos tab opens; the PWA scans whenever the Photos tab opens.

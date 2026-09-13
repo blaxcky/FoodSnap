@@ -64,6 +64,15 @@ describe('SettingsPanel photo folder import', () => {
     expect(onChooseFolder).toHaveBeenCalledTimes(1);
   });
 
+  it('describes both automatic Android scan triggers', () => {
+    renderSettings({ folderPlatform: 'android' });
+
+    expect(
+      screen.getByText('Automatic imports at app start and when Photos opens')
+    ).toBeInTheDocument();
+    expect(screen.getByText(/at app start and whenever Photos opens/i)).toBeInTheDocument();
+  });
+
   it('shows a granted folder and its last completed scan', () => {
     const onChooseFolder = vi.fn();
     renderSettings({

@@ -255,7 +255,7 @@ export function shouldScanPhotoFolderOnOpen(
   activeTab: string,
   startupScanStarted: boolean
 ) {
-  return adapter.scanOnStartup ? !startupScanStarted : activeTab === 'photos';
+  return activeTab === 'photos' || (adapter.scanOnStartup && !startupScanStarted);
 }
 export function isPhotoFolderImportSupported() { return photoFolderAdapter.isSupported(); }
 export function getSavedPhotoDirectory() { return photoFolderAdapter.getSavedDirectory(); }

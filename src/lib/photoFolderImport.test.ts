@@ -189,9 +189,11 @@ describe('photo folder import', () => {
     expect(requestPermission).toHaveBeenCalledWith({ mode: 'read' });
   });
 
-  it('uses one startup scan on Android and Photos-tab scans on the web', () => {
+  it('scans Android at startup and both platforms whenever Photos opens', () => {
     expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: true }, 'log', false)).toBe(true);
-    expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: true }, 'photos', true)).toBe(false);
+    expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: true }, 'log', true)).toBe(false);
+    expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: true }, 'settings', true)).toBe(false);
+    expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: true }, 'photos', true)).toBe(true);
     expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: false }, 'settings', false)).toBe(false);
     expect(shouldScanPhotoFolderOnOpen({ scanOnStartup: false }, 'photos', false)).toBe(true);
   });
