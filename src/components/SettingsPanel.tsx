@@ -359,8 +359,8 @@ export function SettingsPanel({
           </p>
           <p className="settings-section-caption">
             {folderPlatform === 'android'
-              ? 'Automatic imports at app start and when Photos opens'
-              : 'Automatic imports when the Photos tab opens'}
+              ? 'Automatic imports at app start, when Photos opens, and on app resume'
+              : 'Automatic imports when Photos opens or the app resumes'}
           </p>
         </div>
 
@@ -382,11 +382,11 @@ export function SettingsPanel({
                 <p>
                   {folderName
                     ? folderPlatform === 'android'
-                      ? 'FoodSnap keeps read access and checks this folder and its subfolders at app start and whenever Photos opens.'
-                      : 'FoodSnap remembers this folder and checks it when you open Photos.'
+                      ? 'FoodSnap keeps read access and checks this folder and its subfolders at app start, whenever Photos opens, and when you return to the app with Photos open.'
+                      : 'FoodSnap remembers this folder and checks it when Photos opens or you return with Photos open.'
                     : folderPlatform === 'android'
-                      ? 'Grant lasting access to a folder and automatically import new images at app start and whenever Photos opens.'
-                      : 'Import existing images and check the same folder for new photos whenever Photos opens.'}
+                      ? 'Grant lasting access to a folder and automatically import new images at app start, whenever Photos opens, and when you return to the app with Photos open.'
+                      : 'Import existing images and check the same folder whenever Photos opens or you return with Photos open.'}
                 </p>
               </div>
               <div className="settings-row-control settings-folder-actions">

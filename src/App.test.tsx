@@ -11,6 +11,16 @@ const folderMocks = vi.hoisted(() => ({
   scanPhotoDirectory: vi.fn()
 }));
 
+const appPluginMocks = vi.hoisted(() => ({
+  addListener: vi.fn()
+}));
+
+vi.mock('@capacitor/app', () => ({
+  App: {
+    addListener: appPluginMocks.addListener
+  }
+}));
+
 vi.mock('./lib/photoFolderImport', async (importOriginal) => {
   const original = await importOriginal<typeof import('./lib/photoFolderImport')>();
   return {
@@ -47,6 +57,7 @@ beforeEach(() => {
     failedCount: 0,
     skippedCount: 0
   });
+  appPluginMocks.addListener.mockResolvedValue({ remove: vi.fn() });
 });
 
 afterEach(() => {
@@ -83,6 +94,41 @@ describe('App photo folder lifecycle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
 
     await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(2));
+  });
+
+  it('starts a new folder scan when the app resumes with Photos already open', async () => {
+    render(<App />);
+
+    await waitFor(() =>
+      expect(appPluginMocks.addListener).toHaveBeenCalledWith('resume', expect.any(Function))
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }));
+    await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(1));
+
+    const resumeListener = appPluginMocks.addListener.mock.calls.find(
+      ([eventName]) => eventName === 'resume'
+    )?.[1] as (() => void) | undefined;
+
+    expect(resumeListener).toBeTypeOf('function');
+    await act(async () => resumeListener?.());
+
+    await waitFor(() => expect(folderMocks.scanPhotoDirectory).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not scan on app resume while another tab is open', async () => {
+    render(<App />);
+
+    await waitFor(() =>
+      expect(appPluginMocks.addListener).toHaveBeenCalledWith('resume', expect.any(Function))
+    );
+    const resumeListener = appPluginMocks.addListener.mock.calls.find(
+      ([eventName]) => eventName === 'resume'
+    )?.[1] as (() => void) | undefined;
+
+    expect(resumeListener).toBeTypeOf('function');
+    await act(async () => resumeListener?.());
+
+    expect(folderMocks.scanPhotoDirectory).not.toHaveBeenCalled();
   });
 
   it('coalesces Photos entries while a folder scan is still running', async () => {

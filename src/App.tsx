@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { CreateEntryModal } from './components/CreateEntryModal';
 import { CameraCaptureModal } from './components/CameraCaptureModal';
 import { EditEntryModal } from './components/EditEntryModal';
@@ -214,6 +216,7 @@ export default function App() {
   const photoFolderScanRef = useRef<Promise<void> | null>(null);
   const photoFolderPermissionRequestRef = useRef<Promise<void> | null>(null);
   const nativeStartupScanStartedRef = useRef(false);
+  const activeTabRef = useRef<AppTab>('log');
   const photoFolderSessionRef = useRef<{
     directory: PhotoDirectory;
     permissionGranted: boolean;
@@ -372,6 +375,10 @@ export default function App() {
   }, [activeTab, isComposerOpen]);
 
   useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!isHydrated || !isPhotoFolderImportSupported()) {
       return;
     }
@@ -390,6 +397,37 @@ export default function App() {
       void refreshSavedPhotoFolder(false);
     }
   }, [activeTab, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated || !isPhotoFolderImportSupported()) {
+      return;
+    }
+
+    let isDisposed = false;
+    let listenerHandle: PluginListenerHandle | null = null;
+
+    void CapacitorApp.addListener('resume', () => {
+      if (activeTabRef.current === 'photos') {
+        void refreshSavedPhotoFolder(true);
+      }
+    }).then(
+      (handle) => {
+        if (isDisposed) {
+          void handle.remove();
+        } else {
+          listenerHandle = handle;
+        }
+      },
+      () => undefined
+    );
+
+    return () => {
+      isDisposed = true;
+      if (listenerHandle) {
+        void listenerHandle.remove();
+      }
+    };
+  }, [isHydrated]);
 
   useEffect(() => {
     if (!isInputDialogOpen) {
@@ -1039,8 +1077,8 @@ export default function App() {
                   status: 'complete',
                   importedCount: 0,
                   message: PHOTO_FOLDER_ADAPTER.platform === 'android'
-                    ? 'Folder access is ready. New photos are checked at app start and whenever Photos opens.'
-                    : 'Folder access is ready. Open Photos to check for new photos.'
+                    ? 'Folder access is ready. New photos are checked at app start, whenever Photos opens, and when you return to the app with Photos open.'
+                    : 'Folder access is ready. New photos are checked whenever Photos opens or you return with Photos open.'
                 }
           );
         }
