@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PhotoItem } from '../lib/types';
+import type { FoodProfile, PhotoItem } from '../lib/types';
 import { PhotoPanel } from './PhotoPanel';
 
 vi.mock('../lib/photoStorage', () => ({
@@ -25,6 +25,24 @@ const archivedPhoto: PhotoItem = {
   completedAt: '2026-07-29T08:30:00.000Z',
   foodName: 'Apricot yogurt',
   weightGrams: 184
+};
+
+const nextPendingPhoto: PhotoItem = {
+  id: 'next-pending-photo',
+  status: 'pending',
+  createdAt: '2026-07-30T10:20:00.000Z',
+  updatedAt: '2026-07-30T10:20:00.000Z'
+};
+
+const rememberedFood: FoodProfile = {
+  id: 'apple',
+  name: 'Apple',
+  normalizedName: 'apple',
+  usageCount: 3,
+  lastUsedAt: '2026-07-30T09:00:00.000Z',
+  createdAt: '2026-07-01T09:00:00.000Z',
+  isFavorite: false,
+  lastUnit: 'g'
 };
 
 function renderPanel({
@@ -65,6 +83,35 @@ function renderPanel({
       onDeletePendingPhoto={onDeletePendingPhoto}
       onSavePhoto={vi.fn()}
     />
+  );
+}
+
+function photoDetailView(photo: PhotoItem) {
+  return (
+    <section className="screen-section screen-section-photo-detail">
+      <PhotoPanel
+        foods={[rememberedFood]}
+        pendingPhotos={[pendingPhoto, nextPendingPhoto]}
+        archivedPhotos={[archivedPhoto]}
+        activeFilter="pending"
+        selectedPhoto={photo}
+        isBusy={false}
+        feedbackMessage=""
+        feedbackTone="idle"
+        photoSizeReduction={0}
+        autoPhotoSize={false}
+        folderActivity={null}
+        folderNeedsPermission={false}
+        onChangeFilter={vi.fn()}
+        onOpenCamera={vi.fn()}
+        onOpenGallery={vi.fn()}
+        onAllowPhotoFolder={vi.fn()}
+        onSelectPhoto={vi.fn()}
+        onCloseDetail={vi.fn()}
+        onDeletePendingPhoto={vi.fn().mockResolvedValue(true)}
+        onSavePhoto={vi.fn()}
+      />
+    </section>
   );
 }
 
@@ -123,6 +170,64 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('PhotoPanel detail keyboard flow', () => {
+  it('keeps suggestions above an open keyboard when advancing to the next photo', async () => {
+    class MockVisualViewport extends EventTarget {
+      height = 800;
+      offsetTop = 0;
+    }
+
+    const viewport = new MockVisualViewport();
+    vi.stubGlobal('visualViewport', viewport);
+    vi.stubGlobal('innerHeight', 800);
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    );
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+    const { rerender } = render(photoDetailView(pendingPhoto));
+    const detailSection = document.querySelector('.screen-section-photo-detail');
+    const firstFoodInput = screen.getByRole('textbox', { name: 'Food' });
+
+    expect(firstFoodInput).toHaveFocus();
+
+    act(() => {
+      viewport.height = 500;
+      viewport.dispatchEvent(new Event('resize'));
+    });
+
+    expect(detailSection).toHaveClass('photo-detail-keyboard-visible');
+
+    firstFoodInput.textContent = 'Apple';
+    fireEvent.input(firstFoodInput);
+    fireEvent.keyDown(firstFoodInput, { key: 'Enter' });
+    expect(screen.getByRole('textbox', { name: 'Weight' })).toHaveFocus();
+
+    rerender(photoDetailView(nextPendingPhoto));
+
+    const nextFoodInput = screen.getByRole('textbox', { name: 'Food' });
+    expect(nextFoodInput).toHaveFocus();
+    expect(nextFoodInput).toHaveTextContent('');
+    expect(detailSection).toHaveClass('photo-detail-keyboard-visible');
+
+    nextFoodInput.textContent = 'Ap';
+    fireEvent.input(nextFoodInput);
+
+    const suggestions = await screen.findByRole('listbox', { name: 'Food suggestions' });
+    expect(suggestions.closest('.photo-detail-suggestions')).toBeInTheDocument();
+    expect(detailSection).toHaveClass('photo-detail-keyboard-visible');
+  });
 });
 
 describe('PhotoPanel cards', () => {

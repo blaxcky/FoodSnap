@@ -564,7 +564,7 @@ function PhotoDetail({
     [foods, deferredQuery]
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setStep('food');
     setFoodName(photo.foodName ?? '');
     setWeightGrams(photo.weightGrams != null ? String(photo.weightGrams) : '');
@@ -1158,7 +1158,6 @@ export function PhotoPanel({
   if (selectedPhoto) {
     return (
       <PhotoDetail
-        key={selectedPhoto.id}
         foods={foods}
         photo={selectedPhoto}
         isBusy={isBusy}
